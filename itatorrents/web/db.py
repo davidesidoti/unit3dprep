@@ -1,87 +1,98 @@
-"""SQLite upload history — stdlib sqlite3 + executor (no aiosqlite)."""
+"""Upload history — JSON file store. No sqlite3 dependency."""
 import asyncio
+import json
 import os
-import sqlite3
+import threading
+import time
 from pathlib import Path
 
-DB_PATH = Path(os.environ.get("ITA_DB_PATH", str(Path.home() / ".itatorrents.db")))
-
-CREATE_SQL = """
-CREATE TABLE IF NOT EXISTS uploads (
-    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    category        TEXT NOT NULL,
-    kind            TEXT NOT NULL,
-    source_path     TEXT NOT NULL,
-    seeding_path    TEXT NOT NULL UNIQUE,
-    tmdb_id         TEXT,
-    title           TEXT,
-    year            TEXT,
-    final_name      TEXT,
-    uploaded_at     TEXT NOT NULL DEFAULT (datetime('now')),
-    unit3dup_exit_code INTEGER
-);
-"""
+DB_PATH = Path(os.environ.get("ITA_DB_PATH", str(Path.home() / ".itatorrents_db.json")))
+_lock = threading.Lock()
 
 
-def _connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
+def _load() -> list[dict]:
+    if not DB_PATH.exists():
+        return []
+    try:
+        with open(DB_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+
+def _save(records: list[dict]):
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(DB_PATH, "w", encoding="utf-8") as f:
+        json.dump(records, f, indent=2, ensure_ascii=False)
+
+
+def _now_iso() -> str:
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
 
 
 def _init_db_sync():
-    with _connect() as conn:
-        conn.execute(CREATE_SQL)
-        conn.commit()
+    with _lock:
+        if not DB_PATH.exists():
+            _save([])
 
 
 def _record_upload_sync(
     category, kind, source_path, seeding_path,
     tmdb_id, title, year, final_name, exit_code,
 ):
-    with _connect() as conn:
-        conn.execute(
-            """
-            INSERT INTO uploads
-                (category, kind, source_path, seeding_path, tmdb_id,
-                 title, year, final_name, unit3dup_exit_code)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(seeding_path) DO UPDATE SET
-                unit3dup_exit_code = excluded.unit3dup_exit_code,
-                uploaded_at = datetime('now')
-            """,
-            (category, kind, source_path, seeding_path,
-             tmdb_id, title, year, final_name, exit_code),
-        )
-        conn.commit()
+    with _lock:
+        records = _load()
+        # upsert by seeding_path
+        for r in records:
+            if r["seeding_path"] == seeding_path:
+                r["unit3dup_exit_code"] = exit_code
+                r["uploaded_at"] = _now_iso()
+                _save(records)
+                return
+        next_id = max((r.get("id", 0) for r in records), default=0) + 1
+        records.append({
+            "id": next_id,
+            "category": category,
+            "kind": kind,
+            "source_path": source_path,
+            "seeding_path": seeding_path,
+            "tmdb_id": tmdb_id or "",
+            "title": title or "",
+            "year": year or "",
+            "final_name": final_name or "",
+            "uploaded_at": _now_iso(),
+            "unit3dup_exit_code": exit_code,
+        })
+        _save(records)
 
 
 def _update_exit_code_sync(seeding_path: str, exit_code: int):
-    with _connect() as conn:
-        conn.execute(
-            "UPDATE uploads SET unit3dup_exit_code = ? WHERE seeding_path = ?",
-            (exit_code, seeding_path),
-        )
-        conn.commit()
+    with _lock:
+        records = _load()
+        for r in records:
+            if r["seeding_path"] == seeding_path:
+                r["unit3dup_exit_code"] = exit_code
+                _save(records)
+                return
 
 
 def _list_uploads_sync() -> list[dict]:
-    with _connect() as conn:
-        cur = conn.execute("SELECT * FROM uploads ORDER BY uploaded_at DESC")
-        return [dict(r) for r in cur.fetchall()]
+    with _lock:
+        records = _load()
+    return sorted(records, key=lambda r: r.get("uploaded_at", ""), reverse=True)
 
 
 def _get_by_seeding_sync(seeding_path: str) -> dict | None:
-    with _connect() as conn:
-        cur = conn.execute(
-            "SELECT * FROM uploads WHERE seeding_path = ?", (seeding_path,)
-        )
-        row = cur.fetchone()
-    return dict(row) if row else None
+    with _lock:
+        records = _load()
+    for r in records:
+        if r["seeding_path"] == seeding_path:
+            return r
+    return None
 
 
 # ---------------------------------------------------------------------------
-# Async wrappers (run sync fns in thread pool to avoid blocking event loop)
+# Async wrappers
 # ---------------------------------------------------------------------------
 
 async def _run(fn, *args):
