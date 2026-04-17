@@ -290,6 +290,37 @@ def tmdb_poster_url(data: dict) -> str:
     return ""
 
 
+def tmdb_search(kind: str, query: str, year: str, api_key: str) -> list[dict]:
+    """Search TMDB. kind='movie'|'tv'. Returns up to 5 normalized results."""
+    if not api_key:
+        raise RuntimeError("TMDB_API_KEY not set")
+    params: dict = {"api_key": api_key, "query": query, "language": "it-IT"}
+    if year:
+        if kind == "movie":
+            params["year"] = year
+        else:
+            params["first_air_date_year"] = year
+    url = f"{TMDB_BASE}/search/{kind}?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=15) as r:
+        data = json.loads(r.read().decode("utf-8"))
+    results = data.get("results", [])[:5]
+    normalized = []
+    for item in results:
+        title = item.get("title") or item.get("name") or ""
+        date = item.get("release_date") or item.get("first_air_date") or ""
+        y = date[:4] if len(date) >= 4 else ""
+        poster = f"{TMDB_IMAGE_BASE}{item['poster_path']}" if item.get("poster_path") else ""
+        normalized.append({
+            "id": item["id"],
+            "title": title,
+            "year": y,
+            "poster": poster,
+            "overview": (item.get("overview") or "")[:200],
+        })
+    return normalized
+
+
 # ---------------------------------------------------------------------------
 # Name builder
 # ---------------------------------------------------------------------------

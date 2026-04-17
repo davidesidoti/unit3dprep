@@ -15,6 +15,7 @@ class Season:
     label: str  # "Season 01"
     path: Path
     video_files: list[Path] = field(default_factory=list)
+    already_uploaded: bool = False
 
     @property
     def episode_count(self) -> int:
@@ -29,6 +30,15 @@ class MediaItem:
     kind: str        # movie | series
     seasons: list[Season] = field(default_factory=list)
     video_files: list[Path] = field(default_factory=list)
+    # TMDB metadata (populated by routes from cache, not by scanner)
+    tmdb_id: str = ""
+    tmdb_kind: str = ""
+    tmdb_title: str = ""
+    tmdb_poster: str = ""
+    tmdb_overview: str = ""
+    # Upload status (populated by routes)
+    already_uploaded: bool = False
+    uploaded_season_numbers: list = field(default_factory=list)
 
     @property
     def year(self) -> str:

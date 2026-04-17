@@ -123,6 +123,7 @@ def _is_prompt(text: str) -> bool:
 async def stream_unit3dup(
     args: list[str],
     input_queue: Optional[asyncio.Queue] = None,
+    tmdb_id: str = "",
 ) -> AsyncGenerator[dict, None]:
     """Async generator yielding event dicts:
       {'type': 'log',         'data': str}
@@ -181,7 +182,8 @@ async def stream_unit3dup(
             # Nothing arrived — if buffer looks like a prompt, ask the user.
             if buf and _is_prompt(buf):
                 yield {"type": "input_needed", "data": buf.strip()}
-                user_input = (await input_queue.get()) if input_queue is not None else "0"
+                _default = tmdb_id if (tmdb_id and "tmdb id" in buf.lower()) else "0"
+                user_input = (await input_queue.get()) if input_queue is not None else _default
                 proc.stdin.write((user_input + "\n").encode())
                 await proc.stdin.drain()
                 buf = ""
@@ -205,7 +207,8 @@ async def stream_unit3dup(
         # Partial line remaining — check if it's already a prompt
         if buf and _is_prompt(buf):
             yield {"type": "input_needed", "data": buf.strip()}
-            user_input = (await input_queue.get()) if input_queue is not None else "0"
+            _default = tmdb_id if (tmdb_id and "tmdb id" in buf.lower()) else "0"
+            user_input = (await input_queue.get()) if input_queue is not None else _default
             proc.stdin.write((user_input + "\n").encode())
             await proc.stdin.drain()
             buf = ""

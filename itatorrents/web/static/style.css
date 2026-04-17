@@ -494,3 +494,98 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Card poster (library grid) ── */
+.card-poster {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-partial { border-color: rgba(245,158,11,0.4); }
+.card-partial:hover { border-color: var(--yellow); }
+.card-orig-title { font-size: 11px; margin-bottom: 2px; }
+.tag-uploaded { background: rgba(245,158,11,0.2); color: #fbbf24; }
+
+/* ── Enrich status bar ── */
+.enrich-bar {
+  margin-top: 16px;
+  padding: 8px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Detail page — TMDB enriched ── */
+.detail-poster {
+  width: 100px; height: 150px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+.detail-thumb { width: auto; height: auto; min-width: 80px; }
+.detail-orig-title { font-size: 12px; margin-bottom: 8px; }
+.detail-overview {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-top: 10px;
+  max-width: 600px;
+}
+
+/* ── TMDB panel ── */
+.tmdb-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+.tmdb-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tmdb-panel-label { font-size: 13px; color: var(--text-muted); }
+.tmdb-link { color: var(--accent-hover); text-decoration: none; }
+.tmdb-link:hover { text-decoration: underline; }
+.tmdb-edit-box { margin-top: 14px; }
+
+/* ── TMDB search results ── */
+.tmdb-search-results { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.tmdb-result-row {
+  display: flex;
+  gap: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.tmdb-result-row:hover { border-color: var(--accent); }
+.tmdb-result-poster { width: 44px; height: 66px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.tmdb-result-no-poster {
+  width: 44px; height: 66px;
+  background: var(--surface);
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+}
+.tmdb-result-info { flex: 1; min-width: 0; }
+.tmdb-result-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.tmdb-result-year { font-size: 11px; margin-bottom: 4px; }
+.tmdb-result-overview { font-size: 11px; line-height: 1.4;
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+/* ── Uploaded seasons note ── */
+.uploaded-seasons-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}

@@ -10,23 +10,35 @@
 </div>
 
 {% if items %}
-<div class="grid">
+<div class="grid" id="media-grid">
   {% for item in items %}
-  <a href="{{ root_path }}/library/{{ category }}/{{ item.name }}" class="card">
+  <a href="{{ root_path }}/library/{{ category }}/{{ item.name }}"
+     class="card{% if item.uploaded_season_numbers %} card-partial{% endif %}"
+     data-source="{{ item.path }}">
     <div class="card-thumb">
-      <span class="card-thumb-icon">
+      {% if item.tmdb_poster %}
+      <img class="card-poster" src="{{ item.tmdb_poster }}" alt="{{ item.title }}" loading="lazy">
+      {% else %}
+      <span class="card-thumb-icon" id="thumb-{{ loop.index }}">
         {% if item.kind == 'series' %}📺{% elif category == 'anime' %}🎌{% else %}🎬{% endif %}
       </span>
+      {% endif %}
     </div>
     <div class="card-body">
-      <div class="card-title">{{ item.title }}</div>
+      <div class="card-title">{{ item.tmdb_title or item.title }}</div>
+      {% if item.tmdb_title and item.tmdb_title != item.title %}
+      <div class="card-orig-title muted">{{ item.title }}</div>
+      {% endif %}
       {% if item.year %}
       <div class="card-meta">{{ item.year }}</div>
       {% endif %}
       <div class="card-tags">
         <span class="tag tag-{{ item.kind }}">{{ item.kind }}</span>
         {% if item.kind == 'series' %}
-        <span class="tag tag-muted">{{ item.seasons | length }} stagioni</span>
+        <span class="tag tag-muted">{{ item.seasons | length }} stag.</span>
+        {% if item.uploaded_season_numbers %}
+        <span class="tag tag-uploaded">{{ item.uploaded_season_numbers | length }}/{{ item.seasons | length }} caricate</span>
+        {% endif %}
         {% else %}
         <span class="tag tag-muted">{{ item.total_files }} file</span>
         {% endif %}
@@ -39,6 +51,41 @@
 <div class="empty-state">
   <div class="empty-icon">📂</div>
   <p>Nessun contenuto trovato in <code>~/media/{{ category }}/</code></p>
+  <p class="muted" style="margin-top:8px;font-size:12px">I contenuti già caricati su ItaTorrents non vengono mostrati.</p>
 </div>
+{% endif %}
+
+{% if has_missing_tmdb %}
+<div id="enrich-status" class="enrich-bar">
+  <span id="enrich-text">⏳ Recupero info TMDB in background…</span>
+</div>
+<script>
+(function() {
+  const rootPath = {{ root_path | tojson }};
+  const category = {{ category | tojson }};
+  const src = new EventSource(rootPath + '/library/' + category + '/enrich');
+
+  src.addEventListener('enriched', function(e) {
+    const d = JSON.parse(e.data);
+    const card = document.querySelector('[data-source="' + d.source_path + '"]');
+    if (!card) return;
+    const thumb = card.querySelector('.card-thumb');
+    if (thumb && d.poster) {
+      thumb.innerHTML = '<img class="card-poster" src="' + d.poster + '" alt="" loading="lazy">';
+    }
+    const titleEl = card.querySelector('.card-title');
+    if (titleEl && d.title) titleEl.textContent = d.title;
+  });
+
+  src.addEventListener('done', function() {
+    src.close();
+    const bar = document.getElementById('enrich-status');
+    if (bar) bar.remove();
+  });
+
+  src.addEventListener('error', function() { src.close(); });
+  src.onerror = function() { src.close(); };
+})();
+</script>
 {% endif %}
 {% endblock %}

@@ -9,15 +9,91 @@
 
 <div class="detail-header">
   <div class="detail-thumb">
+    {% if item.tmdb_poster %}
+    <img class="detail-poster" src="{{ item.tmdb_poster }}" alt="{{ item.tmdb_title or item.title }}">
+    {% else %}
     {% if item.kind == 'series' %}📺{% elif category == 'anime' %}🎌{% else %}🎬{% endif %}
+    {% endif %}
   </div>
   <div class="detail-info">
-    <h1 class="detail-title">{{ item.title }}</h1>
+    <h1 class="detail-title">{{ item.tmdb_title or item.title }}</h1>
+    {% if item.tmdb_title and item.tmdb_title != item.title %}
+    <div class="detail-orig-title muted">{{ item.title }}</div>
+    {% endif %}
     <div class="detail-meta">
       {% if item.year %}<span class="badge">{{ item.year }}</span>{% endif %}
       <span class="tag tag-{{ item.kind }}">{{ item.kind }}</span>
       <span class="tag tag-muted">{{ item.path }}</span>
     </div>
+    {% if item.tmdb_overview %}
+    <p class="detail-overview">{{ item.tmdb_overview }}</p>
+    {% endif %}
+  </div>
+</div>
+
+{# ── TMDB panel ── #}
+<div class="tmdb-panel" id="tmdb-panel">
+  <div class="tmdb-panel-header">
+    <span class="tmdb-panel-label">
+      {% if item.tmdb_id %}
+      TMDB: <a href="https://www.themoviedb.org/{{ item.tmdb_kind }}/{{ item.tmdb_id }}" target="_blank" rel="noopener" class="tmdb-link">{{ item.tmdb_id }}</a>
+      ({{ item.tmdb_kind }})
+      {% else %}
+      TMDB: <span class="muted">non impostato</span>
+      {% endif %}
+    </span>
+    <button class="btn btn-secondary btn-sm" onclick="toggleTmdbEdit()">
+      {% if item.tmdb_id %}✏ Modifica TMDB{% else %}+ Imposta TMDB{% endif %}
+    </button>
+  </div>
+
+  <div id="tmdb-edit-form" style="display:none" class="tmdb-edit-box">
+    {# Search by title #}
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label>Cerca per titolo</label>
+        <input type="text" id="tmdb-search-q" placeholder="{{ item.title }}"
+               value="{{ item.title }}" oninput="clearTmdbResults()">
+      </div>
+      <div class="form-group">
+        <label>Anno</label>
+        <input type="text" id="tmdb-search-year" placeholder="{{ item.year }}"
+               value="{{ item.year }}" style="width:90px">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="tmdb-search-kind">
+          {% if item.tmdb_kind == 'tv' or item.kind == 'series' %}
+          <option value="tv" selected>TV / Serie</option>
+          <option value="movie">Film</option>
+          {% else %}
+          <option value="movie" selected>Film</option>
+          <option value="tv">TV / Serie</option>
+          {% endif %}
+        </select>
+      </div>
+      <div class="form-group" style="align-self:flex-end">
+        <button class="btn btn-secondary btn-sm" onclick="searchTmdb()">Cerca</button>
+      </div>
+    </div>
+    <div id="tmdb-search-results" class="tmdb-search-results"></div>
+
+    {# Direct ID entry #}
+    <div class="form-row mt-2">
+      <div class="form-group flex-1">
+        <label>Oppure inserisci direttamente l'ID TMDB</label>
+        <input type="text" id="tmdb-direct-id" placeholder="es. 438631"
+               value="{{ item.tmdb_id }}">
+      </div>
+      <div class="form-group" style="align-self:flex-end">
+        <button class="btn btn-primary btn-sm" onclick="saveTmdbDirect()">Salva</button>
+      </div>
+    </div>
+    {% if item.tmdb_id %}
+    <button class="btn btn-secondary btn-sm mt-2" onclick="clearTmdb()" style="color:var(--red)">
+      ✕ Rimuovi TMDB
+    </button>
+    {% endif %}
   </div>
 </div>
 
@@ -26,6 +102,7 @@
   {% if item.seasons %}
   <div class="seasons-list">
     {% for season in item.seasons %}
+    {% if not season.already_uploaded %}
     <div class="season-card">
       <div class="season-header">
         <span class="season-label">{{ season.label }}</span>
@@ -46,12 +123,20 @@
         <input type="hidden" name="path" value="{{ season.path }}">
         <input type="hidden" name="category" value="{{ category }}">
         <input type="hidden" name="kind" value="series">
+        <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
+        <input type="hidden" name="tmdb_kind" value="{{ item.tmdb_kind or 'tv' }}">
         <button type="submit" class="btn btn-primary">
           ⬆ Carica su ItaTorrents
         </button>
       </form>
     </div>
+    {% endif %}
     {% endfor %}
+    {% if item.uploaded_season_numbers %}
+    <div class="uploaded-seasons-note">
+      Stagioni già caricate: {{ item.uploaded_season_numbers | join(', ') }}
+    </div>
+    {% endif %}
   </div>
   {% else %}
   <p class="muted">Nessuna stagione trovata (nessuna cartella "Season XX" in {{ item.path }}).</p>
@@ -71,9 +156,90 @@
     <input type="hidden" name="path" value="{{ item.path }}">
     <input type="hidden" name="category" value="{{ category }}">
     <input type="hidden" name="kind" value="movie">
+    <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
+    <input type="hidden" name="tmdb_kind" value="{{ item.tmdb_kind or 'movie' }}">
     <button type="submit" class="btn btn-primary btn-lg">
       ⬆ Carica su ItaTorrents
     </button>
   </form>
 {% endif %}
+
+<script>
+(function() {
+  const rootPath = {{ root_path | tojson }};
+  const sourcePath = {{ item.path | string | tojson }};
+  const defaultKind = {{ (item.tmdb_kind or ('tv' if item.kind == 'series' else 'movie')) | tojson }};
+
+  window.toggleTmdbEdit = function() {
+    const el = document.getElementById('tmdb-edit-form');
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  };
+
+  window.clearTmdbResults = function() {
+    document.getElementById('tmdb-search-results').innerHTML = '';
+  };
+
+  window.searchTmdb = function() {
+    const q = document.getElementById('tmdb-search-q').value.trim();
+    const year = document.getElementById('tmdb-search-year').value.trim();
+    const kind = document.getElementById('tmdb-search-kind').value;
+    if (!q) return;
+    const url = rootPath + '/api/tmdb/search?q=' + encodeURIComponent(q) +
+      '&year=' + encodeURIComponent(year) + '&kind=' + encodeURIComponent(kind);
+    fetch(url).then(r => r.json()).then(data => {
+      const container = document.getElementById('tmdb-search-results');
+      if (!data.results || !data.results.length) {
+        container.innerHTML = '<div class="muted" style="font-size:12px;margin-top:8px">Nessun risultato.</div>';
+        return;
+      }
+      container.innerHTML = data.results.map(function(r) {
+        return '<div class="tmdb-result-row" onclick="selectTmdbResult(\'' + r.id + '\', \'' + kind + '\')">' +
+          (r.poster ? '<img src="' + r.poster + '" class="tmdb-result-poster" loading="lazy">' : '<div class="tmdb-result-no-poster">?</div>') +
+          '<div class="tmdb-result-info">' +
+          '<div class="tmdb-result-title">' + (r.title || '') + '</div>' +
+          '<div class="tmdb-result-year muted">' + (r.year || '') + ' · ID ' + r.id + '</div>' +
+          '<div class="tmdb-result-overview muted">' + (r.overview || '') + '</div>' +
+          '</div></div>';
+      }).join('');
+    });
+  };
+
+  window.selectTmdbResult = function(id, kind) {
+    document.getElementById('tmdb-direct-id').value = id;
+    document.getElementById('tmdb-search-kind').value = kind;
+    saveTmdbDirect();
+  };
+
+  window.saveTmdbDirect = function() {
+    const tmdbId = document.getElementById('tmdb-direct-id').value.trim();
+    const kind = document.getElementById('tmdb-search-kind').value;
+    if (!tmdbId) return;
+    const form = new FormData();
+    form.append('source_path', sourcePath);
+    form.append('tmdb_id', tmdbId);
+    form.append('tmdb_kind', kind);
+    fetch(rootPath + '/api/tmdb/set', { method: 'POST', body: form })
+      .then(r => r.json())
+      .then(function(d) {
+        if (d.ok) location.reload();
+      });
+  };
+
+  window.clearTmdb = function() {
+    if (!confirm('Rimuovere le info TMDB per questo media?')) return;
+    const form = new FormData();
+    form.append('source_path', sourcePath);
+    fetch(rootPath + '/api/tmdb/clear', { method: 'POST', body: form })
+      .then(function() { location.reload(); });
+  };
+
+  // Allow Enter to trigger search
+  document.addEventListener('DOMContentLoaded', function() {
+    const q = document.getElementById('tmdb-search-q');
+    if (q) q.addEventListener('keydown', function(e) { if (e.key === 'Enter') searchTmdb(); });
+    const di = document.getElementById('tmdb-direct-id');
+    if (di) di.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveTmdbDirect(); });
+  });
+})();
+</script>
 {% endblock %}

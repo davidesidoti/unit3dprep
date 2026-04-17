@@ -78,6 +78,8 @@ async def wizard_start(
     path: str = Form(...),
     category: str = Form(...),
     kind: str = Form(...),
+    tmdb_id: str = Form(""),
+    tmdb_kind: str = Form(""),
 ):
     abs_path = _validate_media_path(path)
     token = _create_session({
@@ -86,7 +88,8 @@ async def wizard_start(
         "kind": kind,
         "step": "audio",
         "audio_ok": False,
-        "tmdb_id": "",
+        "tmdb_id": tmdb_id.strip(),
+        "tmdb_kind": tmdb_kind.strip() or ("tv" if kind == "series" else "movie"),
         "tmdb_title": "",
         "tmdb_year": "",
         "tmdb_poster": "",
@@ -380,6 +383,7 @@ async def wizard_upload_stream(request: Request, token: str):
         return EventSourceResponse(_err())
 
     args = ["-b", "-u" if kind == "movie" else "-f", seeding_path]
+    tmdb_id = state.get("tmdb_id", "")
 
     # One queue per upload session; POST /wizard/{token}/stdin puts values here.
     input_queue: asyncio.Queue = asyncio.Queue()
@@ -387,7 +391,7 @@ async def wizard_upload_stream(request: Request, token: str):
 
     async def generate() -> AsyncGenerator[dict, None]:
         exit_code = 0
-        async for event in stream_unit3dup(args, input_queue=input_queue):
+        async for event in stream_unit3dup(args, input_queue=input_queue, tmdb_id=tmdb_id):
             if event["type"] == "log":
                 yield {"event": "log", "data": event["data"]}
             elif event["type"] == "input_needed":

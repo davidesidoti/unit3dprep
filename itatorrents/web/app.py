@@ -12,6 +12,7 @@ from .auth import SECRET_KEY, is_authenticated
 from .db import init_db
 from .routes import auth as auth_router
 from .routes import library as library_router
+from .routes import tmdb_api as tmdb_api_router
 from .routes import uploaded as uploaded_router
 from .routes import wizard as wizard_router
 from .templates_env import ROOT_PATH
@@ -54,6 +55,7 @@ app.mount(f"{ROOT_PATH}/static", StaticFiles(directory=str(STATIC_DIR)), name="s
 
 app.include_router(auth_router.router, prefix=ROOT_PATH)
 app.include_router(library_router.router, prefix=ROOT_PATH)
+app.include_router(tmdb_api_router.router, prefix=ROOT_PATH)
 app.include_router(wizard_router.router, prefix=ROOT_PATH)
 app.include_router(uploaded_router.router, prefix=ROOT_PATH)
 

@@ -21,6 +21,7 @@
           id="tmdb_id"
           name="tmdb_id"
           placeholder="es. 335984"
+          value="{{ state.tmdb_id or '' }}"
           required
           autofocus
         >
@@ -31,7 +32,8 @@
       <div class="form-group">
         <label for="tmdb_kind">Tipo</label>
         <select name="tmdb_kind" id="tmdb_kind">
-          {% if state.kind == 'series' %}
+          {% set preselect_tv = state.get('tmdb_kind') == 'tv' or (not state.get('tmdb_kind') and state.kind == 'series') %}
+          {% if preselect_tv %}
           <option value="tv" selected>TV / Serie</option>
           <option value="movie">Film</option>
           {% else %}

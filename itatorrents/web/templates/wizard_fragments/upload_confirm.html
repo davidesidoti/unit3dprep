@@ -48,6 +48,7 @@
 (function() {
   const token = {{ token | tojson }};
   const rootPath = {{ root_path | tojson }};
+  const prefillTmdbId = {{ (state.tmdb_id or '') | tojson }};
   var _src = null;
 
   window.startUpload = function() {
@@ -72,8 +73,18 @@
       const area = document.getElementById('stdin-input-area');
       area.style.display = 'block';
       const inp = document.getElementById('stdin-value');
-      inp.value = '';
-      inp.focus();
+      // Auto-fill TMDB ID if prompt is asking for it and we have one from cache
+      const isTmdbPrompt = e.data && e.data.toLowerCase().indexOf('tmdb') !== -1;
+      if (isTmdbPrompt && prefillTmdbId) {
+        inp.value = prefillTmdbId;
+        // Auto-submit after short delay so user can see it happening
+        setTimeout(function() {
+          if (area.style.display !== 'none') window.submitStdin();
+        }, 800);
+      } else {
+        inp.value = '';
+        inp.focus();
+      }
       logBox.scrollTop = logBox.scrollHeight;
     });
 
