@@ -107,14 +107,31 @@ def do_hardlink_series(
 
 async def stream_unit3dup(args: list[str]) -> AsyncGenerator[dict, None]:
     """Async generator yielding {'type': 'log'|'done', 'data': str, 'exit_code': int}."""
+    # Systemd user services have a minimal PATH; augment with common user bin dirs
+    # so unit3dup installed via pyenv/pip/~/.local is found even from the service.
+    home = str(Path.home())
+    extra_dirs = [
+        os.path.join(home, ".local", "bin"),
+        os.path.join(home, ".pyenv", "shims"),
+        os.path.join(home, ".pyenv", "bin"),
+        os.path.join(home, "bin"),
+    ]
+    env = os.environ.copy()
+    current_path = env.get("PATH", "")
+    env["PATH"] = os.pathsep.join(extra_dirs) + os.pathsep + current_path
+
+    # Resolve absolute path if possible (avoids relying on PATH at exec time)
+    unit3dup_bin = shutil.which("unit3dup", path=env["PATH"]) or "unit3dup"
+
     try:
         proc = await asyncio.create_subprocess_exec(
-            "unit3dup", *args,
+            unit3dup_bin, *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
+            env=env,
         )
     except FileNotFoundError:
-        yield {"type": "error", "data": "'unit3dup' not found in PATH"}
+        yield {"type": "error", "data": f"'unit3dup' not found in PATH.\nSearched: {env['PATH']}"}
         return
 
     assert proc.stdout is not None
