@@ -31,7 +31,8 @@ def _default_tmdb_kind(item) -> str:
 
 async def _enrich_item(item, cache: dict, uploaded_source_paths: set):
     """Inject TMDB cache + upload status into a MediaItem in-place."""
-    sp = str(item.path)
+    sp = str(item.path)                    # unresolved — cache key
+    sp_resolved = str(item.path.resolve()) # resolved — DB comparison
 
     # TMDB from series-level cache key
     tmdb = cache.get(sp)
@@ -45,7 +46,8 @@ async def _enrich_item(item, cache: dict, uploaded_source_paths: set):
     if item.kind == "series":
         for season in item.seasons:
             ssp = str(season.path)
-            season.already_uploaded = ssp in uploaded_source_paths
+            ssp_resolved = str(season.path.resolve())
+            season.already_uploaded = ssp_resolved in uploaded_source_paths
             # Fall back to season-level cache if series level has none
             if not item.tmdb_id:
                 s_tmdb = cache.get(ssp)
@@ -88,7 +90,7 @@ async def library_list(request: Request, category: str):
     for item in items:
         await _enrich_item(item, cache, uploaded_source_paths)
         if item.kind == "movie":
-            if str(item.path) in uploaded_source_paths:
+            if str(item.path.resolve()) in uploaded_source_paths:
                 continue  # hide already-uploaded movies
         filtered.append(item)
 
