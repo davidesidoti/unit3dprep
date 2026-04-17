@@ -1,14 +1,11 @@
 """Library browse routes: movies / series / anime list + detail."""
-from pathlib import Path
-
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ...media import CATEGORIES, get_item, scan_category
+from ..templates_env import ROOT_PATH, templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 CATEGORY_LABELS = {
     "movies": "Movies",
@@ -19,8 +16,7 @@ CATEGORY_LABELS = {
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    from starlette.responses import RedirectResponse
-    return RedirectResponse("/library/movies")
+    return RedirectResponse(f"{ROOT_PATH}/library/movies")
 
 
 @router.get("/library/{category}", response_class=HTMLResponse)

@@ -1,4 +1,4 @@
-<!-- Step 2: TMDB ID input. Loaded via HTMX GET after audio check passes. -->
+<!-- Step 2: TMDB ID input -->
 <div class="wizard-section">
   <h2 class="wizard-title">Ricerca TMDB</h2>
   <p class="wizard-subtitle">Inserisci l'ID TMDB per recuperare titolo ufficiale e anno.</p>
@@ -8,7 +8,7 @@
   {% endif %}
 
   <form
-    hx-post="/wizard/{{ token }}/tmdb"
+    hx-post="{{ root_path }}/wizard/{{ token }}/tmdb"
     hx-target="#wizard-content"
     hx-swap="innerHTML"
     hx-indicator="#tmdb-spinner"

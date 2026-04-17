@@ -2,7 +2,7 @@
 {% block title %}{{ item.title }} — ItaTorrents{% endblock %}
 {% block content %}
 <div class="breadcrumb">
-  <a href="/library/{{ category }}">{{ label }}</a>
+  <a href="{{ root_path }}/library/{{ category }}">{{ label }}</a>
   <span class="breadcrumb-sep">›</span>
   <span>{{ item.title }}</span>
 </div>
@@ -42,7 +42,7 @@
         <div class="file-row muted">+ {{ season.video_files | length - 5 }} altri...</div>
         {% endif %}
       </div>
-      <form action="/wizard/start" method="post" class="mt-2">
+      <form action="{{ root_path }}/wizard/start" method="post" class="mt-2">
         <input type="hidden" name="path" value="{{ season.path }}">
         <input type="hidden" name="category" value="{{ category }}">
         <input type="hidden" name="kind" value="series">
@@ -67,7 +67,7 @@
     </div>
     {% endfor %}
   </div>
-  <form action="/wizard/start" method="post" class="mt-4">
+  <form action="{{ root_path }}/wizard/start" method="post" class="mt-4">
     <input type="hidden" name="path" value="{{ item.path }}">
     <input type="hidden" name="category" value="{{ category }}">
     <input type="hidden" name="kind" value="movie">

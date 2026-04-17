@@ -1,4 +1,4 @@
-<!-- Step 3: Review / edit proposed names. Returned by POST /wizard/{token}/tmdb -->
+<!-- Step 3: Review / edit proposed names -->
 <div id="stepper" hx-swap-oob="true" class="stepper">
   <div class="step done"><span class="step-num">1</span><span class="step-label">Audio</span></div>
   <div class="step-line"></div>
@@ -28,7 +28,7 @@
 <p class="wizard-subtitle">Modifica i nomi proposti se necessario.</p>
 
 <form
-  hx-post="/wizard/{{ token }}/names"
+  hx-post="{{ root_path }}/wizard/{{ token }}/names"
   hx-target="#wizard-content"
   hx-swap="innerHTML"
 >

@@ -2,7 +2,7 @@
 {% block title %}Wizard Upload — ItaTorrents{% endblock %}
 {% block content %}
 <div class="breadcrumb">
-  <a href="/library/{{ state.category }}">
+  <a href="{{ root_path }}/library/{{ state.category }}">
     {% if state.category == 'movies' %}Movies{% elif state.category == 'series' %}Series{% else %}Anime{% endif %}
   </a>
   <span class="breadcrumb-sep">›</span>
@@ -36,19 +36,18 @@
 <div id="wizard-content" class="wizard-box">
 
   {% if step == 'audio' %}
-  <!-- Step 1: Audio check with SSE -->
   <h2 class="wizard-title">Analisi Tracce Audio</h2>
   <p class="wizard-subtitle">Verifica presenza lingua italiana in tutti i file video.</p>
 
   <div id="audio-list" class="audio-list"></div>
   <div id="audio-summary"></div>
-
   <div id="tmdb-form-container"></div>
 
   <script>
   (function() {
     const token = {{ token | tojson }};
-    const src = new EventSource('/wizard/' + token + '/stream/audio');
+    const rootPath = {{ root_path | tojson }};
+    const src = new EventSource(rootPath + '/wizard/' + token + '/stream/audio');
     const list = document.getElementById('audio-list');
     const summary = document.getElementById('audio-summary');
 
@@ -66,8 +65,7 @@
       const d = JSON.parse(e.data);
       if (d.all_ok) {
         summary.innerHTML = '<div class="alert alert-ok">✅ Italiano trovato in tutti i ' + d.total + ' file.</div>';
-        // Load TMDB form via HTMX
-        htmx.ajax('GET', '/wizard/' + token + '/tmdb-form', {target: '#tmdb-form-container', swap: 'innerHTML'});
+        htmx.ajax('GET', rootPath + '/wizard/' + token + '/tmdb-form', {target: '#tmdb-form-container', swap: 'innerHTML'});
       } else {
         summary.innerHTML = '<div class="alert alert-error">❌ Uno o più file non hanno traccia italiana. Upload annullato.</div>';
       }

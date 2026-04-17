@@ -12,7 +12,7 @@
 {% if items %}
 <div class="grid">
   {% for item in items %}
-  <a href="/library/{{ category }}/{{ item.name }}" class="card">
+  <a href="{{ root_path }}/library/{{ category }}/{{ item.name }}" class="card">
     <div class="card-thumb">
       <span class="card-thumb-icon">
         {% if item.kind == 'series' %}📺{% elif category == 'anime' %}🎌{% else %}🎬{% endif %}

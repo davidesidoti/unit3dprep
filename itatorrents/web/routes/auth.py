@@ -3,12 +3,11 @@ import secrets
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 
 from ..auth import login_session, logout_session, verify_password
+from ..templates_env import ROOT_PATH, templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory=str(__import__("pathlib").Path(__file__).parent.parent / "templates"))
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -24,7 +23,8 @@ async def login_submit(
 ):
     if verify_password(password):
         login_session(request, secrets.token_urlsafe(16))
-        return RedirectResponse(next or "/", status_code=303)
+        dest = next if next.startswith(ROOT_PATH or "/") else f"{ROOT_PATH}/"
+        return RedirectResponse(dest or f"{ROOT_PATH}/", status_code=303)
     return templates.TemplateResponse(
         "login.html",
         {"request": request, "next": next, "error": "Password errata."},
@@ -35,4 +35,4 @@ async def login_submit(
 @router.post("/logout")
 async def logout(request: Request):
     logout_session(request)
-    return RedirectResponse("/login", status_code=303)
+    return RedirectResponse(f"{ROOT_PATH}/login", status_code=303)

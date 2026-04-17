@@ -9,10 +9,10 @@ from typing import AsyncGenerator
 
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
 
 from ...core import tmdb_fetch, tmdb_poster_url, tmdb_year
+from ..templates_env import templates
 from ...upload import (
     build_episode_names,
     build_movie_name_from_file,
@@ -24,7 +24,6 @@ from ..auth import get_session_id
 from ..db import record_upload, update_exit_code
 
 router = APIRouter()
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
 

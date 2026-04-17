@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}ItaTorrents{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="{{ root_path }}/static/style.css">
   <script src="https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js"></script>
 </head>
 <body>
@@ -16,29 +16,29 @@
       </div>
       <ul class="nav-links">
         <li>
-          <a href="/library/movies" class="{% if active == 'movies' %}active{% endif %}">
+          <a href="{{ root_path }}/library/movies" class="{% if active == 'movies' %}active{% endif %}">
             <span class="nav-icon">🎬</span> Movies
           </a>
         </li>
         <li>
-          <a href="/library/series" class="{% if active == 'series' %}active{% endif %}">
+          <a href="{{ root_path }}/library/series" class="{% if active == 'series' %}active{% endif %}">
             <span class="nav-icon">📺</span> Series
           </a>
         </li>
         <li>
-          <a href="/library/anime" class="{% if active == 'anime' %}active{% endif %}">
+          <a href="{{ root_path }}/library/anime" class="{% if active == 'anime' %}active{% endif %}">
             <span class="nav-icon">🎌</span> Anime
           </a>
         </li>
         <li class="nav-divider"></li>
         <li>
-          <a href="/uploaded" class="{% if active == 'uploaded' %}active{% endif %}">
+          <a href="{{ root_path }}/uploaded" class="{% if active == 'uploaded' %}active{% endif %}">
             <span class="nav-icon">✅</span> Caricati
           </a>
         </li>
       </ul>
       <div class="sidebar-footer">
-        <form action="/logout" method="post">
+        <form action="{{ root_path }}/logout" method="post">
           <button type="submit" class="logout-btn">Logout</button>
         </form>
       </div>

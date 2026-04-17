@@ -33,7 +33,7 @@
 
 <button
   class="btn btn-primary mt-4"
-  hx-post="/wizard/{{ token }}/hardlink"
+  hx-post="{{ root_path }}/wizard/{{ token }}/hardlink"
   hx-target="#wizard-content"
   hx-swap="innerHTML"
   hx-indicator="#hl-spinner"

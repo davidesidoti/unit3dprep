@@ -1,15 +1,12 @@
 """Caricati — seedings tracker."""
-from pathlib import Path
-
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from ...media import scan_seedings
 from ..db import list_uploads
+from ..templates_env import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("/uploaded", response_class=HTMLResponse)
@@ -37,7 +34,6 @@ async def uploaded_page(request: Request):
             "in_db": record is not None,
         })
 
-    # DB records whose file is gone
     orphaned = [
         r for r in db_records
         if r["seeding_path"] not in seeding_paths_on_fs

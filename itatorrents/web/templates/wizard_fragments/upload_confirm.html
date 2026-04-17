@@ -37,12 +37,13 @@
 <script>
 function startUpload() {
   const token = {{ token | tojson }};
+  const rootPath = {{ root_path | tojson }};
   document.getElementById('upload-btn').disabled = true;
   document.getElementById('upload-btn').textContent = '⏳ Uploading...';
   const logBox = document.getElementById('upload-log');
   logBox.style.display = 'block';
 
-  const src = new EventSource('/wizard/' + token + '/stream/upload');
+  const src = new EventSource(rootPath + '/wizard/' + token + '/stream/upload');
 
   src.addEventListener('log', function(e) {
     const line = document.createElement('div');
@@ -58,7 +59,7 @@ function startUpload() {
     const res = document.getElementById('upload-result');
     if (d.exit_code === 0) {
       res.innerHTML = '<div class="alert alert-ok">✅ Upload completato con successo!</div>' +
-        '<a href="/uploaded" class="btn btn-secondary mt-2">Vai a Caricati</a>';
+        '<a href="' + rootPath + '/uploaded" class="btn btn-secondary mt-2">Vai a Caricati</a>';
     } else {
       res.innerHTML = '<div class="alert alert-error">❌ unit3dup ha restituito exit code ' + d.exit_code + '</div>';
     }
@@ -71,9 +72,7 @@ function startUpload() {
       '<div class="alert alert-error">❌ ' + (e.data || 'Errore SSE') + '</div>';
   });
 
-  src.onerror = function() {
-    src.close();
-  };
+  src.onerror = function() { src.close(); };
 }
 </script>
 {% endif %}
