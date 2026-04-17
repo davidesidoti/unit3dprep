@@ -182,3 +182,4 @@ cython_debug/
 /graphify-out
 /.claude
 CLAUDE.md
+AGENTS.md
