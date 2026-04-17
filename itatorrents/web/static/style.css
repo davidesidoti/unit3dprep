@@ -581,6 +581,20 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .tmdb-result-overview { font-size: 11px; line-height: 1.4;
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
+/* ── Delete button (uploaded table) ── */
+.btn-delete {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.btn-delete:hover { color: var(--red); border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+.btn-delete:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ── Uploaded seasons note ── */
 .uploaded-seasons-note {
   font-size: 12px;

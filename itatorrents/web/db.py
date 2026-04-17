@@ -91,6 +91,13 @@ def _get_by_seeding_sync(seeding_path: str) -> dict | None:
     return None
 
 
+def _delete_record_sync(seeding_path: str):
+    with _lock:
+        records = _load()
+        records = [r for r in records if r["seeding_path"] != seeding_path]
+        _save(records)
+
+
 # ---------------------------------------------------------------------------
 # Async wrappers
 # ---------------------------------------------------------------------------
@@ -133,3 +140,7 @@ async def list_uploads() -> list[dict]:
 
 async def get_upload_by_seeding_path(seeding_path: str) -> dict | None:
     return await _run(_get_by_seeding_sync, seeding_path)
+
+
+async def delete_record(seeding_path: str):
+    await _run(_delete_record_sync, seeding_path)

@@ -17,11 +17,12 @@
         <th>Anno</th>
         <th>Data</th>
         <th>Stato</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
       {% for item in items %}
-      <tr>
+      <tr id="row-{{ loop.index }}">
         <td class="mono">
           {% if item.is_dir %}📁{% else %}🎞{% endif %}
           {{ item.name }}
@@ -47,6 +48,11 @@
           <span class="tag tag-muted">—</span>
           {% endif %}
         </td>
+        <td>
+          <button class="btn-delete"
+                  onclick="deleteRow(this, {{ item.seeding_path | tojson }}, 'row-{{ loop.index }}')"
+                  title="Cancella">✕</button>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -63,17 +69,65 @@
 <div class="section-title mt-4">⚠ Record senza file (rimossi da ~/seedings/)</div>
 <div class="table-wrap">
   <table class="table">
-    <thead><tr><th>Nome</th><th>Titolo</th><th>Data</th></tr></thead>
+    <thead><tr><th>Nome</th><th>Titolo</th><th>Data</th><th></th></tr></thead>
     <tbody>
       {% for r in orphaned %}
-      <tr class="row-orphan">
+      <tr id="orphan-{{ loop.index }}">
         <td class="mono">{{ r.seeding_path.split('/')[-1] }}</td>
         <td>{{ r.title or '—' }}</td>
         <td class="muted">{{ r.uploaded_at[:16] }}</td>
+        <td>
+          <button class="btn-delete"
+                  onclick="deleteRow(this, {{ r.seeding_path | tojson }}, 'orphan-{{ loop.index }}', false)"
+                  title="Rimuovi record">✕</button>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 {% endif %}
+
+<script>
+(function() {
+  const rootPath = {{ root_path | tojson }};
+
+  window.deleteRow = function(btn, seedingPath, rowId, deleteFile) {
+    if (deleteFile === undefined) deleteFile = true;
+    const msg = deleteFile
+      ? 'Cancellare il record dal DB e rimuovere il file da ~/seedings/?\n\n' + seedingPath
+      : 'Rimuovere il record dal DB?\n\n' + seedingPath;
+    if (!confirm(msg)) return;
+
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    const form = new FormData();
+    form.append('seeding_path', seedingPath);
+    form.append('delete_file', deleteFile ? '1' : '0');
+
+    fetch(rootPath + '/uploaded/delete', { method: 'POST', body: form })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.ok) {
+          const row = document.getElementById(rowId);
+          if (row) {
+            row.style.transition = 'opacity 0.2s';
+            row.style.opacity = '0';
+            setTimeout(function() { row.remove(); }, 200);
+          }
+        } else {
+          btn.disabled = false;
+          btn.textContent = '✕';
+          alert('Errore: ' + (d.error || 'sconosciuto'));
+        }
+      })
+      .catch(function() {
+        btn.disabled = false;
+        btn.textContent = '✕';
+        alert('Errore di rete.');
+      });
+  };
+})();
+</script>
 {% endblock %}

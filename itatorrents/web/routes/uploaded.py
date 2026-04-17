@@ -1,9 +1,12 @@
 """Caricati — seedings tracker."""
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+import shutil
+from pathlib import Path
+
+from fastapi import APIRouter, Form, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from ...media import scan_seedings
-from ..db import list_uploads
+from ..db import delete_record, list_uploads
 from ..templates_env import templates
 
 router = APIRouter()
@@ -23,6 +26,7 @@ async def uploaded_page(request: Request):
         record = db_by_path.get(key)
         items.append({
             "path": p,
+            "seeding_path": key,
             "name": p.name,
             "is_dir": p.is_dir(),
             "title": record["title"] if record else "",
@@ -44,3 +48,28 @@ async def uploaded_page(request: Request):
         "orphaned": orphaned,
         "active": "uploaded",
     })
+
+
+@router.post("/uploaded/delete")
+async def uploaded_delete(seeding_path: str = Form(...), delete_file: str = Form("1")):
+    """Remove DB record and optionally the file/folder from ~/seedings/."""
+    # Safety: only allow deletion inside ~/seedings/
+    seedings_root = (Path.home() / "seedings").resolve()
+    target = Path(seeding_path).resolve()
+    if not str(target).startswith(str(seedings_root)):
+        return JSONResponse({"ok": False, "error": "Path fuori da ~/seedings/"}, status_code=403)
+
+    # Delete from filesystem if requested and exists
+    if delete_file == "1" and target.exists():
+        try:
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
+        except OSError as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    # Remove from DB (use original seeding_path string as stored)
+    await delete_record(seeding_path)
+
+    return JSONResponse({"ok": True})
