@@ -1,11 +1,20 @@
 """Library browse routes: movies / series / anime list + detail."""
+import asyncio
+import json
+import os
+from typing import AsyncGenerator
+
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
+from sse_starlette.sse import EventSourceResponse
 
+from ...core import tmdb_fetch, tmdb_poster_url, tmdb_search, tmdb_year
 from ...media import CATEGORIES, get_item, scan_category
 from ..db import list_uploads
-from ..tmdb_cache import get_many
+from ..tmdb_cache import get_many, set_cache
 from ..templates_env import ROOT_PATH, templates
+
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
 
 router = APIRouter()
 
@@ -92,6 +101,96 @@ async def library_list(request: Request, category: str):
         "active": category,
         "has_missing_tmdb": has_missing_tmdb,
     })
+
+
+@router.get("/library/{category}/enrich")
+async def library_enrich(request: Request, category: str):
+    """SSE: auto-fetch TMDB for items missing cache entries."""
+    if category not in CATEGORIES:
+        raise HTTPException(404, "Categoria non trovata")
+
+    if not TMDB_API_KEY:
+        async def _no_key():
+            yield {"event": "done", "data": "{}"}
+        return EventSourceResponse(_no_key())
+
+    async def generate() -> AsyncGenerator[dict, None]:
+        items = scan_category(category)
+        paths = [str(i.path) for i in items]
+        cache = await get_many(paths)
+        loop = asyncio.get_event_loop()
+
+        for item in items:
+            sp = str(item.path)
+            if sp in cache:
+                continue  # already cached
+
+            title = item.title
+            year = item.year
+            kind = "tv" if item.kind == "series" else "movie"
+
+            try:
+                results = await loop.run_in_executor(
+                    None, tmdb_search, kind, title, year, TMDB_API_KEY
+                )
+            except Exception:
+                await asyncio.sleep(0.25)
+                continue
+
+            if not results:
+                await asyncio.sleep(0.25)
+                continue
+
+            best = results[0]
+            # Sanity-check: year must roughly match (±1) if both present
+            if year and best.get("year"):
+                try:
+                    if abs(int(best["year"]) - int(year)) > 1:
+                        await asyncio.sleep(0.25)
+                        continue
+                except ValueError:
+                    pass
+
+            tmdb_id = str(best["id"])
+            try:
+                data = await loop.run_in_executor(
+                    None, tmdb_fetch, kind, tmdb_id, TMDB_API_KEY
+                )
+            except Exception:
+                await asyncio.sleep(0.25)
+                continue
+
+            t = data.get("title") or data.get("name") or best["title"]
+            y = tmdb_year(data, kind) or best.get("year", "")
+            poster = tmdb_poster_url(data) or best.get("poster", "")
+            overview = (data.get("overview") or "")[:300]
+
+            await set_cache(
+                sp,
+                tmdb_id=tmdb_id,
+                tmdb_kind=kind,
+                title=t,
+                year=y,
+                poster=poster,
+                overview=overview,
+            )
+
+            yield {
+                "event": "enriched",
+                "data": json.dumps({
+                    "source_path": sp,
+                    "tmdb_id": tmdb_id,
+                    "title": t,
+                    "year": y,
+                    "poster": poster,
+                }),
+            }
+
+            await asyncio.sleep(0.25)  # ~4 req/s TMDB rate limit
+
+        yield {"event": "done", "data": "{}"}
+
+    return EventSourceResponse(generate())
 
 
 @router.get("/library/{category}/{item_name:path}", response_class=HTMLResponse)
