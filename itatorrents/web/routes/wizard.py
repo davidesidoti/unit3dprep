@@ -109,8 +109,7 @@ async def wizard_start(
 @router.get("/wizard/{token}", response_class=HTMLResponse)
 async def wizard_step1(request: Request, token: str):
     state = _get_session(token)
-    return templates.TemplateResponse("wizard.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "wizard.html", {
         "token": token,
         "state": state,
         "step": "audio",
@@ -168,8 +167,7 @@ async def wizard_audio_stream(request: Request, token: str):
 @router.get("/wizard/{token}/tmdb-form", response_class=HTMLResponse)
 async def wizard_tmdb_form(request: Request, token: str):
     state = _get_session(token)
-    return templates.TemplateResponse("wizard_fragments/tmdb_form.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "wizard_fragments/tmdb_form.html", {
         "token": token,
         "state": state,
         "tmdb_error": "",
@@ -197,8 +195,7 @@ async def wizard_tmdb(
             None, tmdb_fetch, tmdb_kind, tmdb_id, TMDB_API_KEY
         )
     except Exception as e:
-        return templates.TemplateResponse("wizard_fragments/tmdb_form.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "wizard_fragments/tmdb_form.html", {
             "token": token,
             "state": state,
             "tmdb_error": str(e),
@@ -266,8 +263,7 @@ async def wizard_tmdb(
 
     state["final_names"] = proposed
 
-    return templates.TemplateResponse("wizard_fragments/names_form.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "wizard_fragments/names_form.html", {
         "token": token,
         "state": state,
         "proposed": proposed,
@@ -297,8 +293,7 @@ async def wizard_names(request: Request, token: str):
         state["folder_name"] = folder_name
     state["step"] = "hardlink"
 
-    return templates.TemplateResponse("wizard_fragments/hardlink_confirm.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "wizard_fragments/hardlink_confirm.html", {
         "token": token,
         "state": state,
     })
@@ -361,8 +356,7 @@ async def wizard_hardlink(request: Request, token: str):
     except Exception as e:
         errors.append(str(e))
 
-    return templates.TemplateResponse("wizard_fragments/upload_confirm.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "wizard_fragments/upload_confirm.html", {
         "token": token,
         "state": state,
         "seeding_path": seeding_path,

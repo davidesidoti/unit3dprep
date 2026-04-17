@@ -39,8 +39,7 @@ async def uploaded_page(request: Request):
         if r["seeding_path"] not in seeding_paths_on_fs
     ]
 
-    return templates.TemplateResponse("uploaded.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "uploaded.html", {
         "items": items,
         "orphaned": orphaned,
         "active": "uploaded",

@@ -24,8 +24,7 @@ async def library_list(request: Request, category: str):
     if category not in CATEGORIES:
         raise HTTPException(404, "Categoria non trovata")
     items = scan_category(category)
-    return templates.TemplateResponse("library.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "library.html", {
         "category": category,
         "label": CATEGORY_LABELS[category],
         "items": items,
@@ -40,8 +39,7 @@ async def library_detail(request: Request, category: str, item_name: str):
     item = get_item(category, item_name)
     if item is None:
         raise HTTPException(404, f"'{item_name}' non trovato in {category}")
-    return templates.TemplateResponse("detail.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "detail.html", {
         "item": item,
         "category": category,
         "label": CATEGORY_LABELS[category],

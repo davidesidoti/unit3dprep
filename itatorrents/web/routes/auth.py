@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, next: str = "/"):
-    return templates.TemplateResponse("login.html", {"request": request, "next": next, "error": ""})
+    return templates.TemplateResponse(request, "login.html", {"next": next, "error": ""})
 
 
 @router.post("/login")
@@ -23,11 +23,11 @@ async def login_submit(
 ):
     if verify_password(password):
         login_session(request, secrets.token_urlsafe(16))
-        dest = next if next.startswith(ROOT_PATH or "/") else f"{ROOT_PATH}/"
+        dest = next if (ROOT_PATH and next.startswith(ROOT_PATH)) or (not ROOT_PATH and next.startswith("/")) else f"{ROOT_PATH}/"
         return RedirectResponse(dest or f"{ROOT_PATH}/", status_code=303)
     return templates.TemplateResponse(
-        "login.html",
-        {"request": request, "next": next, "error": "Password errata."},
+        request, "login.html",
+        {"next": next, "error": "Password errata."},
         status_code=401,
     )
 
