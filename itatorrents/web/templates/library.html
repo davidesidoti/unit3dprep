@@ -78,7 +78,11 @@
         {% if item.lang_scanned %}
           {% if item.available_langs %}
             {% for lang in item.available_langs %}
+            {% if lang == 'UND' %}
+            <span class="tag tag-lang tag-lang-und" title="Traccia audio presente ma non taggata">⚠ non tag.</span>
+            {% else %}
             <span class="tag tag-lang{% if lang == 'ITA' %} tag-lang-ita{% endif %}">{{ lang }}</span>
+            {% endif %}
             {% endfor %}
           {% else %}
             <span class="tag tag-muted tag-sm">nessuna lingua</span>

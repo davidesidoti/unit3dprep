@@ -85,9 +85,11 @@ def audio_languages(path: Path) -> list[str]:
     except Exception:
         return []
     seen: list[str] = []
+    audio_track_count = 0
     for track in info.tracks:
         if track.track_type != "Audio":
             continue
+        audio_track_count += 1
         for c in _audio_langs(track):
             normalized = c.lower().strip()
             # Handle IETF tags like "it-IT", "en-US" → use primary subtag
@@ -98,6 +100,9 @@ def audio_languages(path: Path) -> list[str]:
             code = LANG_MAP.get(normalized)
             if code and code not in seen:
                 seen.append(code)
+    # Audio tracks exist but none have a recognised language tag → mark as undetermined
+    if audio_track_count > 0 and not seen:
+        return ["UND"]
     # ITA first, rest alpha
     has_ita = "ITA" in seen
     rest = sorted(c for c in seen if c != "ITA")
