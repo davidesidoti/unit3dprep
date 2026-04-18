@@ -156,9 +156,25 @@ def extract_specs(path: Path) -> dict:
 
     if video_track:
         height = getattr(video_track, "height", None)
+        width = getattr(video_track, "width", None)
         scan = (getattr(video_track, "scan_type", "") or "Progressive").lower()
         suffix = "i" if scan.startswith("interlaced") else "p"
-        if height:
+        if width:
+            # Width-first: robust against anamorphic/letterboxed crops that reduce height
+            # Thresholds: 3840→2160p, 1920→1080p, 1280→720p; SD falls back to height
+            if width >= 3200:
+                specs["resolution"] = f"2160{suffix}"
+            elif width >= 1600:
+                specs["resolution"] = f"1080{suffix}"
+            elif width >= 1100:
+                specs["resolution"] = f"720{suffix}"
+            elif height:
+                # SD: 720-wide for both PAL/NTSC → distinguish by height
+                for h in (576, 480):
+                    if height >= h:
+                        specs["resolution"] = f"{h}{suffix}"
+                        break
+        elif height:
             for h in (2160, 1080, 720, 576, 480):
                 if height >= h:
                     specs["resolution"] = f"{h}{suffix}"

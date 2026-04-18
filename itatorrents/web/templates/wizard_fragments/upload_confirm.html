@@ -54,6 +54,16 @@
   <div class="stdin-prompt-hint">Inserisci ID numerico oppure 0 per saltare.</div>
 </div>
 
+<div id="duplicate-choice-area" style="display:none" class="stdin-prompt-box">
+  <div id="duplicate-prompt-text" class="stdin-prompt-label"></div>
+  <div class="stdin-prompt-hint">Questo file sembra già presente sul tracker. Come vuoi procedere?</div>
+  <div class="duplicate-btn-row" style="display:flex;gap:0.5rem;margin-top:0.5rem">
+    <button onclick="sendDuplicateChoice('c')" class="btn btn-primary btn-sm">Continua (C)</button>
+    <button onclick="sendDuplicateChoice('s')" class="btn btn-secondary btn-sm">Salta (S)</button>
+    <button onclick="sendDuplicateChoice('q')" class="btn btn-danger btn-sm">Annulla (Q)</button>
+  </div>
+</div>
+
 <div id="upload-result"></div>
 {% endif %}
 
@@ -63,6 +73,20 @@
   const rootPath = {{ root_path | tojson }};
   const prefillTmdbId = {{ (state.tmdb_id or '') | tojson }};
   var _src = null;
+  var _progressEl = null;  // current in-place progress line element
+
+  function _hidePrompts() {
+    document.getElementById('stdin-input-area').style.display = 'none';
+    document.getElementById('duplicate-choice-area').style.display = 'none';
+  }
+
+  function _postStdin(value) {
+    fetch(rootPath + '/wizard/' + token + '/stdin', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({value: value})
+    });
+  }
 
   window.startUpload = function() {
     document.getElementById('upload-btn').disabled = true;
@@ -72,7 +96,9 @@
 
     _src = new EventSource(rootPath + '/wizard/' + token + '/stream/upload');
 
+    // Log line: append, finalize any in-progress progress bar
     _src.addEventListener('log', function(e) {
+      _progressEl = null;
       const line = document.createElement('div');
       line.className = 'log-line';
       line.textContent = e.data;
@@ -80,30 +106,48 @@
       logBox.scrollTop = logBox.scrollHeight;
     });
 
+    // Progress line (\r-terminated): update in-place instead of appending
+    _src.addEventListener('progress', function(e) {
+      if (!_progressEl) {
+        _progressEl = document.createElement('div');
+        _progressEl.className = 'log-line log-progress';
+        logBox.appendChild(_progressEl);
+      }
+      _progressEl.textContent = e.data;
+      logBox.scrollTop = logBox.scrollHeight;
+    });
+
+    // Input needed: dispatch by kind (tmdb → text input, duplicate → C/S/Q buttons)
     _src.addEventListener('input_needed', function(e) {
-      // unit3dup is waiting for user input — show the inline prompt
-      document.getElementById('stdin-prompt-text').textContent = e.data;
-      const area = document.getElementById('stdin-input-area');
-      area.style.display = 'block';
-      const inp = document.getElementById('stdin-value');
-      // Auto-fill TMDB ID if prompt is asking for it and we have one from cache
-      const isTmdbPrompt = e.data && e.data.toLowerCase().indexOf('tmdb') !== -1;
-      if (isTmdbPrompt && prefillTmdbId) {
-        inp.value = prefillTmdbId;
-        // Auto-submit after short delay so user can see it happening
-        setTimeout(function() {
-          if (area.style.display !== 'none') window.submitStdin();
-        }, 800);
+      var d = JSON.parse(e.data);
+      var kind = d.kind || 'tmdb';
+      var text = d.text || '';
+
+      if (kind === 'duplicate') {
+        document.getElementById('duplicate-prompt-text').textContent = text;
+        document.getElementById('duplicate-choice-area').style.display = 'block';
       } else {
-        inp.value = '';
-        inp.focus();
+        document.getElementById('stdin-prompt-text').textContent = text;
+        const area = document.getElementById('stdin-input-area');
+        area.style.display = 'block';
+        const inp = document.getElementById('stdin-value');
+        const isTmdbPrompt = text && text.toLowerCase().indexOf('tmdb') !== -1;
+        if (isTmdbPrompt && prefillTmdbId) {
+          inp.value = prefillTmdbId;
+          setTimeout(function() {
+            if (area.style.display !== 'none') window.submitStdin();
+          }, 800);
+        } else {
+          inp.value = '';
+          inp.focus();
+        }
       }
       logBox.scrollTop = logBox.scrollHeight;
     });
 
     _src.addEventListener('done', function(e) {
       _src.close();
-      document.getElementById('stdin-input-area').style.display = 'none';
+      _hidePrompts();
       const d = JSON.parse(e.data);
       const res = document.getElementById('upload-result');
       if (d.exit_code === 0) {
@@ -117,7 +161,7 @@
 
     _src.addEventListener('error', function(e) {
       _src.close();
-      document.getElementById('stdin-input-area').style.display = 'none';
+      _hidePrompts();
       document.getElementById('upload-result').innerHTML =
         '<div class="alert alert-error">❌ ' + (e.data || 'Errore SSE') + '</div>';
     });
@@ -125,17 +169,20 @@
     _src.onerror = function() { _src.close(); };
   };
 
+  // TMDB input submit
   window.submitStdin = function() {
     const value = document.getElementById('stdin-value').value.trim() || '0';
     document.getElementById('stdin-input-area').style.display = 'none';
-    fetch(rootPath + '/wizard/' + token + '/stdin', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({value: value})
-    });
+    _postStdin(value);
   };
 
-  // Allow Enter key in the input field
+  // Duplicate C/S/Q choice
+  window.sendDuplicateChoice = function(choice) {
+    document.getElementById('duplicate-choice-area').style.display = 'none';
+    _postStdin(choice);
+  };
+
+  // Allow Enter key in the TMDB input field
   document.addEventListener('DOMContentLoaded', function() {
     var inp = document.getElementById('stdin-value');
     if (inp) {

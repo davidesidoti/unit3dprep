@@ -463,8 +463,17 @@ async def wizard_upload_stream(request: Request, token: str):
         async for event in stream_unit3dup(args, input_queue=input_queue, tmdb_id=tmdb_id):
             if event["type"] == "log":
                 yield {"event": "log", "data": event["data"]}
+            elif event["type"] == "progress":
+                yield {"event": "progress", "data": event["data"]}
             elif event["type"] == "input_needed":
-                yield {"event": "input_needed", "data": event["data"]}
+                # Send kind + text as JSON so the frontend can dispatch correctly
+                yield {
+                    "event": "input_needed",
+                    "data": json.dumps({
+                        "text": event["data"],
+                        "kind": event.get("kind", "tmdb"),
+                    }),
+                }
             elif event["type"] == "error":
                 yield {"event": "error", "data": event["data"]}
             elif event["type"] == "done":

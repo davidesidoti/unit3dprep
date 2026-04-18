@@ -1,10 +1,22 @@
 """Upload orchestration. Yields progress events as dicts."""
 import asyncio
 import os
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import AsyncGenerator, Optional
+
+# pty is Linux-only; graceful fallback to pipe mode on Windows (dev)
+try:
+    import pty
+    import fcntl
+    _HAS_PTY = True
+except ImportError:
+    _HAS_PTY = False
+
+# Strip ANSI/VT escape sequences (colours, cursor moves, etc.) from text
+_ANSI_RE = re.compile(r'\x1b(?:[@-Z\\-_]|\[[0-9;]*[a-zA-Z]|\][^\x07]*\x07)')
 
 from guessit import guessit
 
@@ -107,17 +119,34 @@ def do_hardlink_series(
 
 # Patterns that indicate unit3dup is waiting for user input on stdin.
 # These prompts don't end with \n so readline() would block forever.
-_PROMPT_PATTERNS = [
+_TMDB_PROMPT_PATTERNS = [
     "Please digit a valid TMDB ID",
     "Please digit a valid",
     "digit a valid",
     "insert a valid",
 ]
 
+# Patterns that indicate the duplicate-check interactive prompt (C/S/Q)
+_DUPLICATE_PROMPT_PATTERNS = [
+    "press (c) to continue",
+    "(s) to skip",
+    "(q) quit",
+]
+
+_ALL_PROMPT_PATTERNS = _TMDB_PROMPT_PATTERNS + _DUPLICATE_PROMPT_PATTERNS
+
 
 def _is_prompt(text: str) -> bool:
-    t = text.strip()
-    return any(p.lower() in t.lower() for p in _PROMPT_PATTERNS)
+    t = text.strip().lower()
+    return any(p.lower() in t for p in _ALL_PROMPT_PATTERNS)
+
+
+def _prompt_kind(text: str) -> str:
+    """Return 'duplicate' if text is the C/S/Q duplicate prompt, else 'tmdb'."""
+    t = text.strip().lower()
+    if any(p in t for p in _DUPLICATE_PROMPT_PATTERNS):
+        return "duplicate"
+    return "tmdb"
 
 
 async def stream_unit3dup(
@@ -127,11 +156,14 @@ async def stream_unit3dup(
 ) -> AsyncGenerator[dict, None]:
     """Async generator yielding event dicts:
       {'type': 'log',         'data': str}
-      {'type': 'input_needed','data': str}   — unit3dup waiting for stdin
+      {'type': 'progress',    'data': str}   — in-place overwrite line (\\r-terminated)
+      {'type': 'input_needed','kind': 'tmdb'|'duplicate', 'data': str}
       {'type': 'error',       'data': str}
       {'type': 'done',        'data': '', 'exit_code': int}
-    When input_queue is provided, responses typed by the user are put there
-    and forwarded to the subprocess stdin.
+
+    On Linux uses a pty so rich/tqdm see a TTY and emit live progress.
+    Falls back to pipe mode on Windows (dev only).
+    ANSI escape sequences are stripped before yielding.
     """
     # Systemd user services have a minimal PATH; augment with common user bin dirs
     # so unit3dup installed via pyenv/pip/~/.local is found even from the service.
@@ -147,8 +179,6 @@ async def stream_unit3dup(
     env["PATH"] = os.pathsep.join(extra_dirs) + os.pathsep + current_path
 
     # Ensure user-compiled libsqlite3 (in ~/.local/lib) is loaded at runtime.
-    # The system libsqlite3 on Ultra.cc is 3.8.6 (lacks sqlite3_deserialize);
-    # pyenv Python must pick up the newer one built from source.
     local_lib = os.path.join(home, ".local", "lib")
     current_ldpath = env.get("LD_LIBRARY_PATH", "")
     env["LD_LIBRARY_PATH"] = local_lib + (os.pathsep + current_ldpath if current_ldpath else "")
@@ -159,59 +189,185 @@ async def stream_unit3dup(
     # Resolve absolute path if possible (avoids relying on PATH at exec time)
     unit3dup_bin = shutil.which("unit3dup", path=env["PATH"]) or "unit3dup"
 
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            unit3dup_bin, *args,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-            env=env,
-        )
-    except FileNotFoundError:
-        yield {"type": "error", "data": f"'unit3dup' not found in PATH.\nSearched: {env['PATH']}"}
-        return
+    master_fd: Optional[int] = None
 
-    assert proc.stdout is not None
+    # ------------------------------------------------------------------ pty --
+    if _HAS_PTY:
+        # Open a pty so unit3dup/rich thinks it's writing to a real terminal →
+        # live progress-bar updates instead of a single flush at exit.
+        master_fd, slave_fd = pty.openpty()
+        try:
+            import struct
+            import termios
+            winsize = struct.pack("HHHH", 40, 120, 0, 0)
+            fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, winsize)
+        except Exception:
+            pass
+        env.update({"COLUMNS": "120", "LINES": "40",
+                     "TERM": "xterm-256color", "FORCE_COLOR": "1"})
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                unit3dup_bin, *args,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                env=env,
+            )
+        except FileNotFoundError:
+            os.close(master_fd)
+            os.close(slave_fd)
+            yield {"type": "error", "data": f"'unit3dup' not found in PATH.\nSearched: {env['PATH']}"}
+            return
+
+        os.close(slave_fd)  # parent only needs master end
+
+        # Set master fd non-blocking so loop.add_reader works correctly
+        flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
+        fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+        loop = asyncio.get_running_loop()
+        _pty_q: asyncio.Queue = asyncio.Queue()
+
+        def _on_readable() -> None:
+            try:
+                data = os.read(master_fd, 4096)
+                if data:
+                    _pty_q.put_nowait(data)
+            except BlockingIOError:
+                pass
+            except OSError:
+                # EIO: child closed the slave (process exited)
+                _pty_q.put_nowait(b"")
+                loop.remove_reader(master_fd)
+
+        loop.add_reader(master_fd, _on_readable)
+
+        async def _read_chunk() -> bytes:
+            return await asyncio.wait_for(_pty_q.get(), timeout=0.3)
+
+    # --------------------------------------------------------------- pipe ---
+    else:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                unit3dup_bin, *args,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+                env=env,
+            )
+        except FileNotFoundError:
+            yield {"type": "error", "data": f"'unit3dup' not found in PATH.\nSearched: {env['PATH']}"}
+            return
+
+        assert proc.stdout is not None
+
+        async def _read_chunk() -> bytes:
+            return await asyncio.wait_for(proc.stdout.read(512), timeout=0.3)
+
     assert proc.stdin is not None
 
+    # ------------------------------------------------- emit helper ----------
+    async def _handle_prompt(raw: str) -> None:
+        """Detect prompt kind, yield event, read user answer, forward to stdin."""
+        kind = _prompt_kind(raw)
+        yield_data = _ANSI_RE.sub("", raw).strip()
+        # We can't yield from a nested function, so we push to a side-channel.
+        # Caller drains _prompt_events after each chunk loop iteration.
+        _prompt_events.append({"type": "input_needed", "kind": kind, "data": yield_data})
+        if kind == "tmdb":
+            _default = tmdb_id if tmdb_id else "0"
+            answer = (await input_queue.get()) if input_queue is not None else _default
+        else:
+            # duplicate: always wait — no auto-skip
+            answer = (await input_queue.get()) if input_queue is not None else "s"
+        proc.stdin.write((answer + "\n").encode())
+        await proc.stdin.drain()
+
+    # Side-channel list for events produced inside the chunk-processing loop
+    _prompt_events: list[dict] = []
+
+    # ------------------------------------------------- main read loop -------
     buf = ""
     while True:
+        # --- read chunk ---
         try:
-            chunk = await asyncio.wait_for(proc.stdout.read(512), timeout=0.3)
+            chunk = await _read_chunk()
         except asyncio.TimeoutError:
-            # Nothing arrived — if buffer looks like a prompt, ask the user.
             if buf and _is_prompt(buf):
-                yield {"type": "input_needed", "data": buf.strip()}
-                _default = tmdb_id if (tmdb_id and "tmdb id" in buf.lower()) else "0"
-                user_input = (await input_queue.get()) if input_queue is not None else _default
-                proc.stdin.write((user_input + "\n").encode())
+                kind = _prompt_kind(buf)
+                prompt_text = _ANSI_RE.sub("", buf).strip()
+                yield {"type": "input_needed", "kind": kind, "data": prompt_text}
+                if kind == "tmdb":
+                    _default = tmdb_id if tmdb_id else "0"
+                    answer = (await input_queue.get()) if input_queue is not None else _default
+                else:
+                    answer = (await input_queue.get()) if input_queue is not None else "s"
+                proc.stdin.write((answer + "\n").encode())
                 await proc.stdin.drain()
                 buf = ""
             continue
 
         if not chunk:
-            # EOF from process
+            # EOF — flush remainder
             if buf.strip():
-                yield {"type": "log", "data": buf.rstrip()}
+                clean = _ANSI_RE.sub("", buf).rstrip()
+                if clean:
+                    yield {"type": "log", "data": clean}
             break
 
-        text = chunk.decode("utf-8", errors="replace")
-        buf += text
+        # Strip ANSI, accumulate
+        buf += _ANSI_RE.sub("", chunk.decode("utf-8", errors="replace"))
 
-        # Flush any complete lines from the buffer
-        while "\n" in buf:
-            line, buf = buf.split("\n", 1)
-            if line.strip():
-                yield {"type": "log", "data": line}
+        # Split buf on \r\n / \n (log lines) and bare \r (progress overwrites)
+        while True:
+            rn = buf.find("\r\n")
+            nl = buf.find("\n")
+            cr = buf.find("\r")
 
-        # Partial line remaining — check if it's already a prompt
+            # Find earliest terminator; \r\n beats bare \r at same position
+            candidates = [(p, t) for p, t in ((rn, "rn"), (nl, "nl"), (cr, "cr")) if p != -1]
+            if not candidates:
+                break
+            earliest_pos, earliest_type = min(candidates, key=lambda x: x[0])
+
+            if earliest_type == "rn":
+                line, buf = buf[:rn], buf[rn + 2:]
+                if line.strip():
+                    yield {"type": "log", "data": line}
+            elif earliest_type == "nl":
+                line, buf = buf[:nl], buf[nl + 1:]
+                if line.strip():
+                    yield {"type": "log", "data": line}
+            else:  # bare \r → progress overwrite
+                line, buf = buf[:cr], buf[cr + 1:]
+                if line.strip():
+                    yield {"type": "progress", "data": line}
+
+        # Partial line: check if it's already a prompt
         if buf and _is_prompt(buf):
-            yield {"type": "input_needed", "data": buf.strip()}
-            _default = tmdb_id if (tmdb_id and "tmdb id" in buf.lower()) else "0"
-            user_input = (await input_queue.get()) if input_queue is not None else _default
-            proc.stdin.write((user_input + "\n").encode())
+            kind = _prompt_kind(buf)
+            prompt_text = _ANSI_RE.sub("", buf).strip()
+            yield {"type": "input_needed", "kind": kind, "data": prompt_text}
+            if kind == "tmdb":
+                _default = tmdb_id if tmdb_id else "0"
+                answer = (await input_queue.get()) if input_queue is not None else _default
+            else:
+                answer = (await input_queue.get()) if input_queue is not None else "s"
+            proc.stdin.write((answer + "\n").encode())
             await proc.stdin.drain()
             buf = ""
+
+    # Cleanup pty fds
+    if master_fd is not None:
+        try:
+            loop.remove_reader(master_fd)
+        except Exception:
+            pass
+        try:
+            os.close(master_fd)
+        except Exception:
+            pass
 
     exit_code = await proc.wait()
     yield {"type": "done", "data": "", "exit_code": exit_code}
