@@ -36,6 +36,7 @@ async def uploaded_page(request: Request):
             "uploaded_at": record["uploaded_at"] if record else "",
             "exit_code": record["unit3dup_exit_code"] if record else None,
             "in_db": record is not None,
+            "hardlink_only": record.get("hardlink_only", False) if record else False,
         })
 
     # Manual marks: DB records with seeding_path starting with __manual__

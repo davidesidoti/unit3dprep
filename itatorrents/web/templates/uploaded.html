@@ -30,6 +30,7 @@
         <td>
           {% if item.category %}
           <span class="tag tag-{{ item.kind or 'movie' }}">{{ item.kind or '—' }}</span>
+          {% if item.hardlink_only %}<span class="tag tag-hardlink">hardlink</span>{% endif %}
           {% else %}
           <span class="muted">—</span>
           {% endif %}
@@ -77,7 +78,10 @@
       {% set row_id = "manual-" ~ loop.index %}
       <tr id="{{ row_id }}">
         <td class="mono">{{ r.seeding_path.replace('__manual__:', '') }}</td>
-        <td><span class="tag tag-{{ r.kind or 'movie' }}">{{ r.kind or '—' }}</span></td>
+        <td>
+          <span class="tag tag-{{ r.kind or 'movie' }}">{{ r.kind or '—' }}</span>
+          {% if r.hardlink_only %}<span class="tag tag-hardlink">hardlink</span>{% endif %}
+        </td>
         <td>{{ r.title or '—' }}</td>
         <td>{{ r.year or '—' }}</td>
         <td>
@@ -102,7 +106,10 @@
     <tbody>
       {% for r in orphaned %}
       <tr id="orphan-{{ loop.index }}">
-        <td class="mono">{{ r.seeding_path.split('/')[-1] }}</td>
+        <td class="mono">
+          {{ r.seeding_path.split('/')[-1] }}
+          {% if r.hardlink_only %}<span class="tag tag-hardlink">hardlink</span>{% endif %}
+        </td>
         <td>{{ r.title or '—' }}</td>
         <td class="muted">{{ r.uploaded_at[:16] }}</td>
         <td>

@@ -38,7 +38,7 @@ def _init_db_sync():
 
 def _record_upload_sync(
     category, kind, source_path, seeding_path,
-    tmdb_id, title, year, final_name, exit_code,
+    tmdb_id, title, year, final_name, exit_code, hardlink_only=False,
 ):
     with _lock:
         records = _load()
@@ -47,6 +47,7 @@ def _record_upload_sync(
             if r["seeding_path"] == seeding_path:
                 r["unit3dup_exit_code"] = exit_code
                 r["uploaded_at"] = _now_iso()
+                r["hardlink_only"] = hardlink_only
                 _save(records)
                 return
         next_id = max((r.get("id", 0) for r in records), default=0) + 1
@@ -62,6 +63,7 @@ def _record_upload_sync(
             "final_name": final_name or "",
             "uploaded_at": _now_iso(),
             "unit3dup_exit_code": exit_code,
+            "hardlink_only": hardlink_only,
         })
         _save(records)
 
@@ -122,11 +124,12 @@ async def record_upload(
     year: str = "",
     final_name: str = "",
     exit_code: int | None = None,
+    hardlink_only: bool = False,
 ):
     await _run(
         _record_upload_sync,
         category, kind, source_path, seeding_path,
-        tmdb_id, title, year, final_name, exit_code,
+        tmdb_id, title, year, final_name, exit_code, hardlink_only,
     )
 
 

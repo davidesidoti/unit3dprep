@@ -80,6 +80,7 @@ async def wizard_start(
     kind: str = Form(...),
     tmdb_id: str = Form(""),
     tmdb_kind: str = Form(""),
+    hardlink_only: str = Form("0"),
 ):
     abs_path = _validate_media_path(path)
     token = _create_session({
@@ -98,6 +99,7 @@ async def wizard_start(
         "seeding_path": "",
         "upload_done": False,
         "exit_code": None,
+        "hardlink_only": hardlink_only == "1",
     })
     return HTMLResponse(
         status_code=303,
@@ -354,6 +356,7 @@ async def wizard_hardlink(request: Request, token: str):
             title=state.get("tmdb_title", ""),
             year=state.get("tmdb_year", ""),
             final_name=state.get("folder_name") or next(iter(final_names.values()), ""),
+            hardlink_only=state.get("hardlink_only", False),
         )
 
     except Exception as e:
@@ -423,3 +426,19 @@ async def wizard_stdin(token: str, request: Request):
     value = str(body.get("value", "0")).strip() or "0"
     await q.put(value)
     return JSONResponse({"ok": True})
+
+
+# ---------------------------------------------------------------------------
+# Hardlink-only finish: skip unit3dup, mark done and redirect to /uploaded
+# ---------------------------------------------------------------------------
+
+@router.post("/wizard/{token}/finish-hardlink")
+async def wizard_finish_hardlink(request: Request, token: str):
+    """Terminate wizard after hardlink step without running unit3dup."""
+    state = _get_session(token)
+    state["upload_done"] = True
+    state["exit_code"] = 0
+    return HTMLResponse(
+        status_code=303,
+        headers={"Location": f"{ROOT_PATH}/uploaded"},
+    )

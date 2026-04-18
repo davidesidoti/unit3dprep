@@ -164,6 +164,18 @@
             ⬆ Carica su ItaTorrents
           </button>
         </form>
+        <form action="{{ root_path }}/wizard/start" method="post">
+          <input type="hidden" name="path" value="{{ season.path }}">
+          <input type="hidden" name="category" value="{{ category }}">
+          <input type="hidden" name="kind" value="series">
+          <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
+          <input type="hidden" name="tmdb_kind" value="{{ item.tmdb_kind or 'tv' }}">
+          <input type="hidden" name="hardlink_only" value="1">
+          <button type="submit" class="btn btn-link btn-sm"
+                  onclick="return confirm('Crea solo l\'hardlink per questa stagione senza uploadare?')">
+            🔗 Solo hardlink
+          </button>
+        </form>
         <form action="{{ root_path }}/library/{{ category }}/{{ item.name }}/mark-uploaded" method="post">
           <input type="hidden" name="season_path" value="{{ season.path }}">
           <button type="submit" class="btn btn-secondary btn-sm"
@@ -205,6 +217,18 @@
       <input type="hidden" name="tmdb_kind" value="{{ item.tmdb_kind or 'movie' }}">
       <button type="submit" class="btn btn-primary btn-lg">
         ⬆ Carica su ItaTorrents
+      </button>
+    </form>
+    <form action="{{ root_path }}/wizard/start" method="post">
+      <input type="hidden" name="path" value="{{ item.path }}">
+      <input type="hidden" name="category" value="{{ category }}">
+      <input type="hidden" name="kind" value="movie">
+      <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
+      <input type="hidden" name="tmdb_kind" value="{{ item.tmdb_kind or 'movie' }}">
+      <input type="hidden" name="hardlink_only" value="1">
+      <button type="submit" class="btn btn-link"
+              onclick="return confirm('Crea solo l\'hardlink per questo film senza uploadare?')">
+        🔗 Solo hardlink
       </button>
     </form>
     <form action="{{ root_path }}/library/{{ category }}/{{ item.name }}/mark-uploaded" method="post">

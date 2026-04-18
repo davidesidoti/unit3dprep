@@ -18,11 +18,23 @@
   {% endfor %}
 </div>
 {% else %}
-<h2 class="wizard-title">Upload su ItaTorrents</h2>
+<h2 class="wizard-title">{% if state.hardlink_only %}Hardlink completato{% else %}Upload su ItaTorrents{% endif %}</h2>
 <p class="wizard-subtitle">
   Hardlink creato in <code class="mono">{{ seeding_path }}</code>
 </p>
 
+{% if state.hardlink_only %}
+<div class="info-box info-box-link">
+  <strong>🔗 Solo hardlink.</strong> Nessun upload verrà eseguito. Il file è pronto in <code>~/seedings/</code>.
+</div>
+
+<form action="{{ root_path }}/wizard/{{ token }}/finish-hardlink" method="post" class="mt-4">
+  <button type="submit" class="btn btn-link btn-lg">
+    ✓ Fine — vai a Caricati
+  </button>
+</form>
+
+{% else %}
 <div class="info-box">
   <strong>Pronto per l'upload.</strong> Clicca per avviare <code>unit3dup</code>.
 </div>
@@ -43,6 +55,7 @@
 </div>
 
 <div id="upload-result"></div>
+{% endif %}
 
 <script>
 (function() {
