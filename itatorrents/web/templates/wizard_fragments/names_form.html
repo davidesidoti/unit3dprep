@@ -18,6 +18,9 @@
   {% endif %}
   <div class="tmdb-info">
     <div class="tmdb-title">{{ state.tmdb_data.title }}</div>
+    {% if state.tmdb_data.original_title and state.tmdb_data.original_title != state.tmdb_data.title %}
+    <div class="tmdb-orig-title muted" style="font-size:12px">{{ state.tmdb_data.original_title }}</div>
+    {% endif %}
     {% if state.tmdb_data.year %}<div class="tmdb-year">{{ state.tmdb_data.year }}</div>{% endif %}
     {% if state.tmdb_data.overview %}<p class="tmdb-overview">{{ state.tmdb_data.overview }}</p>{% endif %}
   </div>

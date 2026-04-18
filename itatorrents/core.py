@@ -21,6 +21,7 @@ VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".m4v", ".ts", ".webm", ".wm
 ITA_TAGS = {"it", "ita", "italian", "italiano"}
 TMDB_BASE = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
+TMDB_DEFAULT_LANG = os.environ.get("ITA_TMDB_LANG", "it-IT")
 
 LANG_MAP = {
     "it": "ITA", "ita": "ITA", "italian": "ITA", "italiano": "ITA",
@@ -293,13 +294,39 @@ def map_source(guess: dict) -> tuple[str, str]:
 # TMDB
 # ---------------------------------------------------------------------------
 
-def tmdb_fetch(kind: str, tmdb_id: str, api_key: str) -> dict:
+def tmdb_fetch(kind: str, tmdb_id: str, api_key: str, language: str | None = None) -> dict:
     if not api_key:
         raise RuntimeError("TMDB_API_KEY not set")
-    url = f"{TMDB_BASE}/{kind}/{urllib.parse.quote(str(tmdb_id))}?api_key={api_key}&language=en-US"
+    lang = language or TMDB_DEFAULT_LANG
+    url = f"{TMDB_BASE}/{kind}/{urllib.parse.quote(str(tmdb_id))}?api_key={api_key}&language={lang}"
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     with urllib.request.urlopen(req, timeout=15) as r:
         return json.loads(r.read().decode("utf-8"))
+
+
+def tmdb_fetch_bilingual(kind: str, tmdb_id: str, api_key: str) -> dict:
+    """Fetch TMDB in primary lang (TMDB_DEFAULT_LANG) and en-US. Returns merged dict with:
+      title, original_title, year, poster, overview (primary), overview_en, title_en.
+    """
+    data_primary = tmdb_fetch(kind, tmdb_id, api_key, language=TMDB_DEFAULT_LANG)
+    data_en = tmdb_fetch(kind, tmdb_id, api_key, language="en-US")
+
+    title = data_primary.get("title") or data_primary.get("name") or ""
+    title_en = data_en.get("title") or data_en.get("name") or ""
+    original_title = (
+        data_primary.get("original_title") or data_primary.get("original_name") or ""
+    )
+    overview = (data_primary.get("overview") or "")[:300]
+    overview_en = (data_en.get("overview") or "")[:300]
+
+    return {
+        **data_primary,
+        "title": title,
+        "title_en": title_en,
+        "original_title": original_title,
+        "overview": overview,
+        "overview_en": overview_en,
+    }
 
 
 def tmdb_year(data: dict, kind: str) -> str:
@@ -316,11 +343,12 @@ def tmdb_poster_url(data: dict) -> str:
     return ""
 
 
-def tmdb_search(kind: str, query: str, year: str, api_key: str) -> list[dict]:
+def tmdb_search(kind: str, query: str, year: str, api_key: str, language: str | None = None) -> list[dict]:
     """Search TMDB. kind='movie'|'tv'. Returns up to 5 normalized results."""
     if not api_key:
         raise RuntimeError("TMDB_API_KEY not set")
-    params: dict = {"api_key": api_key, "query": query, "language": "it-IT"}
+    lang = language or TMDB_DEFAULT_LANG
+    params: dict = {"api_key": api_key, "query": query, "language": lang}
     if year:
         if kind == "movie":
             params["year"] = year
@@ -334,12 +362,14 @@ def tmdb_search(kind: str, query: str, year: str, api_key: str) -> list[dict]:
     normalized = []
     for item in results:
         title = item.get("title") or item.get("name") or ""
+        original_title = item.get("original_title") or item.get("original_name") or ""
         date = item.get("release_date") or item.get("first_air_date") or ""
         y = date[:4] if len(date) >= 4 else ""
         poster = f"{TMDB_IMAGE_BASE}{item['poster_path']}" if item.get("poster_path") else ""
         normalized.append({
             "id": item["id"],
             "title": title,
+            "original_title": original_title,
             "year": y,
             "poster": poster,
             "overview": (item.get("overview") or "")[:200],

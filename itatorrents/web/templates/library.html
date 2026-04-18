@@ -40,7 +40,7 @@
      class="card {{ lang_class }}{% if item.uploaded_season_numbers %} card-partial{% endif %}"
      data-source="{{ item.path }}"
      data-name="{{ (item.tmdb_title or item.title) | lower }}"
-     data-orig="{{ item.title | lower }}"
+     data-orig="{{ ((item.tmdb_title_en or '') ~ ' ' ~ (item.tmdb_original_title or '') ~ ' ' ~ item.title) | lower }}"
      data-year="{{ item.year }}"
      data-size="{{ item.total_size }}"
      data-has-ita="{{ 'true' if item.has_italian else ('false' if item.lang_scanned else 'unknown') }}">
@@ -55,7 +55,9 @@
     </div>
     <div class="card-body">
       <div class="card-title">{{ item.tmdb_title or item.title }}</div>
-      {% if item.tmdb_title and item.tmdb_title != item.title %}
+      {% if item.tmdb_original_title and item.tmdb_original_title != item.tmdb_title %}
+      <div class="card-orig-title muted">{{ item.tmdb_original_title }}</div>
+      {% elif item.tmdb_title and item.tmdb_title != item.title %}
       <div class="card-orig-title muted">{{ item.title }}</div>
       {% endif %}
       {% if item.year %}
@@ -197,6 +199,18 @@
       if (titleEl && d.title) {
         titleEl.textContent = d.title;
         card.dataset.name = d.title.toLowerCase();
+        card.dataset.orig = ((d.title_en || '') + ' ' + (d.original_title || '')).toLowerCase().trim();
+      }
+      const origEl = card.querySelector('.card-orig-title');
+      if (d.original_title && d.original_title !== d.title) {
+        if (origEl) {
+          origEl.textContent = d.original_title;
+        } else if (titleEl) {
+          const span = document.createElement('div');
+          span.className = 'card-orig-title muted';
+          span.textContent = d.original_title;
+          titleEl.insertAdjacentElement('afterend', span);
+        }
       }
     });
     src.addEventListener('done', function() {

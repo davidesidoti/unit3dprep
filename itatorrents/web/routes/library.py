@@ -8,7 +8,7 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sse_starlette.sse import EventSourceResponse
 
-from ...core import audio_languages, tmdb_fetch, tmdb_poster_url, tmdb_search, tmdb_year
+from ...core import audio_languages, tmdb_fetch_bilingual, tmdb_poster_url, tmdb_search, tmdb_year
 from ...media import CATEGORIES, get_item, scan_category
 from ..db import list_uploads, record_upload
 from ..lang_cache import delete_lang, get_lang, get_many_langs, set_lang
@@ -41,8 +41,11 @@ async def _enrich_item(item, cache: dict, uploaded_source_paths: set, lang_cache
         item.tmdb_id = tmdb.get("tmdb_id", "")
         item.tmdb_kind = tmdb.get("tmdb_kind", "") or _default_tmdb_kind(item)
         item.tmdb_title = tmdb.get("title", "")
+        item.tmdb_title_en = tmdb.get("title_en", "")
+        item.tmdb_original_title = tmdb.get("original_title", "")
         item.tmdb_poster = tmdb.get("poster", "")
         item.tmdb_overview = tmdb.get("overview", "")
+        item.tmdb_overview_en = tmdb.get("overview_en", "")
 
     if item.kind == "series":
         all_langs: list[str] = []
@@ -58,8 +61,11 @@ async def _enrich_item(item, cache: dict, uploaded_source_paths: set, lang_cache
                     item.tmdb_id = s_tmdb.get("tmdb_id", "")
                     item.tmdb_kind = s_tmdb.get("tmdb_kind", "") or _default_tmdb_kind(item)
                     item.tmdb_title = s_tmdb.get("title", "")
+                    item.tmdb_title_en = s_tmdb.get("title_en", "")
+                    item.tmdb_original_title = s_tmdb.get("original_title", "")
                     item.tmdb_poster = s_tmdb.get("poster", "")
                     item.tmdb_overview = s_tmdb.get("overview", "")
+                    item.tmdb_overview_en = s_tmdb.get("overview_en", "")
             # Lang cache — per-season
             if lang_cache is not None:
                 lang_entry = lang_cache.get(ssp)
@@ -186,25 +192,31 @@ async def library_enrich(request: Request, category: str):
             tmdb_id = str(best["id"])
             try:
                 data = await loop.run_in_executor(
-                    None, tmdb_fetch, kind, tmdb_id, TMDB_API_KEY
+                    None, tmdb_fetch_bilingual, kind, tmdb_id, TMDB_API_KEY
                 )
             except Exception:
                 await asyncio.sleep(0.25)
                 continue
 
-            t = data.get("title") or data.get("name") or best["title"]
+            t = data.get("title") or best["title"]
+            t_en = data.get("title_en", "")
+            orig = data.get("original_title", "")
             y = tmdb_year(data, kind) or best.get("year", "")
             poster = tmdb_poster_url(data) or best.get("poster", "")
             overview = (data.get("overview") or "")[:300]
+            overview_en = (data.get("overview_en") or "")[:300]
 
             await set_cache(
                 sp,
                 tmdb_id=tmdb_id,
                 tmdb_kind=kind,
                 title=t,
+                title_en=t_en,
+                original_title=orig,
                 year=y,
                 poster=poster,
                 overview=overview,
+                overview_en=overview_en,
             )
 
             yield {
@@ -213,6 +225,8 @@ async def library_enrich(request: Request, category: str):
                     "source_path": sp,
                     "tmdb_id": tmdb_id,
                     "title": t,
+                    "title_en": t_en,
+                    "original_title": orig,
                     "year": y,
                     "poster": poster,
                 }),

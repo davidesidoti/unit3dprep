@@ -5,7 +5,7 @@ import os
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from ...core import tmdb_fetch, tmdb_poster_url, tmdb_search, tmdb_year
+from ...core import tmdb_fetch_bilingual, tmdb_poster_url, tmdb_search, tmdb_year
 from ..tmdb_cache import delete_cache, set_cache
 
 router = APIRouter()
@@ -46,23 +46,29 @@ async def api_tmdb_set(
         raise HTTPException(500, "TMDB_API_KEY not set")
     loop = asyncio.get_event_loop()
     try:
-        data = await loop.run_in_executor(None, tmdb_fetch, tmdb_kind, tmdb_id, TMDB_API_KEY)
+        data = await loop.run_in_executor(None, tmdb_fetch_bilingual, tmdb_kind, tmdb_id, TMDB_API_KEY)
     except Exception as e:
         raise HTTPException(502, f"TMDB error: {e}")
 
-    title = data.get("title") or data.get("name") or ""
+    title = data.get("title") or ""
+    title_en = data.get("title_en", "")
+    original_title = data.get("original_title", "")
     year = tmdb_year(data, tmdb_kind)
     poster = tmdb_poster_url(data)
     overview = (data.get("overview") or "")[:300]
+    overview_en = (data.get("overview_en") or "")[:300]
 
     await set_cache(
         source_path,
         tmdb_id=tmdb_id,
         tmdb_kind=tmdb_kind,
         title=title,
+        title_en=title_en,
+        original_title=original_title,
         year=year,
         poster=poster,
         overview=overview,
+        overview_en=overview_en,
     )
 
     return JSONResponse({
@@ -70,9 +76,12 @@ async def api_tmdb_set(
         "tmdb_id": tmdb_id,
         "tmdb_kind": tmdb_kind,
         "title": title,
+        "title_en": title_en,
+        "original_title": original_title,
         "year": year,
         "poster": poster,
         "overview": overview,
+        "overview_en": overview_en,
     })
 
 

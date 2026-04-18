@@ -11,7 +11,7 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
-from ...core import tmdb_fetch, tmdb_poster_url, tmdb_year
+from ...core import tmdb_fetch_bilingual, tmdb_poster_url, tmdb_year
 from ..templates_env import ROOT_PATH, templates
 from ...upload import (
     build_episode_names,
@@ -197,7 +197,7 @@ async def wizard_tmdb(
     loop = asyncio.get_event_loop()
     try:
         tmdb_data = await loop.run_in_executor(
-            None, tmdb_fetch, tmdb_kind, tmdb_id, TMDB_API_KEY
+            None, tmdb_fetch_bilingual, tmdb_kind, tmdb_id, TMDB_API_KEY
         )
     except Exception as e:
         return templates.TemplateResponse(request, "wizard_fragments/tmdb_form.html", {
@@ -206,19 +206,26 @@ async def wizard_tmdb(
             "tmdb_error": str(e),
         })
 
-    title = tmdb_data.get("title") or tmdb_data.get("name") or ""
+    title = tmdb_data.get("title") or ""
+    title_en = tmdb_data.get("title_en", "")
+    original_title = tmdb_data.get("original_title", "")
     year = tmdb_year(tmdb_data, tmdb_kind)
     poster = tmdb_poster_url(tmdb_data)
 
     state["tmdb_id"] = tmdb_id
     state["tmdb_kind"] = tmdb_kind
     state["tmdb_title"] = title
+    state["tmdb_title_en"] = title_en
+    state["tmdb_original_title"] = original_title
     state["tmdb_year"] = year
     state["tmdb_poster"] = poster
     state["tmdb_data"] = {
         "title": title,
+        "title_en": title_en,
+        "original_title": original_title,
         "year": year,
         "overview": tmdb_data.get("overview", "")[:300],
+        "overview_en": tmdb_data.get("overview_en", "")[:300],
         "poster": poster,
     }
     state["step"] = "names"

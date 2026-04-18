@@ -1,8 +1,15 @@
 """TMDB metadata cache — JSON file store. Thread-safe. No sqlite3.
 
 Keys are resolved absolute source_path strings.
-Schema per entry:
-  { tmdb_id, tmdb_kind, title, year, poster, overview, fetched_at }
+Schema per entry (all fields optional for backward compat — read with .get()):
+  { tmdb_id, tmdb_kind,
+    title,          # primary lang (TMDB_DEFAULT_LANG, default it-IT)
+    title_en,       # en-US title
+    original_title, # TMDB original_title / original_name
+    year, poster,
+    overview,       # primary lang
+    overview_en,    # en-US
+    fetched_at }
 """
 import asyncio
 import json

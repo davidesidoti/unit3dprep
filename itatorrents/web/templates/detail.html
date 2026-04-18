@@ -17,7 +17,9 @@
   </div>
   <div class="detail-info">
     <h1 class="detail-title">{{ item.tmdb_title or item.title }}</h1>
-    {% if item.tmdb_title and item.tmdb_title != item.title %}
+    {% if item.tmdb_original_title and item.tmdb_original_title != item.tmdb_title %}
+    <div class="detail-orig-title muted">{{ item.tmdb_original_title }}</div>
+    {% elif item.tmdb_title and item.tmdb_title != item.title %}
     <div class="detail-orig-title muted">{{ item.title }}</div>
     {% endif %}
     <div class="detail-meta">
@@ -27,7 +29,29 @@
       <span class="tag tag-muted">📦 {{ item.total_size_human }}</span>
     </div>
     {% if item.tmdb_overview %}
-    <p class="detail-overview">{{ item.tmdb_overview }}</p>
+    <p class="detail-overview" id="detail-overview-text">{{ item.tmdb_overview }}</p>
+    {% if item.tmdb_overview_en %}
+    <button class="btn btn-secondary btn-sm" id="overview-lang-btn"
+            onclick="toggleOverviewLang()" style="margin-top:4px;font-size:11px">
+      EN
+    </button>
+    <script>
+    (function() {
+      var it = {{ item.tmdb_overview | tojson }};
+      var en = {{ item.tmdb_overview_en | tojson }};
+      var showing = 'it';
+      window.toggleOverviewLang = function() {
+        var el = document.getElementById('detail-overview-text');
+        var btn = document.getElementById('overview-lang-btn');
+        if (!el) return;
+        if (showing === 'it') { el.textContent = en; btn.textContent = 'IT'; showing = 'en'; }
+        else { el.textContent = it; btn.textContent = 'EN'; showing = 'it'; }
+      };
+    })();
+    </script>
+    {% endif %}
+    {% elif item.tmdb_overview_en %}
+    <p class="detail-overview">{{ item.tmdb_overview_en }}</p>
     {% endif %}
   </div>
 </div>
@@ -271,10 +295,13 @@
         return;
       }
       container.innerHTML = data.results.map(function(r) {
+        var origLine = (r.original_title && r.original_title !== r.title)
+          ? '<div class="tmdb-result-orig muted" style="font-size:11px">' + r.original_title + '</div>' : '';
         return '<div class="tmdb-result-row" onclick="selectTmdbResult(\'' + r.id + '\', \'' + kind + '\')">' +
           (r.poster ? '<img src="' + r.poster + '" class="tmdb-result-poster" loading="lazy">' : '<div class="tmdb-result-no-poster">?</div>') +
           '<div class="tmdb-result-info">' +
           '<div class="tmdb-result-title">' + (r.title || '') + '</div>' +
+          origLine +
           '<div class="tmdb-result-year muted">' + (r.year || '') + ' · ID ' + r.id + '</div>' +
           '<div class="tmdb-result-overview muted">' + (r.overview || '') + '</div>' +
           '</div></div>';
