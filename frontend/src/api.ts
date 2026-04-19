@@ -2,13 +2,10 @@
 // and 401 → redirect to /login.
 
 const base = (() => {
-  // Vite exposes the `base` config as import.meta.env.BASE_URL (e.g. './').
-  // At runtime we also honour a <meta name="root-path" content="..."> if the
-  // backend injected one into index.html (not currently, but future-safe).
-  const meta = document.querySelector('meta[name="root-path"]') as HTMLMetaElement | null;
-  if (meta?.content) return meta.content.replace(/\/$/, '');
-  // Derive from actual document path: if served under /itatorrents/, prefix it.
-  // Vite dev server proxies /api directly, so we use empty prefix there.
+  // Backend injects `window.__ROOT_PATH__` into index.html at serve time so
+  // the SPA knows its reverse-proxy mount (e.g. '/itatorrents').
+  const w = window as unknown as { __ROOT_PATH__?: string };
+  if (typeof w.__ROOT_PATH__ === 'string') return w.__ROOT_PATH__.replace(/\/$/, '');
   return '';
 })();
 

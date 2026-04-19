@@ -1,4 +1,4 @@
-"""FastAPI application: JSON API under /api + SPA from /dist."""
+"""FastAPI application: JSON API under /{ROOT_PATH}/api + SPA served from /dist."""
 from __future__ import annotations
 
 import asyncio
@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -29,27 +29,22 @@ from .api import (
     wizard as wizard_api,
 )
 
+# When the reverse proxy does NOT strip the prefix (typical Ultra.cc nginx
+# user-proxy without trailing slash on proxy_pass), routes must be registered
+# under the prefix — FastAPI's `root_path=` only helps when the proxy strips.
 ROOT_PATH = os.environ.get("ITA_ROOT_PATH", "").rstrip("/")
 DIST_DIR = Path(__file__).parent / "dist"
 
-app = FastAPI(
-    title="ItaTorrents Web",
-    docs_url=None,
-    redoc_url=None,
-    root_path=ROOT_PATH,
-)
+app = FastAPI(title="ItaTorrents Web", docs_url=None, redoc_url=None)
 
-# Auth guard: /api/* requires session, except /api/auth/login, /api/me.
-# Must be added BEFORE SessionMiddleware so that SessionMiddleware ends up
-# outermost (last add = outermost in Starlette) and populates request.session
-# before _auth_guard reads it.
-_AUTH_EXEMPT = {"/api/auth/login", "/api/me"}
+API_PREFIX = f"{ROOT_PATH}/api"
+AUTH_EXEMPT = {f"{API_PREFIX}/auth/login", f"{API_PREFIX}/me"}
 
 
 @app.middleware("http")
 async def _auth_guard(request: Request, call_next):
-    path = request.url.path
-    if path.startswith("/api/") and path not in _AUTH_EXEMPT:
+    path = request.url.path.rstrip("/")
+    if path.startswith(API_PREFIX) and path not in AUTH_EXEMPT:
         if not request.session.get("authenticated"):
             return JSONResponse({"detail": "Not authenticated"}, status_code=401)
     return await call_next(request)
@@ -71,11 +66,8 @@ async def _startup():
     logging.getLogger("itatorrents").info("itatorrents-web started")
 
 
-# ---------------------------------------------------------------------------
-# API routers
-# ---------------------------------------------------------------------------
-
-
+# Mount all JSON routers under ROOT_PATH (routers themselves already declare
+# /api/... so the final path is /{ROOT_PATH}/api/...).
 for r in (
     auth_api.router,
     fs_api.router,
@@ -90,34 +82,57 @@ for r in (
     uploaded_api.router,
     wizard_api.router,
 ):
-    app.include_router(r)
-
-
-# ---------------------------------------------------------------------------
-# SPA: serve built frontend + catch-all fallback to index.html
-# ---------------------------------------------------------------------------
+    app.include_router(r, prefix=ROOT_PATH)
 
 
 if (DIST_DIR / "assets").exists():
-    app.mount("/assets", StaticFiles(directory=str(DIST_DIR / "assets")), name="assets")
+    app.mount(
+        f"{ROOT_PATH}/assets",
+        StaticFiles(directory=str(DIST_DIR / "assets")),
+        name="assets",
+    )
 
 
-@app.get("/{full_path:path}")
+def _render_index() -> str:
+    idx = DIST_DIR / "index.html"
+    if not idx.is_file():
+        return ""
+    html = idx.read_text(encoding="utf-8")
+    inject = f'<script>window.__ROOT_PATH__={ROOT_PATH!r};</script>'
+    return html.replace("</head>", f"{inject}</head>", 1)
+
+
+# SPA catch-all. Serves index.html for any non-API path so a deep link to a
+# client-side route still boots the app.
+_CATCHALL = f"{ROOT_PATH}/{{full_path:path}}" if ROOT_PATH else "/{full_path:path}"
+
+
+@app.get(_CATCHALL)
 async def spa(full_path: str, request: Request):
-    # Let /api/* fall through to 404 instead of masking it with index.html
-    if full_path.startswith("api/"):
+    if full_path.startswith("api/") or full_path.startswith("assets/"):
         raise HTTPException(status_code=404)
-    # Try exact file hit first (favicon, fonts at /fonts/..., etc.)
-    candidate = DIST_DIR / full_path if full_path else DIST_DIR / "index.html"
-    if candidate.is_file():
-        return FileResponse(candidate)
-    index = DIST_DIR / "index.html"
-    if index.is_file():
-        return FileResponse(index)
+    if full_path and not full_path.endswith("/"):
+        candidate = DIST_DIR / full_path
+        if candidate.is_file():
+            return FileResponse(candidate)
+    rendered = _render_index()
+    if rendered:
+        return HTMLResponse(rendered)
     return JSONResponse(
         {"detail": "Frontend not built. Run `cd frontend && npm install && npm run build`."},
         status_code=503,
     )
+
+
+# When hit at exactly "/itatorrents" (no trailing slash) we still want the
+# SPA — the catch-all only fires on /itatorrents/..., so add a bare alias.
+if ROOT_PATH:
+    @app.get(ROOT_PATH)
+    async def _root_alias():
+        rendered = _render_index()
+        return HTMLResponse(rendered) if rendered else JSONResponse(
+            {"detail": "Frontend not built."}, status_code=503,
+        )
 
 
 def run():
