@@ -1118,8 +1118,143 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 }
 .lib-sort-select:focus { border-color: var(--blue); }
 
-/* Responsive */
+/* ── Ghost button variant (bundle: components-buttons) ── */
+.btn-ghost {
+  background: transparent;
+  color: var(--blue-bright);
+  border: 1px solid var(--blue);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--blue-soft);
+}
+.btn-danger {
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid var(--red);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--red);
+  color: #fff;
+}
+
+/* ── Rich-style panels (bundle: components-panels) ── */
+.panel {
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 14px;
+  background: var(--bg-surface);
+}
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.panel-body {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.panel-blue   { border: 1px solid var(--blue); }
+.panel-blue   .panel-title { color: var(--blue-bright); }
+.panel-blue   .panel-body  { color: var(--fg-2); }
+.panel-yellow { border: 1px solid var(--yellow); }
+.panel-yellow .panel-title { color: var(--yellow); }
+.panel-yellow .panel-body  { color: var(--yellow); }
+.panel-red    { border: 1px solid var(--red); background: rgba(248,113,113,0.04); }
+.panel-red    .panel-title { color: var(--red); }
+.panel-red    .panel-body  { color: var(--red); }
+.panel-green  { border: 1px solid var(--green); background: rgba(74,222,128,0.04); }
+.panel-green  .panel-title { color: var(--green); }
+.panel-green  .panel-body  { color: var(--green); }
+
+/* Welcome banner (bundle: welcome panel) */
+.welcome-banner {
+  border: 1px solid var(--yellow);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.welcome-banner .banner-text {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--blue);
+}
+
+/* ── Source / resolution tags (bundle: components-badges) ── */
+.tag-source {
+  background: var(--bg-card);
+  color: var(--fg-1);
+  border: 1px solid var(--border);
+  text-transform: uppercase;
+}
+.tag-res-4k    { background: var(--bg-card); color: var(--yellow); border: 1px solid var(--yellow-dim, #78450a); }
+.tag-res-1080p { background: var(--bg-card); color: var(--fg-1);   border: 1px solid var(--border); }
+.tag-res-720p  { background: var(--bg-card); color: var(--fg-2);   border: 1px solid var(--border); }
+.tag-res-sd    { background: var(--bg-card); color: var(--fg-3);   border: 1px solid var(--border-subtle); }
+.tag-hdr       { background: var(--bg-card); color: var(--blue-bright); border: 1px solid var(--blue-dim); }
+.tag-atmos     { background: var(--bg-card); color: var(--yellow-bright); border: 1px solid var(--yellow-dim, #78450a); }
+
+/* ── Torrent / tracker state pills (bundle: components-badges) ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  text-transform: none;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+.pill-online   { background: var(--green-dim); color: var(--green); }
+.pill-offline  { background: var(--red-dim);   color: var(--red); }
+.pill-degraded { background: #78450a; color: var(--yellow); }
+.pill-unknown  { background: var(--bg-card); color: var(--fg-3); border: 1px solid var(--border); }
+.pill-seeding  { background: var(--green-dim); color: var(--green); }
+.pill-uploading{ background: var(--blue-dim);  color: var(--blue-bright); }
+.pill-queued   { background: #78450a; color: var(--yellow); }
+.pill-error    { background: var(--red-dim); color: var(--red); }
+.pill-pending  { background: var(--bg-card); color: var(--fg-3); border: 1px solid var(--border); }
+.pill-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  display: inline-block;
+  background: currentColor;
+}
+
+/* ── Code/kbd ── */
+code, pre, kbd {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--cyan);
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 1px 5px;
+}
+pre {
+  padding: 14px;
+  overflow-x: auto;
+  line-height: 1.65;
+  border-radius: var(--radius);
+}
+
+/* ── Responsive ── */
 @media (max-width: 900px) {
   .episode-actions { width: 100%; margin-left: 0; }
   .content { padding: 20px 18px; }
+  .sidebar { width: 180px; }
+  .content { margin-left: 180px; }
+}
+
+@media (max-width: 640px) {
+  :root { --sidebar-w: 100%; }
+  .sidebar { position: static; width: 100%; height: auto; }
+  .content { margin-left: 0; }
+  .layout { flex-direction: column; }
 }
