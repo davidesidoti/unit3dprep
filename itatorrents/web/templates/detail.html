@@ -3,36 +3,34 @@
 {% block content %}
 <div class="breadcrumb">
   <a href="{{ root_path }}/library/{{ category }}">{{ label }}</a>
-  <span class="breadcrumb-sep">›</span>
+  <span class="breadcrumb-sep">/</span>
   <span>{{ item.title }}</span>
 </div>
 
 <div class="detail-header">
-  <div class="detail-thumb">
-    {% if item.tmdb_poster %}
-    <img class="detail-poster" src="{{ item.tmdb_poster }}" alt="{{ item.tmdb_title or item.title }}">
-    {% else %}
-    {% if item.kind == 'series' %}📺{% elif category == 'anime' %}🎌{% else %}🎬{% endif %}
-    {% endif %}
-  </div>
+  {% if item.tmdb_poster %}
+  <img class="detail-poster" src="{{ item.tmdb_poster }}" alt="{{ item.tmdb_title or item.title }}">
+  {% else %}
+  <div class="detail-thumb">{% if item.kind == 'series' %}SERIES{% elif category == 'anime' %}ANIME{% else %}MOVIE{% endif %}</div>
+  {% endif %}
   <div class="detail-info">
     <h1 class="detail-title">{{ item.tmdb_title or item.title }}</h1>
     {% if item.tmdb_original_title and item.tmdb_original_title != item.tmdb_title %}
-    <div class="detail-orig-title muted">{{ item.tmdb_original_title }}</div>
+    <div class="detail-orig-title">{{ item.tmdb_original_title }}</div>
     {% elif item.tmdb_title and item.tmdb_title != item.title %}
-    <div class="detail-orig-title muted">{{ item.title }}</div>
+    <div class="detail-orig-title">{{ item.title }}</div>
     {% endif %}
     <div class="detail-meta">
       {% if item.year %}<span class="badge">{{ item.year }}</span>{% endif %}
       <span class="tag tag-{{ item.kind }}">{{ item.kind }}</span>
-      <span class="tag tag-muted">{{ item.path }}</span>
-      <span class="tag tag-muted">📦 {{ item.total_size_human }}</span>
+      <span class="tag tag-muted mono" style="text-transform:none">{{ item.path }}</span>
+      <span class="tag tag-muted mono" style="text-transform:none">{{ item.total_size_human }}</span>
     </div>
     {% if item.tmdb_overview %}
     <p class="detail-overview" id="detail-overview-text">{{ item.tmdb_overview }}</p>
     {% if item.tmdb_overview_en %}
     <button class="btn btn-secondary btn-sm" id="overview-lang-btn"
-            onclick="toggleOverviewLang()" style="margin-top:4px;font-size:11px">
+            onclick="toggleOverviewLang()" style="margin-top:8px">
       EN
     </button>
     <script>
@@ -61,14 +59,14 @@
   <div class="tmdb-panel-header">
     <span class="tmdb-panel-label">
       {% if item.tmdb_id %}
-      TMDB: <a href="https://www.themoviedb.org/{{ item.tmdb_kind }}/{{ item.tmdb_id }}" target="_blank" rel="noopener" class="tmdb-link">{{ item.tmdb_id }}</a>
-      ({{ item.tmdb_kind }})
+      TMDB · <a href="https://www.themoviedb.org/{{ item.tmdb_kind }}/{{ item.tmdb_id }}" target="_blank" rel="noopener" class="tmdb-link">{{ item.tmdb_id }}</a>
+      <span class="muted" style="margin-left:6px">({{ item.tmdb_kind }})</span>
       {% else %}
-      TMDB: <span class="muted">non impostato</span>
+      TMDB · <span class="muted">non impostato</span>
       {% endif %}
     </span>
     <button class="btn btn-secondary btn-sm" onclick="toggleTmdbEdit()">
-      {% if item.tmdb_id %}✏ Modifica TMDB{% else %}+ Imposta TMDB{% endif %}
+      {% if item.tmdb_id %}Modifica TMDB{% else %}Imposta TMDB{% endif %}
     </button>
   </div>
 
@@ -115,8 +113,8 @@
       </div>
     </div>
     {% if item.tmdb_id %}
-    <button class="btn btn-secondary btn-sm mt-2" onclick="clearTmdb()" style="color:var(--red)">
-      ✕ Rimuovi TMDB
+    <button class="btn btn-delete mt-2" onclick="clearTmdb()">
+      Rimuovi TMDB
     </button>
     {% endif %}
   </div>
@@ -125,13 +123,13 @@
 {# ── Lang panel ── #}
 <div class="tmdb-panel lang-panel" id="lang-panel">
   <div class="tmdb-panel-header">
-    <span class="tmdb-panel-label">
-      🔊 Lingue audio:
+    <span class="tmdb-panel-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      Lingue audio ·
       {% if item.lang_scanned %}
         {% if item.available_langs %}
           {% for lang in item.available_langs %}
           {% if lang == 'UND' %}
-          <span class="tag tag-lang tag-lang-und" title="Traccia audio presente ma non taggata">⚠ non taggata</span>
+          <span class="tag tag-lang tag-lang-und" title="Traccia audio presente ma non taggata">UND</span>
           {% else %}
           <span class="tag tag-lang{% if lang == 'ITA' %} tag-lang-ita{% endif %}">{{ lang }}</span>
           {% endif %}
@@ -140,11 +138,11 @@
           <span class="muted">nessuna lingua rilevata</span>
         {% endif %}
       {% else %}
-        <span class="muted">⏳ Non scansionato</span>
+        <span class="muted">non scansionato</span>
       {% endif %}
     </span>
     <button class="btn btn-secondary btn-sm" id="rescan-lang-btn" onclick="rescanLangs()">
-      🔄 Riscansiona lingue
+      Riscansiona lingue
     </button>
   </div>
   <div id="rescan-lang-result" style="display:none;margin-top:8px;font-size:13px"></div>
@@ -160,13 +158,13 @@
       <div class="season-header">
         <span class="season-label">{{ season.label }}</span>
         <span class="season-count">{{ season.remaining_episode_count }} / {{ season.episode_count }} episodi da caricare</span>
-        <span class="season-size muted">📦 {{ season.total_size_human }}</span>
+        <span class="season-size">{{ season.total_size_human }}</span>
         {% if season.lang_scanned %}
           {% for lang in season.available_langs %}
           <span class="tag tag-lang{% if lang == 'ITA' %} tag-lang-ita{% endif %}">{{ lang }}</span>
           {% endfor %}
         {% else %}
-          <span class="tag tag-lang-unknown">⏳</span>
+          <span class="tag-lang-unknown">scan…</span>
         {% endif %}
       </div>
       <div class="season-files">
@@ -174,9 +172,9 @@
         {% set episode_resolved = f.resolve() | string %}
         {% if episode_resolved not in season.uploaded_episode_paths %}
         <div class="file-row episode-row">
-          <span class="file-icon">🎞</span>
+          <span class="file-icon mono">›</span>
           <span class="file-name">{{ f.name }}</span>
-          <span class="file-size muted">{{ format_size(f.stat().st_size) }}</span>
+          <span class="file-size">{{ format_size(f.stat().st_size) }}</span>
           <div class="episode-actions">
             <form action="{{ root_path }}/wizard/start" method="post">
               <input type="hidden" name="path" value="{{ f }}">
@@ -184,7 +182,7 @@
               <input type="hidden" name="kind" value="episode">
               <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
               <input type="hidden" name="tmdb_kind" value="{{ item.tmdb_kind or 'tv' }}">
-              <button type="submit" class="btn btn-primary btn-sm">⬆ Upload</button>
+              <button type="submit" class="btn btn-primary btn-sm">Upload</button>
             </form>
             <form action="{{ root_path }}/wizard/start" method="post">
               <input type="hidden" name="path" value="{{ f }}">
@@ -195,14 +193,14 @@
               <input type="hidden" name="hardlink_only" value="1">
               <button type="submit" class="btn btn-link btn-sm"
                       onclick="return confirm('Crea solo l\'hardlink per questo episodio senza uploadare?')">
-                🔗 Hardlink
+                Hardlink
               </button>
             </form>
             <form action="{{ root_path }}/library/{{ category }}/{{ item.name }}/mark-uploaded" method="post">
               <input type="hidden" name="episode_path" value="{{ f }}">
               <button type="submit" class="btn btn-secondary btn-sm"
                       onclick="return confirm('Segna questo episodio come già caricato?\nVerrà nascosto dalla raccolta.')">
-                ✓ Già
+                Già caricato
               </button>
             </form>
           </div>
@@ -218,7 +216,7 @@
           <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
           <input type="hidden" name="tmdb_kind" value="{{ item.tmdb_kind or 'tv' }}">
           <button type="submit" class="btn btn-primary">
-            ⬆ Carica su ItaTorrents
+            Carica su ItaTorrents
           </button>
         </form>
         <form action="{{ root_path }}/wizard/start" method="post">
@@ -230,14 +228,14 @@
           <input type="hidden" name="hardlink_only" value="1">
           <button type="submit" class="btn btn-link btn-sm"
                   onclick="return confirm('Crea solo l\'hardlink per questa stagione senza uploadare?')">
-            🔗 Solo hardlink
+            Solo hardlink
           </button>
         </form>
         <form action="{{ root_path }}/library/{{ category }}/{{ item.name }}/mark-uploaded" method="post">
           <input type="hidden" name="season_path" value="{{ season.path }}">
           <button type="submit" class="btn btn-secondary btn-sm"
                   onclick="return confirm('Segna questa stagione come già caricata?\nVerrà nascosta dalla raccolta.')">
-            ✓ Già caricata
+            Già caricata
           </button>
         </form>
       </div>
@@ -259,9 +257,9 @@
   <div class="files-list">
     {% for f in item.video_files %}
     <div class="file-row">
-      <span class="file-icon">🎞</span>
+      <span class="file-icon mono">›</span>
       <span class="file-name">{{ f.name }}</span>
-      <span class="file-size muted">{{ format_size(f.stat().st_size) }}</span>
+      <span class="file-size">{{ format_size(f.stat().st_size) }}</span>
     </div>
     {% endfor %}
   </div>
@@ -273,7 +271,7 @@
       <input type="hidden" name="tmdb_id" value="{{ item.tmdb_id }}">
       <input type="hidden" name="tmdb_kind" value="{{ item.tmdb_kind or 'movie' }}">
       <button type="submit" class="btn btn-primary btn-lg">
-        ⬆ Carica su ItaTorrents
+        Carica su ItaTorrents
       </button>
     </form>
     <form action="{{ root_path }}/wizard/start" method="post">
@@ -285,13 +283,13 @@
       <input type="hidden" name="hardlink_only" value="1">
       <button type="submit" class="btn btn-link"
               onclick="return confirm('Crea solo l\'hardlink per questo film senza uploadare?')">
-        🔗 Solo hardlink
+        Solo hardlink
       </button>
     </form>
     <form action="{{ root_path }}/library/{{ category }}/{{ item.name }}/mark-uploaded" method="post">
       <button type="submit" class="btn btn-secondary"
               onclick="return confirm('Segna questo film come già caricato?\nVerrà nascosto dalla raccolta.')">
-        ✓ Già caricato
+        Già caricato
       </button>
     </form>
   </div>
@@ -375,14 +373,14 @@
     const btn = document.getElementById('rescan-lang-btn');
     const resultEl = document.getElementById('rescan-lang-result');
     btn.disabled = true;
-    btn.textContent = '⏳ Scansione…';
+    btn.textContent = 'Scansione…';
     resultEl.style.display = 'none';
 
     fetch(rootPath + '/library/' + category + '/' + encodeURIComponent(itemName) + '/rescan-langs', {
       method: 'POST',
     }).then(function(r) { return r.json(); }).then(function(d) {
       btn.disabled = false;
-      btn.textContent = '🔄 Riscansiona lingue';
+      btn.textContent = 'Riscansiona lingue';
       if (d.ok) {
         location.reload();
       } else {
@@ -392,14 +390,13 @@
       }
     }).catch(function() {
       btn.disabled = false;
-      btn.textContent = '🔄 Riscansiona lingue';
+      btn.textContent = 'Riscansiona lingue';
       resultEl.style.display = 'block';
       resultEl.textContent = 'Errore di rete.';
       resultEl.style.color = 'var(--red)';
     });
   };
 
-  // Allow Enter to trigger search
   document.addEventListener('DOMContentLoaded', function() {
     const q = document.getElementById('tmdb-search-q');
     if (q) q.addEventListener('keydown', function(e) { if (e.key === 'Enter') searchTmdb(); });

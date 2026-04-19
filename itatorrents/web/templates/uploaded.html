@@ -2,7 +2,7 @@
 {% block title %}Caricati — ItaTorrents{% endblock %}
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title">✅ Caricati</h1>
+  <h1 class="page-title">Caricati</h1>
   <span class="badge">{{ items | length }} in ~/seedings/</span>
 </div>
 
@@ -24,7 +24,7 @@
       {% for item in items %}
       <tr id="row-{{ loop.index }}">
         <td class="mono">
-          {% if item.is_dir %}📁{% else %}🎞{% endif %}
+          <span class="muted" style="margin-right:6px">{% if item.is_dir %}DIR{% else %}FILE{% endif %}</span>
           {{ item.name }}
         </td>
         <td>
@@ -36,15 +36,15 @@
           {% endif %}
         </td>
         <td>{{ item.title or '—' }}</td>
-        <td>{{ item.year or '—' }}</td>
-        <td class="muted">{{ item.uploaded_at[:16] if item.uploaded_at else '—' }}</td>
+        <td class="mono">{{ item.year or '—' }}</td>
+        <td class="muted mono">{{ item.uploaded_at[:16] if item.uploaded_at else '—' }}</td>
         <td>
           {% if not item.in_db %}
           <span class="tag tag-muted">manuale</span>
           {% elif item.exit_code == 0 %}
-          <span class="tag tag-ok">✓ ok</span>
+          <span class="tag tag-ok">ok</span>
           {% elif item.exit_code is not none %}
-          <span class="tag tag-error">✗ {{ item.exit_code }}</span>
+          <span class="tag tag-error">err {{ item.exit_code }}</span>
           {% else %}
           <span class="tag tag-muted">—</span>
           {% endif %}
@@ -54,7 +54,7 @@
                   data-path="{{ item.seeding_path | e }}"
                   data-row="row-{{ loop.index }}"
                   data-delete-file="1"
-                  title="Cancella">✕</button>
+                  title="Cancella">×</button>
         </td>
       </tr>
       {% endfor %}
@@ -63,13 +63,13 @@
 </div>
 {% else %}
 <div class="empty-state">
-  <div class="empty-icon">📭</div>
+  <div class="empty-icon">[ ∅ ]</div>
   <p>Nessun contenuto in <code>~/seedings/</code></p>
 </div>
 {% endif %}
 
 {% if manual %}
-<div class="section-title mt-4">✓ Marcati manualmente come caricati</div>
+<h2 class="section-title mt-4">Marcati manualmente come caricati</h2>
 <div class="table-wrap">
   <table class="table">
     <thead><tr><th>Sorgente</th><th>Tipo</th><th>Titolo</th><th>Anno</th><th></th></tr></thead>
@@ -83,13 +83,13 @@
           {% if r.hardlink_only %}<span class="tag tag-hardlink">hardlink</span>{% endif %}
         </td>
         <td>{{ r.title or '—' }}</td>
-        <td>{{ r.year or '—' }}</td>
+        <td class="mono">{{ r.year or '—' }}</td>
         <td>
           <button class="btn-delete"
                   data-path="{{ r.seeding_path | e }}"
                   data-row="{{ row_id }}"
                   data-delete-file="0"
-                  title="Rimuovi contrassegno">✕</button>
+                  title="Rimuovi contrassegno">×</button>
         </td>
       </tr>
       {% endfor %}
@@ -99,25 +99,25 @@
 {% endif %}
 
 {% if orphaned %}
-<div class="section-title mt-4">⚠ Record senza file (rimossi da ~/seedings/)</div>
+<h2 class="section-title mt-4">Record senza file (rimossi da ~/seedings/)</h2>
 <div class="table-wrap">
   <table class="table">
     <thead><tr><th>Nome</th><th>Titolo</th><th>Data</th><th></th></tr></thead>
     <tbody>
       {% for r in orphaned %}
-      <tr id="orphan-{{ loop.index }}">
+      <tr id="orphan-{{ loop.index }}" class="row-orphan">
         <td class="mono">
           {{ r.seeding_path.split('/')[-1] }}
           {% if r.hardlink_only %}<span class="tag tag-hardlink">hardlink</span>{% endif %}
         </td>
         <td>{{ r.title or '—' }}</td>
-        <td class="muted">{{ r.uploaded_at[:16] }}</td>
+        <td class="muted mono">{{ r.uploaded_at[:16] }}</td>
         <td>
           <button class="btn-delete"
                   data-path="{{ r.seeding_path | e }}"
                   data-row="orphan-{{ loop.index }}"
                   data-delete-file="0"
-                  title="Rimuovi record">✕</button>
+                  title="Rimuovi record">×</button>
         </td>
       </tr>
       {% endfor %}
@@ -159,13 +159,13 @@
           }
         } else {
           btn.disabled = false;
-          btn.textContent = '✕';
+          btn.textContent = '×';
           alert('Errore: ' + (d.error || 'sconosciuto'));
         }
       })
       .catch(function() {
         btn.disabled = false;
-        btn.textContent = '✕';
+        btn.textContent = '×';
         alert('Errore di rete.');
       });
   }

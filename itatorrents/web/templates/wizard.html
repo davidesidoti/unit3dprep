@@ -5,11 +5,10 @@
   <a href="{{ root_path }}/library/{{ state.category }}">
     {% if state.category == 'movies' %}Movies{% elif state.category == 'series' %}Series{% else %}Anime{% endif %}
   </a>
-  <span class="breadcrumb-sep">›</span>
+  <span class="breadcrumb-sep">/</span>
   <span>Upload Wizard</span>
 </div>
 
-<!-- Stepper -->
 <div class="stepper" id="stepper">
   <div class="step {% if step == 'audio' %}active{% elif step in ['tmdb','names','hardlink','upload'] %}done{% endif %}">
     <span class="step-num">1</span><span class="step-label">Audio</span>
@@ -32,7 +31,6 @@
   </div>
 </div>
 
-<!-- Wizard content: HTMX swaps this div for steps 2-5 -->
 <div id="wizard-content" class="wizard-box">
 
   {% if step == 'audio' %}
@@ -55,7 +53,8 @@
       const d = JSON.parse(e.data);
       const row = document.createElement('div');
       row.className = 'audio-row ' + (d.ok ? 'ok' : 'fail');
-      row.innerHTML = (d.ok ? '✅' : '❌') + ' <span class="mono">' + d.file + '</span>';
+      const marker = d.ok ? '[ok]' : '[fail]';
+      row.innerHTML = '<span class="mono" style="font-weight:700">' + marker + '</span> <span class="mono">' + d.file + '</span>';
       if (d.error) row.innerHTML += ' <span class="muted">(' + d.error + ')</span>';
       list.appendChild(row);
     });
@@ -64,13 +63,13 @@
       src.close();
       const d = JSON.parse(e.data);
       if (d.all_ok) {
-        summary.innerHTML = '<div class="alert alert-ok">✅ Italiano trovato in tutti i ' + d.total + ' file.</div>';
+        summary.innerHTML = '<div class="alert alert-ok">Italiano trovato in tutti i ' + d.total + ' file.</div>';
         htmx.ajax('GET', rootPath + '/wizard/' + token + '/tmdb-form', {target: '#tmdb-form-container', swap: 'innerHTML'});
       } else {
         summary.innerHTML =
-          '<div class="alert alert-error">❌ Uno o più file non hanno traccia italiana rilevata.</div>' +
-          '<div style="margin-top:10px;display:flex;gap:10px;align-items:center">' +
-          '<button class="btn btn-primary" ' +
+          '<div class="alert alert-error">Uno o più file non hanno traccia italiana rilevata.</div>' +
+          '<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+          '<button class="btn btn-warning" ' +
           'hx-post="' + rootPath + '/wizard/' + token + '/audio-override" ' +
           'hx-target="#wizard-content" hx-swap="innerHTML">Procedi comunque</button>' +
           '<span class="muted" style="font-size:12px">La traccia potrebbe non essere taggata correttamente nel file.</span>' +

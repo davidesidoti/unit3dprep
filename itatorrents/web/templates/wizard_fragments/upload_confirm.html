@@ -14,7 +14,7 @@
 {% if errors %}
 <div class="alert alert-error">
   {% for e in errors %}
-  <div>❌ {{ e }}</div>
+  <div>{{ e }}</div>
   {% endfor %}
 </div>
 {% else %}
@@ -25,12 +25,12 @@
 
 {% if state.hardlink_only %}
 <div class="info-box info-box-link">
-  <strong>🔗 Solo hardlink.</strong> Nessun upload verrà eseguito. Il file è pronto in <code>~/seedings/</code>.
+  <strong>Solo hardlink.</strong> Nessun upload verrà eseguito. Il file è pronto in <code>~/seedings/</code>.
 </div>
 
 <form action="{{ root_path }}/wizard/{{ token }}/finish-hardlink" method="post" class="mt-4">
   <button type="submit" class="btn btn-link btn-lg">
-    ✓ Fine — vai a Caricati
+    Fine — vai a Caricati
   </button>
 </form>
 
@@ -39,8 +39,8 @@
   <strong>Pronto per l'upload.</strong> Clicca per avviare <code>unit3dup</code>.
 </div>
 
-<button id="upload-btn" class="btn btn-primary mt-4" onclick="startUpload()">
-  🚀 Avvia Upload
+<button id="upload-btn" class="btn btn-primary btn-lg mt-4" onclick="startUpload()">
+  Avvia Upload
 </button>
 
 <div id="upload-log" class="log-box" style="display:none"></div>
@@ -90,7 +90,7 @@
 
   window.startUpload = function() {
     document.getElementById('upload-btn').disabled = true;
-    document.getElementById('upload-btn').textContent = '⏳ Uploading...';
+    document.getElementById('upload-btn').textContent = 'Uploading…';
     const logBox = document.getElementById('upload-log');
     logBox.style.display = 'block';
 
@@ -151,10 +151,10 @@
       const d = JSON.parse(e.data);
       const res = document.getElementById('upload-result');
       if (d.exit_code === 0) {
-        res.innerHTML = '<div class="alert alert-ok">✅ Upload completato con successo!</div>' +
+        res.innerHTML = '<div class="alert alert-ok">Upload completato con successo.</div>' +
           '<a href="' + rootPath + '/uploaded" class="btn btn-secondary mt-2">Vai a Caricati</a>';
       } else {
-        res.innerHTML = '<div class="alert alert-error">❌ unit3dup ha restituito exit code ' + d.exit_code + '</div>';
+        res.innerHTML = '<div class="alert alert-error">unit3dup ha restituito exit code ' + d.exit_code + '</div>';
       }
       document.getElementById('upload-btn').style.display = 'none';
     });
@@ -163,7 +163,7 @@
       _src.close();
       _hidePrompts();
       document.getElementById('upload-result').innerHTML =
-        '<div class="alert alert-error">❌ ' + (e.data || 'Errore SSE') + '</div>';
+        '<div class="alert alert-error">' + (e.data || 'Errore SSE') + '</div>';
     });
 
     _src.onerror = function() { _src.close(); };
