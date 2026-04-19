@@ -5,7 +5,7 @@ import { StatusPill } from '../components/primitives';
 
 function humanSize(b: number): string {
   const u = ['TB', 'GB', 'MB', 'KB'];
-  const s = [1 << 40, 1 << 30, 1 << 20, 1 << 10];
+  const s = [2**40, 2**30, 2**20, 2**10];
   for (let i = 0; i < u.length; i++) {
     if (b >= s[i]) return `${(b / s[i]).toFixed(1)} ${u[i]}`;
   }

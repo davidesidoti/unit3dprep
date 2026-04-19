@@ -41,7 +41,7 @@ export function UploadedView() {
   return (
     <div style={{
       padding: '18px 22px', display: 'flex', flexDirection: 'column',
-      gap: 14, height: '100%', overflow: 'auto',
+      gap: 14, height: '100%', minHeight: 0, overflow: 'auto',
     }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
         <StatCard value={stats.total} label="Total uploads" />
