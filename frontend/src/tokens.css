@@ -1,0 +1,120 @@
+/* Design tokens — ported verbatim from unit3dup-design-system/project/colors_and_type.css */
+
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('./assets/fonts/SpaceGrotesk-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-Italic-VariableFont_wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  --bg-base:        #08090c;
+  --bg-surface:     #0f1117;
+  --bg-card:        #161b25;
+  --bg-card-hover:  #1c2232;
+  --bg-overlay:     rgba(0, 0, 0, 0.70);
+
+  --border:         #1e2536;
+  --border-subtle:  #141924;
+  --border-focus:   #3b82f6;
+
+  --blue-dim:       #1d3e7a;
+  --blue:           #3b82f6;
+  --blue-bright:    #60a5fa;
+  --blue-muted:     rgba(59, 130, 246, 0.15);
+
+  --yellow-dim:     #78450a;
+  --yellow:         #f5a623;
+  --yellow-bright:  #fbbf24;
+  --yellow-muted:   rgba(245, 166, 35, 0.15);
+
+  --red-dim:        #5b1a1a;
+  --red:            #f87171;
+  --red-bright:     #fca5a5;
+  --red-muted:      rgba(248, 113, 113, 0.15);
+
+  --green-dim:      #14442b;
+  --green:          #4ade80;
+  --green-bright:   #86efac;
+  --green-muted:    rgba(74, 222, 128, 0.15);
+
+  --cyan-dim:       #0c3a4a;
+  --cyan:           #22d3ee;
+  --cyan-bright:    #67e8f9;
+  --cyan-muted:     rgba(34, 211, 238, 0.15);
+
+  --fg-1:           #e2e8f0;
+  --fg-2:           #94a3b8;
+  --fg-3:           #475569;
+  --fg-4:           #2d3a4f;
+
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
+  --space-12: 48px; --space-16: 64px;
+
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-pill: 9999px;
+
+  --font-display: 'Space Grotesk', 'Helvetica Neue', sans-serif;
+  --font-body:    'Space Grotesk', 'Helvetica Neue', sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  --text-xs: 11px; --text-sm: 13px; --text-base: 14px; --text-md: 15px;
+  --text-lg: 17px; --text-xl: 20px; --text-2xl: 24px; --text-3xl: 30px;
+
+  --leading-tight: 1.2; --leading-snug: 1.35;
+  --leading-normal: 1.5; --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.02em; --tracking-wide: 0.05em;
+  --tracking-wider: 0.08em;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg-1);
+  background: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-surface); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9999px; }
+
+input, select, textarea {
+  transition: border-color 150ms;
+  font-family: inherit;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--blue) !important;
+  outline: none;
+}
+button { font-family: inherit; }
+a { color: var(--blue-bright); text-decoration: none; }
+a:hover { color: var(--blue-bright); }
+
+code, pre, kbd {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes blink { 50% { opacity: 0; } }

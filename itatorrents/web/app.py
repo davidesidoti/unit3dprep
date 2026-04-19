@@ -1,42 +1,55 @@
-"""FastAPI application factory."""
+"""FastAPI application: JSON API under /{ROOT_PATH}/api + SPA served from /dist."""
+from __future__ import annotations
+
+import asyncio
+import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from .auth import SECRET_KEY, is_authenticated
+from .auth import SECRET_KEY
 from .db import init_db
-from .routes import auth as auth_router
-from .routes import library as library_router
-from .routes import tmdb_api as tmdb_api_router
-from .routes import uploaded as uploaded_router
-from .routes import wizard as wizard_router
-from .templates_env import ROOT_PATH
+from . import logbuf
+from .api import (
+    auth as auth_api,
+    fs as fs_api,
+    library as library_api,
+    logs as logs_api,
+    quickupload as quickupload_api,
+    queue as queue_api,
+    search as search_api,
+    settings as settings_api,
+    tmdb as tmdb_api,
+    trackers as trackers_api,
+    uploaded as uploaded_api,
+    wizard as wizard_api,
+)
 
-STATIC_DIR = Path(__file__).parent / "static"
+# When the reverse proxy does NOT strip the prefix (typical Ultra.cc nginx
+# user-proxy without trailing slash on proxy_pass), routes must be registered
+# under the prefix — FastAPI's `root_path=` only helps when the proxy strips.
+ROOT_PATH = os.environ.get("ITA_ROOT_PATH", "").rstrip("/")
+DIST_DIR = Path(__file__).parent / "dist"
 
 app = FastAPI(title="ItaTorrents Web", docs_url=None, redoc_url=None)
 
-_LOGIN_PATH = f"{ROOT_PATH}/login"
-_STATIC_PREFIX = f"{ROOT_PATH}/static"
+API_PREFIX = f"{ROOT_PATH}/api"
+AUTH_EXEMPT = {f"{API_PREFIX}/auth/login", f"{API_PREFIX}/me"}
 
 
+@app.middleware("http")
 async def _auth_guard(request: Request, call_next):
-    path = request.url.path
-    if path.startswith(_STATIC_PREFIX) or path == _LOGIN_PATH:
-        return await call_next(request)
-    if not is_authenticated(request):
-        return RedirectResponse(f"{_LOGIN_PATH}?next={path}", status_code=303)
+    path = request.url.path.rstrip("/")
+    if path.startswith(API_PREFIX) and path not in AUTH_EXEMPT:
+        if not request.session.get("authenticated"):
+            return JSONResponse({"detail": "Not authenticated"}, status_code=401)
     return await call_next(request)
 
 
-# Middleware order: LAST add_middleware = OUTERMOST = runs first.
-# SessionMiddleware must be outermost so session is populated before auth_guard.
-app.add_middleware(BaseHTTPMiddleware, dispatch=_auth_guard)
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
@@ -47,17 +60,79 @@ app.add_middleware(
 
 
 @app.on_event("startup")
-async def startup():
+async def _startup():
     await init_db()
+    logbuf.install(asyncio.get_event_loop())
+    logging.getLogger("itatorrents").info("itatorrents-web started")
 
 
-app.mount(f"{ROOT_PATH}/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+# Mount all JSON routers under ROOT_PATH (routers themselves already declare
+# /api/... so the final path is /{ROOT_PATH}/api/...).
+for r in (
+    auth_api.router,
+    fs_api.router,
+    library_api.router,
+    logs_api.router,
+    queue_api.router,
+    quickupload_api.router,
+    search_api.router,
+    settings_api.router,
+    tmdb_api.router,
+    trackers_api.router,
+    uploaded_api.router,
+    wizard_api.router,
+):
+    app.include_router(r, prefix=ROOT_PATH)
 
-app.include_router(auth_router.router, prefix=ROOT_PATH)
-app.include_router(library_router.router, prefix=ROOT_PATH)
-app.include_router(tmdb_api_router.router, prefix=ROOT_PATH)
-app.include_router(wizard_router.router, prefix=ROOT_PATH)
-app.include_router(uploaded_router.router, prefix=ROOT_PATH)
+
+if (DIST_DIR / "assets").exists():
+    app.mount(
+        f"{ROOT_PATH}/assets",
+        StaticFiles(directory=str(DIST_DIR / "assets")),
+        name="assets",
+    )
+
+
+def _render_index() -> str:
+    idx = DIST_DIR / "index.html"
+    if not idx.is_file():
+        return ""
+    html = idx.read_text(encoding="utf-8")
+    inject = f'<script>window.__ROOT_PATH__={ROOT_PATH!r};</script>'
+    return html.replace("</head>", f"{inject}</head>", 1)
+
+
+# SPA catch-all. Serves index.html for any non-API path so a deep link to a
+# client-side route still boots the app.
+_CATCHALL = f"{ROOT_PATH}/{{full_path:path}}" if ROOT_PATH else "/{full_path:path}"
+
+
+@app.get(_CATCHALL)
+async def spa(full_path: str, request: Request):
+    if full_path.startswith("api/") or full_path.startswith("assets/"):
+        raise HTTPException(status_code=404)
+    if full_path and not full_path.endswith("/"):
+        candidate = DIST_DIR / full_path
+        if candidate.is_file():
+            return FileResponse(candidate)
+    rendered = _render_index()
+    if rendered:
+        return HTMLResponse(rendered)
+    return JSONResponse(
+        {"detail": "Frontend not built. Run `cd frontend && npm install && npm run build`."},
+        status_code=503,
+    )
+
+
+# When hit at exactly "/itatorrents" (no trailing slash) we still want the
+# SPA — the catch-all only fires on /itatorrents/..., so add a bare alias.
+if ROOT_PATH:
+    @app.get(ROOT_PATH)
+    async def _root_alias():
+        rendered = _render_index()
+        return HTMLResponse(rendered) if rendered else JSONResponse(
+            {"detail": "Frontend not built."}, status_code=503,
+        )
 
 
 def run():

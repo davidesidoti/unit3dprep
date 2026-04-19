@@ -1,0 +1,4 @@
+recursive-include itatorrents/web/dist *
+include README.md
+include LICENSE
+include itatorrents-nomenclatura.md
