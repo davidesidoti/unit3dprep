@@ -400,4 +400,7 @@ async def wizard_finish(tok: str):
     state = _get(tok)
     state["upload_done"] = True
     state["exit_code"] = 0
+    seeding_path = state.get("seeding_path", "")
+    if seeding_path:
+        await update_exit_code(seeding_path, 0)
     return JSONResponse({"ok": True})

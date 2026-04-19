@@ -95,6 +95,7 @@ async def stream(job: str):
                 code = ev.get("exit_code", -1)
                 state["exit_code"] = code
                 state.pop("stdin_queue", None)
+                await update_exit_code(state["path"], code)
                 log_emit(
                     "ok" if code == 0 else "error",
                     f"unit3dup exit {code}", "quickupload",
