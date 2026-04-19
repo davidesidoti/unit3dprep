@@ -186,3 +186,10 @@ AGENTS.md
 .graphify_python
 opencode.json
 /.opencode
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+# SPA build lives under itatorrents/web/dist and IS tracked:
+!itatorrents/web/dist/
+!itatorrents/web/dist/**
