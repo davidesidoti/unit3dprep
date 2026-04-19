@@ -507,6 +507,7 @@ export function LibraryView({ onStartWizard, isMobile }: { onStartWizard: (c: Wi
             onStart={startWizard}
             onClose={() => setSelected(null)}
             onEditTmdb={() => setTmdbEditOpen(true)}
+            onRescan={(langs) => setSelected((prev) => prev ? { ...prev, langs, lang_scanned: true } : prev)}
             isMobile={isMobile}
           />
         )}
@@ -524,13 +525,14 @@ export function LibraryView({ onStartWizard, isMobile }: { onStartWizard: (c: Wi
 }
 
 function DetailPanel({
-  item, category, onStart, onClose, onEditTmdb, isMobile,
+  item, category, onStart, onClose, onEditTmdb, onRescan, isMobile,
 }: {
   item: LibraryItem;
   category: Category;
   onStart: (kind: 'movie' | 'series' | 'episode', path: string, season?: Season) => void;
   onClose: () => void;
   onEditTmdb: () => void;
+  onRescan?: (langs: string[]) => void;
   isMobile?: boolean;
 }) {
   const mobileOverlayStyle = isMobile
@@ -644,6 +646,7 @@ function DetailPanel({
               >Upload all seasons →</button>
             }/>
             {item.seasons.map((s) => <SeasonRow key={s.number} season={s} item={item} category={category} onStart={onStart} />)}
+            <RescanLangsBtn category={category} name={item.name} onRescan={onRescan} />
           </>
         ) : (
           <>
@@ -669,6 +672,7 @@ function DetailPanel({
               {item.already_uploaded ? 'Already uploaded' : 'Start upload wizard →'}
             </button>
             <MarkUploadedBtn category={category} name={item.name} />
+            <RescanLangsBtn category={category} name={item.name} onRescan={onRescan} />
           </>
         )}
       </div>
@@ -786,6 +790,40 @@ function MarkUploadedBtn({ category, name }: { category: Category; name: string 
         fontFamily: 'var(--font-display)', marginBottom: 6,
       }}
     >{done ? '✓ Marked' : 'Mark as uploaded manually'}</button>
+  );
+}
+
+function RescanLangsBtn({
+  category, name, onRescan,
+}: { category: Category; name: string; onRescan?: (langs: string[]) => void }) {
+  const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle');
+  const rescan = async () => {
+    setState('loading');
+    try {
+      const r = await api.post<{ ok: boolean; langs: string[] }>(
+        `/api/library/${category}/${encodeURIComponent(name)}/rescan-langs`, {},
+      );
+      onRescan?.(r.langs);
+      setState('done');
+    } catch {
+      setState('idle');
+    }
+  };
+  return (
+    <button
+      onClick={rescan}
+      disabled={state === 'loading'}
+      style={{
+        width: '100%', background: 'transparent',
+        border: '1px solid var(--border)', borderRadius: 6,
+        padding: 8, fontSize: 11, fontWeight: 600,
+        color: state === 'done' ? 'var(--green)' : 'var(--fg-2)',
+        cursor: state === 'loading' ? 'default' : 'pointer',
+        fontFamily: 'var(--font-display)', marginBottom: 6,
+      }}
+    >
+      {state === 'loading' ? 'Scanning…' : state === 'done' ? '✓ Audio languages rescanned' : 'Rescan audio languages'}
+    </button>
   );
 }
 
