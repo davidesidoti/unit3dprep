@@ -1,24 +1,40 @@
 # itatorrents-seeding
 
-CLI + Web UI per preparare upload su ItaTorrents:
-- verifica tracce audio italiane
-- rinomina secondo nomenclatura ItaTorrents
-- crea hardlink in `~/seedings`
-- avvia upload con `unit3dup`
+Web UI + CLI per preparare e automatizzare upload su [ItaTorrents.xyz](https://itatorrents.xyz).
 
-## Cosa fa
+Verifica tracce audio italiane, rinomina secondo nomenclatura ItaTorrents, crea hardlink in `~/seedings` e avvia upload con `unit3dup`.
 
-- Supporta film, episodi singoli e serie
-- Usa TMDB per titolo/anno ufficiali (con ID manuale o ricerca da web UI)
-- Tiene storico upload in file JSON (no sqlite)
-- Espone interfaccia web FastAPI + Jinja2 + SSE
+---
+
+## Funzionalità
+
+### Web UI (React SPA + FastAPI)
+- **Media Library** — scansione `~/media/{movies,series,anime}`, ricerca e matching TMDB (automatico o manuale), ordinamento per nome/anno/dimensione, visualizzazione lingue audio
+- **Upload Wizard** — flusso guidato per film, episodi singoli e intere stagioni
+- **Upload Queue** — monitoraggio torrent dal client (qBittorrent/Transmission/rTorrent) con filtro per nome e stato
+- **Upload History** — storico completo con stato exit code `unit3dup`, filtri e ricerca
+- **Search Tracker** — ricerca torrent su ITT (e PTT/SIS se configurati)
+- **Settings** — configurazione completa `Unit3Dbot.json` da browser, con mascheratura secret
+- **Logs** — stream log in tempo reale via SSE
+- **Tracker status** — indicatore online/offline per tracker configurati (solo se URL + API key validi)
+
+### CLI
+- Verifica tracce audio (`pymediainfo`)
+- Rinomina secondo nomenclatura ItaTorrents
+- Crea hardlink verso `~/seedings/`
+- Lancia `unit3dup -u` (film/episodio) o `unit3dup -f` (serie/stagione)
+
+---
 
 ## Requisiti
 
 - Python 3.10+
-- `unit3dup` disponibile nel PATH
-- media organizzati sotto `~/media/{movies,series,anime}`
-- hardlink possibili tra sorgente media e `~/seedings` (stesso filesystem)
+- `unit3dup` nel PATH
+- Media organizzati sotto `~/media/{movies,series,anime}`
+- Sorgente media e `~/seedings` sullo stesso filesystem (per hardlink)
+- `TMDB_API_KEY` per matching automatico e ricerca TMDB
+
+---
 
 ## Installazione
 
@@ -26,75 +42,82 @@ CLI + Web UI per preparare upload su ItaTorrents:
 pip install -e .
 ```
 
-Per generare hash password e secret:
+Genera hash password e secret per la web UI:
 
 ```bash
 python generate_hash.py
 ```
 
-## Uso CLI
+---
 
-Film/episodio singolo:
-
-```bash
-itatorrents -u /path/al/file.mkv
-```
-
-Serie/cartella:
-
-```bash
-itatorrents -f /path/alla/cartella
-```
-
-Mappatura upload:
-- `movie` e `episode` -> `unit3dup -u`
-- `series` -> `unit3dup -f`
-
-## Uso Web
-
-Avvio server:
+## Avvio Web
 
 ```bash
 itatorrents-web
 ```
 
-Default bind:
-- host `127.0.0.1`
-- porta `8765`
+Default: `127.0.0.1:8765`. Configurabile via variabili ambiente (vedi sotto).
+
+---
 
 ## Variabili ambiente
 
-Minime per uso web:
+| Variabile | Richiesta | Default | Descrizione |
+|---|---|---|---|
+| `ITA_PASSWORD_HASH` | ✓ | — | Hash bcrypt password web UI |
+| `ITA_SECRET` | ✓ | — | Secret sessione (itsdangerous) |
+| `ITA_PORT` | ✓ | — | Porta ascolto |
+| `TMDB_API_KEY` | — | — | API key TMDB v3 |
+| `ITA_HOST` | — | `127.0.0.1` | Bind address |
+| `ITA_ROOT_PATH` | — | — | Prefisso nginx (es. `/itatorrents`) |
+| `ITA_HTTPS_ONLY` | — | `0` | Cookie session secure (`1` dietro HTTPS) |
+| `ITA_TMDB_LANG` | — | `it-IT` | Lingua risposta TMDB |
+| `ITA_DB_PATH` | — | `~/.itatorrents_db.json` | Path storico upload |
+| `ITA_TMDB_CACHE_PATH` | — | `~/.itatorrents_tmdb_cache.json` | Cache TMDB |
+| `ITA_LANG_CACHE_PATH` | — | `~/.itatorrents_lang_cache.json` | Cache scan lingue audio |
+| `UNIT3DUP_CONFIG` | — | `~/Unit3Dup_config/Unit3Dbot.json` | Path config unit3dup |
 
-- `ITA_PASSWORD_HASH` (obbligatoria)
-- `ITA_SECRET` (obbligatoria)
-- `ITA_PORT` (obbligatoria)
+---
 
-Opzionali utili:
+## CLI
 
-- `TMDB_API_KEY` (ricerca/metadati TMDB)
-- `ITA_HOST` (default `127.0.0.1`)
-- `ITA_ROOT_PATH` (se app dietro sottopercorso nginx)
-- `ITA_HTTPS_ONLY=1` (cookie session sicuri)
-- `ITA_TMDB_LANG` (default `it-IT`)
-- `ITA_DB_PATH`, `ITA_TMDB_CACHE_PATH`, `ITA_LANG_CACHE_PATH` (override path cache/db)
+Film o episodio singolo:
+
+```bash
+itatorrents -u /path/al/file.mkv
+```
+
+Serie o cartella stagione:
+
+```bash
+itatorrents -f /path/alla/cartella
+```
+
+---
+
+## Build frontend (solo sviluppo locale)
+
+Il frontend React è pre-buildato in `itatorrents/web/dist/` (committato nel repo — Ultra.cc non ha Node).
+
+Per aggiornarlo:
+
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+---
+
+## Stack tecnico
+
+- **Backend**: FastAPI + uvicorn, SSE (sse-starlette), auth bcrypt + itsdangerous
+- **Frontend**: React 18 + Vite + TypeScript + lucide-react (SPA servita staticamente)
+- **DB**: JSON file plain (no SQLite — `_sqlite3` rotto su pyenv Python 3.13/Ultra.cc)
+- **Config**: `Unit3Dbot.json` condiviso con `unit3dup` CLI
+
+---
 
 ## Nomenclatura
 
-Regole naming ItaTorrents in:
-
-- `itatorrents-nomenclatura.md`
-
-## Verifica rapida dopo modifiche
-
-Controllo Python:
-
-```bash
-python -m compileall itatorrents
-```
-
-Controllo parsing template Jinja:
-
-```bash
-python -c "from pathlib import Path; from itatorrents.web.templates_env import templates; base=Path('itatorrents/web/templates'); [templates.get_template(str(p.relative_to(base)).replace('\\\\','/')) for p in base.rglob('*.html')]; print('ok')"
-```
+Regole naming ItaTorrents: [`itatorrents-nomenclatura.md`](itatorrents-nomenclatura.md)
