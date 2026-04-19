@@ -80,7 +80,7 @@ export function UploadedView() {
 
       <div style={{
         background: '#0a0c12', border: '1px solid var(--border-subtle)',
-        borderRadius: 8, overflow: 'hidden',
+        borderRadius: 8, overflowX: 'hidden', overflowY: 'auto',
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr 90px 180px 100px 140px' }}>
           {['Kind', 'Title / Final Name', 'TMDB', 'Uploaded', 'Status', 'Actions'].map((h) => (
