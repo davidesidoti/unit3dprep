@@ -4,7 +4,6 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import re
 import secrets
 import time
 from pathlib import Path
@@ -350,15 +349,7 @@ async def wizard_upload(tok: str):
             yield {"event": "error", "data": "No seeding path set"}
         return EventSourceResponse(_err())
     kind = state["kind"]
-    if kind == "series":
-        sp = Path(seeding_path)
-        season_dirs = sorted(
-            d for d in sp.iterdir() if d.is_dir() and re.match(r'[Ss]eason', d.name)
-        ) if sp.is_dir() else []
-        unit3dup_path = str(season_dirs[0]) if season_dirs else seeding_path
-    else:
-        unit3dup_path = seeding_path
-    args = ["-b", "-u" if kind in {"movie", "episode"} else "-f", unit3dup_path]
+    args = ["-b", "-u" if kind in {"movie", "episode"} else "-f", seeding_path]
     q: asyncio.Queue = asyncio.Queue()
     state["stdin_queue"] = q
     tmdb_id = state.get("tmdb_id", "")

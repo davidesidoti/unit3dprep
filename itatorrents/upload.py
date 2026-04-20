@@ -105,9 +105,6 @@ def do_hardlink_movie(src: Path, final_name: str) -> Path:
     return target
 
 
-_SEASON_DIR_RE = re.compile(r'^[Ss]eason\s*\d+$')
-
-
 def do_hardlink_series(
     src_dir: Path,
     folder_name: str,
@@ -118,14 +115,7 @@ def do_hardlink_series(
     target_dir = seed / folder_name
     if target_dir.exists():
         shutil.rmtree(target_dir)
-    # If src_dir is a Season folder (e.g. "Season 01"), preserve it as a
-    # subfolder so unit3dup can point to it and guessit uses episode filenames
-    # instead of the outer folder name (which lacks season indicators).
-    if _SEASON_DIR_RE.match(src_dir.name):
-        inner = target_dir / src_dir.name
-    else:
-        inner = target_dir
-    hardlink_tree(src_dir, inner, episode_rename)
+    hardlink_tree(src_dir, target_dir, episode_rename)
     return target_dir
 
 
