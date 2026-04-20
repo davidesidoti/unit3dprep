@@ -99,7 +99,13 @@ def _render_index() -> str:
         return ""
     html = idx.read_text(encoding="utf-8")
     inject = f'<script>window.__ROOT_PATH__={ROOT_PATH!r};</script>'
-    return html.replace("</head>", f"{inject}</head>", 1)
+    html = html.replace("</head>", f"{inject}</head>", 1)
+    # Vite builds with base='./' producing relative asset paths. When the
+    # page is served at /itatorrents (no trailing slash) the browser resolves
+    # './' to '/' instead of '/itatorrents/' — fix to absolute paths at serve time.
+    if ROOT_PATH:
+        html = html.replace('./assets/', f'{ROOT_PATH}/assets/')
+    return html
 
 
 # SPA catch-all. Serves index.html for any non-API path so a deep link to a
