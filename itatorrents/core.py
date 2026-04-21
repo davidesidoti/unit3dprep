@@ -538,6 +538,8 @@ def hardlink_tree(src_dir: Path, dst_dir: Path, episode_rename: dict[Path, str])
     for src_file in sorted(src_dir.rglob("*")):
         if not src_file.is_file():
             continue
+        if src_file.suffix.lower() not in VIDEO_EXTENSIONS:
+            continue
         rel_parent = src_file.parent.relative_to(src_dir)
         target_parent = dst_dir / rel_parent
         target_parent.mkdir(parents=True, exist_ok=True)
