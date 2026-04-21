@@ -36,8 +36,14 @@ ROOT_PATH = os.environ.get("ITA_ROOT_PATH", "").rstrip("/")
 DIST_DIR = Path(__file__).parent / "dist"
 
 API_PREFIX = f"{ROOT_PATH}/api"
-AUTH_EXEMPT = {f"{API_PREFIX}/auth/login", f"{API_PREFIX}/me"}
 _OPENAPI_URL = f"{ROOT_PATH}/openapi.json"
+AUTH_EXEMPT = {
+    f"{API_PREFIX}/auth/login",
+    f"{API_PREFIX}/me",
+    f"{API_PREFIX}/docs",
+    f"{API_PREFIX}/redoc",
+    _OPENAPI_URL,
+}
 
 app = FastAPI(
     title="ItaTorrents Web",
