@@ -204,13 +204,13 @@ def handle_folder(folder: Path):
         if sample_specs is None:
             sample_specs, sample_source, sample_type, sample_tag = specs, source, src_type, tag
         new_name = build_name(
-            title=series_title, year=year, se=se,
+            title=series_title, year="", se=se,
             specs=specs, source=source, src_type=src_type, tag=tag,
         )
         episode_rename[f] = new_name
 
     folder_name = build_name(
-        title=series_title, year=year, se="",
+        title=series_title, year="", se="",
         specs=sample_specs or {}, source=sample_source, src_type=sample_type, tag=sample_tag,
     )
     folder_name = prompt_edit("Nome cartella finale: ", folder_name)

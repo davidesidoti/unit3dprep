@@ -74,7 +74,7 @@ def build_episode_names(
         source, src_type = map_source(g)
         tag = g.get("release_group", "") or folder_guess.get("release_group", "") or ""
         new_name = build_name(
-            title=series_title, year=year, se=se,
+            title=series_title, year="", se=se,
             specs=specs, source=source, src_type=src_type, tag=tag,
         )
         episode_rename[f] = new_name

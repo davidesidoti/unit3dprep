@@ -252,7 +252,7 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
         )
         if not result:
             fallback = await loop.run_in_executor(
-                None, build_movie_name_from_file, episode_file, title, year
+                None, build_movie_name_from_file, episode_file, title, ""
             )
             result = {str(episode_file): fallback}
         return result
@@ -272,7 +272,7 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
         source, src_type = map_source(g)
         tag = g.get("release_group", "") or folder_guess.get("release_group", "") or ""
         folder_nm = build_name(
-            title=title, year=year, se="",
+            title=title, year="", se="",
             specs=specs, source=source, src_type=src_type, tag=tag,
         )
         state["folder_name"] = folder_nm
