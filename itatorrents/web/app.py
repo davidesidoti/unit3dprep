@@ -35,16 +35,23 @@ from .api import (
 ROOT_PATH = os.environ.get("ITA_ROOT_PATH", "").rstrip("/")
 DIST_DIR = Path(__file__).parent / "dist"
 
-app = FastAPI(title="ItaTorrents Web", docs_url=None, redoc_url=None)
-
 API_PREFIX = f"{ROOT_PATH}/api"
 AUTH_EXEMPT = {f"{API_PREFIX}/auth/login", f"{API_PREFIX}/me"}
+_OPENAPI_URL = f"{ROOT_PATH}/openapi.json"
+
+app = FastAPI(
+    title="ItaTorrents Web",
+    docs_url=f"{API_PREFIX}/docs",
+    redoc_url=f"{API_PREFIX}/redoc",
+    openapi_url=_OPENAPI_URL,
+)
 
 
 @app.middleware("http")
 async def _auth_guard(request: Request, call_next):
     path = request.url.path.rstrip("/")
-    if path.startswith(API_PREFIX) and path not in AUTH_EXEMPT:
+    protected = path.startswith(API_PREFIX) or path == _OPENAPI_URL
+    if protected and path not in AUTH_EXEMPT:
         if not request.session.get("authenticated"):
             return JSONResponse({"detail": "Not authenticated"}, status_code=401)
     return await call_next(request)
