@@ -55,8 +55,20 @@ _changelog_cache: dict[str, tuple[float, dict]] = {}
 # ---------------------------------------------------------------- current --
 
 def _current_app_version() -> str:
+    # In git-checkout installs, pyproject.toml at the repo root is the authoritative
+    # source — `git pull` updates it atomically. importlib.metadata can return stale
+    # values when an orphan dist-info/egg-info shadows the fresh install.
+    if _repo_root() is not None:
+        try:
+            import tomllib
+            pyproject = _repo_root() / "pyproject.toml"
+            v = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
+            if v:
+                return v
+        except Exception:
+            pass
     try:
-        from importlib.metadata import PackageNotFoundError, version
+        from importlib.metadata import version
         return version("itatorrents")
     except Exception:
         pass
@@ -346,18 +358,76 @@ async def update_app():
 
         await asyncio.sleep(1.5)
 
-        try:
-            subprocess.Popen(
-                ["systemctl", "--user", "restart", _systemd_unit()],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True,
-            )
-        except Exception as exc:
-            yield _sse("error", {"message": f"failed to spawn systemctl: {exc}"})
+        # Schedule the restart via a transient systemd-run timer so the restart
+        # command lives OUTSIDE this service's cgroup. A plain `Popen(...,
+        # start_new_session=True)` child stays in the parent unit's cgroup and
+        # gets killed together with it when systemd stops the service.
+        restart_scheduled = False
+        if shutil.which("systemd-run"):
+            try:
+                subprocess.run(
+                    [
+                        "systemd-run", "--user", "--on-active=3s",
+                        "--unit", f"itatorrents-restart-{int(time.time())}",
+                        "systemctl", "--user", "restart", _systemd_unit(),
+                    ],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
+                    timeout=10,
+                    check=True,
+                )
+                restart_scheduled = True
+                yield _sse("log", "restart scheduled via systemd-run (3s)")
+            except Exception as exc:
+                yield _sse("log", f"systemd-run failed, falling back: {exc}")
+
+        if not restart_scheduled:
+            try:
+                subprocess.Popen(
+                    ["systemctl", "--user", "restart", _systemd_unit()],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+            except Exception as exc:
+                yield _sse("error", {"message": f"failed to spawn systemctl: {exc}"})
 
     return EventSourceResponse(gen())
+
+
+async def _clean_stale_metadata(repo: Path) -> AsyncGenerator[dict, None]:
+    """Remove stale egg-info (source tree) and orphan dist-info (site-packages)
+    that can shadow the fresh install and confuse importlib.metadata.
+    """
+    egg_info = repo / "itatorrents.egg-info"
+    if egg_info.exists():
+        yield _sse("log", f"removing stale egg-info: {egg_info}")
+        shutil.rmtree(egg_info, ignore_errors=True)
+
+    # Locate every site-packages reachable by the interpreter and drop
+    # any `itatorrents-*.dist-info` that isn't the one pip just wrote.
+    try:
+        import site
+        roots: list[Path] = []
+        for p in [site.getusersitepackages(), *site.getsitepackages()]:
+            rp = Path(p)
+            if rp.exists() and rp not in roots:
+                roots.append(rp)
+        for root in roots:
+            for d in root.glob("itatorrents-*.dist-info"):
+                yield _sse("log", f"removing dist-info: {d}")
+                shutil.rmtree(d, ignore_errors=True)
+            # `__editable__.itatorrents-*.pth` pointers older than current version
+            for pth in root.glob("__editable__.itatorrents-*.pth"):
+                yield _sse("log", f"removing editable pth: {pth}")
+                try:
+                    pth.unlink()
+                except Exception:
+                    pass
+    except Exception as exc:
+        yield _sse("log", f"cleanup warning: {exc}")
 
 
 async def _update_app_from_git() -> AsyncGenerator[dict, None]:
@@ -386,10 +456,11 @@ async def _update_app_from_git() -> AsyncGenerator[dict, None]:
         yield _sse("done", {"ok": False})
         return
 
+    # Fetch + pull first, THEN clean metadata so pip install creates fresh
+    # dist-info without any leftovers shadowing it.
     for argv in (
         ["git", "fetch", "origin", "main"],
         ["git", "pull", "--ff-only", "origin", "main"],
-        [sys.executable, "-m", "pip", "install", "-e", "."],
     ):
         async for ev in _stream_subprocess(argv, cwd=repo):
             if ev["event"] == "exit":
@@ -399,6 +470,33 @@ async def _update_app_from_git() -> AsyncGenerator[dict, None]:
                     return
                 break
             yield ev
+
+    # Uninstall in a loop (pip doesn't remove orphan dist-info reliably).
+    for _ in range(3):
+        done_uninstall = False
+        async for ev in _stream_subprocess(
+            [sys.executable, "-m", "pip", "uninstall", "-y", "itatorrents"], cwd=repo
+        ):
+            if ev["event"] == "exit":
+                done_uninstall = True
+                break
+            yield ev
+        if done_uninstall:
+            break
+
+    async for ev in _clean_stale_metadata(repo):
+        yield ev
+
+    async for ev in _stream_subprocess(
+        [sys.executable, "-m", "pip", "install", "-e", "."], cwd=repo
+    ):
+        if ev["event"] == "exit":
+            if json.loads(ev["data"])["code"] != 0:
+                yield _sse("error", {"message": "pip install failed"})
+                yield _sse("done", {"ok": False})
+                return
+            break
+        yield ev
 
     after = _current_app_version()
     yield _sse("log", f"restarting systemd unit {_systemd_unit()}…")
