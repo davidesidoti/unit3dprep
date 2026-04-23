@@ -8,13 +8,13 @@ Raccolta dei problemi più comuni e delle loro cause note.
 
 ### `OSError: [Errno 18] Invalid cross-device link`
 
-`ITA_MEDIA_ROOT` e `ITA_SEEDINGS_DIR` sono su filesystem diversi. Verifica:
+`U3DP_MEDIA_ROOT` e `U3DP_SEEDINGS_DIR` sono su filesystem diversi. Verifica:
 
 ```bash
 df <media> <seedings>
 ```
 
-Se il numero di device è diverso, sposta `~/seedings/` sotto lo stesso mount dei media o punta `ITA_SEEDINGS_DIR` a un path valido.
+Se il numero di device è diverso, sposta `~/seedings/` sotto lo stesso mount dei media o punta `U3DP_SEEDINGS_DIR` a un path valido.
 
 La UI espone `GET /api/settings/fs-check` per fare lo stesso controllo dal browser.
 
@@ -52,12 +52,12 @@ which unit3dup
 Se lo trovi ma il service systemd no, aggiungi al file `.service`:
 
 ```ini
-Environment=PATH=%h/.venvs/itatorrents/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=%h/.venvs/unit3dprep/bin:/usr/local/bin:/usr/bin:/bin
 ```
 
 ### Exit code ≠ 0 rimane nello storico
 
-Hai trovato un bug di `unit3dup`? Il codice di uscita viene fedelmente registrato in `ITA_DB_PATH`. Apri il log dell'upload dal pannello Uploaded della Web UI per l'output completo.
+Hai trovato un bug di `unit3dup`? Il codice di uscita viene fedelmente registrato in `U3DP_DB_PATH`. Apri il log dell'upload dal pannello Uploaded della Web UI per l'output completo.
 
 ### Record "pending" bloccati
 
@@ -76,15 +76,15 @@ Se succede post-aggiornamento, verifica che queste chiamate esistano ancora nel 
 
 Ordine dei middleware sbagliato. `SessionMiddleware` deve essere aggiunto **dopo** il middleware auth (FastAPI applica i middleware in LIFO → l'ultimo aggiunto è il più esterno). Se auth tenta di leggere `request.session` prima che SessionMiddleware sia installato, crash.
 
-Se lo vedi dopo aver toccato `itatorrents/web/app.py`, ripristina l'ordine `add_middleware(auth)` **prima** di `add_middleware(SessionMiddleware, ...)`.
+Se lo vedi dopo aver toccato `unit3dprep/web/app.py`, ripristina l'ordine `add_middleware(auth)` **prima** di `add_middleware(SessionMiddleware, ...)`.
 
-### 404 su tutte le route sotto `/itatorrents`
+### 404 su tutte le route sotto `/unit3dprep`
 
-Disallineamento tra `ITA_ROOT_PATH` e il comportamento dell'nginx davanti. Due combinazioni valide:
+Disallineamento tra `U3DP_ROOT_PATH` e il comportamento dell'nginx davanti. Due combinazioni valide:
 
-| nginx `proxy_pass` | `ITA_ROOT_PATH` |
+| nginx `proxy_pass` | `U3DP_ROOT_PATH` |
 |---|---|
-| `http://127.0.0.1:8765` (senza slash finale) | `/itatorrents` |
+| `http://127.0.0.1:8765` (senza slash finale) | `/unit3dprep` |
 | `http://127.0.0.1:8765/` (con slash finale) | `""` |
 
 Se sei su Ultra.cc, vai con la prima. `app-nginx restart` dopo ogni modifica.
@@ -93,13 +93,13 @@ Se sei su Ultra.cc, vai con la prima. `app-nginx restart` dopo ogni modifica.
 
 Il frontend richiede asset su `{ROOT_PATH}/assets/...`. L'app li monta in `app.mount(f"{ROOT_PATH}/assets", ...)`. Se vedi 404 sugli asset:
 
-1. Verifica che `itatorrents/web/dist/` contenga `index.html` + `assets/`.
-2. Verifica che `index.html` contenga `window.__ROOT_PATH__ = "/itatorrents"` (iniettato a serve-time).
-3. Riavvia il service dopo aver cambiato `ITA_ROOT_PATH`.
+1. Verifica che `unit3dprep/web/dist/` contenga `index.html` + `assets/`.
+2. Verifica che `index.html` contenga `window.__ROOT_PATH__ = "/unit3dprep"` (iniettato a serve-time).
+3. Riavvia il service dopo aver cambiato `U3DP_ROOT_PATH`.
 
 ### Cookie di sessione non persistente dietro HTTPS
 
-Imposta `ITA_HTTPS_ONLY=1` e verifica che nginx stia forwardando `X-Forwarded-Proto: https`. Altrimenti Starlette imposta `Secure` sul cookie ma il browser vede HTTP → cookie droppato.
+Imposta `U3DP_HTTPS_ONLY=1` e verifica che nginx stia forwardando `X-Forwarded-Proto: https`. Altrimenti Starlette imposta `Secure` sul cookie ma il browser vede HTTP → cookie droppato.
 
 ### SSE (Server-Sent Events) si chiude subito
 
@@ -124,22 +124,22 @@ La CLI prompt-a su ogni lancio; la Web UI usa sia `TMDB_API_KEY` sia `TMDB_APIKE
 
 ### Ricerca TMDB restituisce zero risultati
 
-Verifica `ITA_TMDB_LANG`. Se è `it-IT` e il titolo non esiste in italiano, prova `en-US`.
+Verifica `U3DP_TMDB_LANG`. Se è `it-IT` e il titolo non esiste in italiano, prova `en-US`.
 
 ---
 
 ## Sviluppo / Windows
 
-### Env var `ITA_ROOT_PATH=/itatorrents` si trasforma in un path Windows
+### Env var `U3DP_ROOT_PATH=/unit3dprep` si trasforma in un path Windows
 
 MSYS2 / Git Bash su Windows convertono automaticamente le stringhe che iniziano con `/`. Per bypassare:
 
 ```bash
 MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
-  env ITA_ROOT_PATH=/itatorrents python -m uvicorn itatorrents.web.app:app
+  env U3DP_ROOT_PATH=/unit3dprep python -m uvicorn unit3dprep.web.app:app
 ```
 
-Oppure usa PowerShell (`$env:ITA_ROOT_PATH = "/itatorrents"`).
+Oppure usa PowerShell (`$env:U3DP_ROOT_PATH = "/unit3dprep"`).
 
 ### Build backend fallisce su Python 3.14
 
@@ -151,11 +151,11 @@ Usa `setuptools.build_meta`, non `setuptools.backends.legacy` (già corretto in 
 
 ### Il file diventa grande
 
-`~/.itatorrents_db.json` cresce linearmente con gli upload. Se ti preoccupa:
+`~/.unit3dprep_db.json` cresce linearmente con gli upload. Se ti preoccupa:
 
 ```bash
-jq '.[:1000]' ~/.itatorrents_db.json > ~/.itatorrents_db.json.trim
-mv ~/.itatorrents_db.json.trim ~/.itatorrents_db.json
+jq '.[:1000]' ~/.unit3dprep_db.json > ~/.unit3dprep_db.json.trim
+mv ~/.unit3dprep_db.json.trim ~/.unit3dprep_db.json
 ```
 
 Backup prima sempre.
@@ -168,11 +168,11 @@ Noto. Il progetto **non usa** SQLite proprio per questo motivo: storico + cache 
 
 ## Se nulla funziona
 
-1. `journalctl --user -u itatorrents -f` (Ultra.cc) o `journalctl -u itatorrents -f` (VPS).
+1. `journalctl --user -u unit3dprep-web -f` (Ultra.cc) o `journalctl -u unit3dprep-web -f` (VPS).
 2. Logs live nella Web UI → pannello Logs.
-3. Apri un issue: <https://github.com/davidesidoti/itatorrents-seeding/issues> con:
+3. Apri un issue: <https://github.com/davidesidoti/unit3dprep/issues> con:
    - Versione Python (`python3 --version`)
-   - Output di `pip show itatorrents`
+   - Output di `pip show unit3dprep`
    - Variabili d'ambiente rilevanti (senza secret)
    - Ultimi ~50 righe di `journalctl`
    - Output di `GET /api/settings/fs-check`

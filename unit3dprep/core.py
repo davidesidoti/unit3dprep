@@ -18,11 +18,13 @@ except ImportError:
 
 def seedings_dir() -> Path:
     """Configured hardlink target; env → Unit3Dbot.json → ~/seedings."""
+    default = str(Path.home() / "seedings")
     try:
         from .web import config
-        return Path(config.runtime_setting("ITA_SEEDINGS_DIR", default=str(Path.home() / "seedings")))
+        return Path(config.runtime_setting("U3DP_SEEDINGS_DIR", default=default))
     except Exception:
-        return Path(os.environ.get("ITA_SEEDINGS_DIR") or (Path.home() / "seedings"))
+        from .web._env import env as _env
+        return Path(_env("U3DP_SEEDINGS_DIR", "ITA_SEEDINGS_DIR", default) or default)
 
 
 # Back-compat constant (resolves at import; use seedings_dir() for live-reload).
@@ -35,9 +37,10 @@ def tmdb_default_lang() -> str:
     """Re-evaluate every call so Unit3Dbot.json edits take effect without restart."""
     try:
         from .web import config
-        return config.runtime_setting("ITA_TMDB_LANG", default="it-IT")
+        return config.runtime_setting("U3DP_TMDB_LANG", default="it-IT")
     except Exception:
-        return os.environ.get("ITA_TMDB_LANG", "it-IT")
+        from .web._env import env as _env
+        return _env("U3DP_TMDB_LANG", "ITA_TMDB_LANG", "it-IT") or "it-IT"
 
 LANG_MAP = {
     "it": "ITA", "ita": "ITA", "italian": "ITA", "italiano": "ITA",

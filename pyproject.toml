@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "itatorrents"
-version = "0.4.1"
+name = "unit3dprep"
+version = "0.5.0"
 requires-python = ">=3.10"
 dependencies = [
     "pymediainfo>=6.0",
@@ -21,12 +21,12 @@ dependencies = [
 ]
 
 [project.scripts]
-itatorrents = "itatorrents.cli:main"
-itatorrents-web = "itatorrents.web.app:run"
+unit3dprep = "unit3dprep.cli:main"
+unit3dprep-web = "unit3dprep.web.app:run"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["itatorrents*"]
+include = ["unit3dprep*"]
 
 [tool.setuptools.package-data]
-"itatorrents.web" = ["dist/**/*", "dist/*"]
+"unit3dprep.web" = ["dist/**/*", "dist/*"]

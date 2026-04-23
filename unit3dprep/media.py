@@ -9,7 +9,7 @@ from .core import VIDEO_EXTENSIONS
 def media_root() -> Path:
     """Resolve media root at call time: env → Unit3Dbot.json → ~/media."""
     from .web import config
-    return Path(config.runtime_setting("ITA_MEDIA_ROOT", default=str(Path.home() / "media")))
+    return Path(config.runtime_setting("U3DP_MEDIA_ROOT", default=str(Path.home() / "media")))
 
 
 def discover_categories() -> list[str]:
@@ -267,7 +267,7 @@ def get_item(category: str, item_name: str) -> MediaItem | None:
 
 def seedings_root() -> Path:
     from .web import config
-    return Path(config.runtime_setting("ITA_SEEDINGS_DIR", default=str(Path.home() / "seedings")))
+    return Path(config.runtime_setting("U3DP_SEEDINGS_DIR", default=str(Path.home() / "seedings")))
 
 
 def scan_seedings() -> list[Path]:

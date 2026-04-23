@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -11,6 +10,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
+from ._env import env as _env, migrate_dotfiles
 from .auth import SECRET_KEY
 from .db import init_db
 from . import logbuf
@@ -30,10 +30,12 @@ from .api import (
     wizard as wizard_api,
 )
 
+migrate_dotfiles(Path.home())
+
 # When the reverse proxy does NOT strip the prefix (typical Ultra.cc nginx
 # user-proxy without trailing slash on proxy_pass), routes must be registered
 # under the prefix — FastAPI's `root_path=` only helps when the proxy strips.
-ROOT_PATH = os.environ.get("ITA_ROOT_PATH", "").rstrip("/")
+ROOT_PATH = (_env("U3DP_ROOT_PATH", "ITA_ROOT_PATH", "") or "").rstrip("/")
 DIST_DIR = Path(__file__).parent / "dist"
 
 API_PREFIX = f"{ROOT_PATH}/api"
@@ -47,7 +49,7 @@ AUTH_EXEMPT = {
 }
 
 app = FastAPI(
-    title="ItaTorrents Web",
+    title="Unit3DPrep Web",
     docs_url=f"{API_PREFIX}/docs",
     redoc_url=f"{API_PREFIX}/redoc",
     openapi_url=_OPENAPI_URL,
@@ -67,7 +69,7 @@ async def _auth_guard(request: Request, call_next):
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
-    https_only=os.environ.get("ITA_HTTPS_ONLY", "0") == "1",
+    https_only=(_env("U3DP_HTTPS_ONLY", "ITA_HTTPS_ONLY", "0") or "0") == "1",
     same_site="lax",
     max_age=86400 * 7,
 )
@@ -77,7 +79,7 @@ app.add_middleware(
 async def _startup():
     await init_db()
     logbuf.install(asyncio.get_event_loop())
-    logging.getLogger("itatorrents").info("itatorrents-web started")
+    logging.getLogger("unit3dprep").info("unit3dprep-web started")
 
 
 # Mount all JSON routers under ROOT_PATH (routers themselves already declare
@@ -116,8 +118,8 @@ def _render_index() -> str:
     inject = f'<script>window.__ROOT_PATH__={ROOT_PATH!r};</script>'
     html = html.replace("</head>", f"{inject}</head>", 1)
     # Vite builds with base='./' producing relative asset paths. When the
-    # page is served at /itatorrents (no trailing slash) the browser resolves
-    # './' to '/' instead of '/itatorrents/' — fix to absolute paths at serve time.
+    # page is served at /unit3dprep (no trailing slash) the browser resolves
+    # './' to '/' instead of '/unit3dprep/' — fix to absolute paths at serve time.
     if ROOT_PATH:
         html = html.replace('./assets/', f'{ROOT_PATH}/assets/')
     return html
@@ -145,8 +147,6 @@ async def spa(full_path: str, request: Request):
     )
 
 
-# When hit at exactly "/itatorrents" (no trailing slash) we still want the
-# SPA — the catch-all only fires on /itatorrents/..., so add a bare alias.
 if ROOT_PATH:
     @app.get(ROOT_PATH)
     async def _root_alias():
@@ -158,9 +158,9 @@ if ROOT_PATH:
 
 def run():
     import uvicorn
-    host = os.environ.get("ITA_HOST", "127.0.0.1")
-    port = int(os.environ.get("ITA_PORT", "8765"))
-    uvicorn.run("itatorrents.web.app:app", host=host, port=port, reload=False)
+    host = _env("U3DP_HOST", "ITA_HOST", "127.0.0.1") or "127.0.0.1"
+    port = int(_env("U3DP_PORT", "ITA_PORT", "8765") or "8765")
+    uvicorn.run("unit3dprep.web.app:app", host=host, port=port, reload=False)
 
 
 if __name__ == "__main__":

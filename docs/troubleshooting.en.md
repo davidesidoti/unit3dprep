@@ -8,13 +8,13 @@ Common problems and their known causes.
 
 ### `OSError: [Errno 18] Invalid cross-device link`
 
-`ITA_MEDIA_ROOT` and `ITA_SEEDINGS_DIR` live on different filesystems. Check:
+`U3DP_MEDIA_ROOT` and `U3DP_SEEDINGS_DIR` live on different filesystems. Check:
 
 ```bash
 df <media> <seedings>
 ```
 
-If the device numbers differ, move `~/seedings/` under the same mount as your media, or point `ITA_SEEDINGS_DIR` to a valid path.
+If the device numbers differ, move `~/seedings/` under the same mount as your media, or point `U3DP_SEEDINGS_DIR` to a valid path.
 
 The UI exposes `GET /api/settings/fs-check` for the same check from the browser.
 
@@ -52,12 +52,12 @@ which unit3dup
 If you find it but the systemd service cannot, add this to the `.service` file:
 
 ```ini
-Environment=PATH=%h/.venvs/itatorrents/bin:/usr/local/bin:/usr/bin:/bin
+Environment=PATH=%h/.venvs/unit3dprep/bin:/usr/local/bin:/usr/bin:/bin
 ```
 
 ### Non-zero exit code stays in history
 
-Found an `unit3dup` bug? The exit code is faithfully recorded in `ITA_DB_PATH`. Open the upload log from the Uploaded panel in the Web UI for the full output.
+Found an `unit3dup` bug? The exit code is faithfully recorded in `U3DP_DB_PATH`. Open the upload log from the Uploaded panel in the Web UI for the full output.
 
 ### Stuck `pending` records
 
@@ -76,15 +76,15 @@ If it happens after an update, verify these calls still exist in the code. They 
 
 Middleware order is wrong. `SessionMiddleware` must be added **after** the auth middleware (FastAPI applies middlewares LIFO → last added is outermost). If auth tries to read `request.session` before SessionMiddleware is installed, it crashes.
 
-If you see this after touching `itatorrents/web/app.py`, restore the order: `add_middleware(auth)` **before** `add_middleware(SessionMiddleware, ...)`.
+If you see this after touching `unit3dprep/web/app.py`, restore the order: `add_middleware(auth)` **before** `add_middleware(SessionMiddleware, ...)`.
 
-### 404 on every route under `/itatorrents`
+### 404 on every route under `/unit3dprep`
 
-Mismatch between `ITA_ROOT_PATH` and the nginx in front. Two valid combos:
+Mismatch between `U3DP_ROOT_PATH` and the nginx in front. Two valid combos:
 
-| nginx `proxy_pass` | `ITA_ROOT_PATH` |
+| nginx `proxy_pass` | `U3DP_ROOT_PATH` |
 |---|---|
-| `http://127.0.0.1:8765` (no trailing slash) | `/itatorrents` |
+| `http://127.0.0.1:8765` (no trailing slash) | `/unit3dprep` |
 | `http://127.0.0.1:8765/` (trailing slash) | `""` |
 
 If you are on Ultra.cc, go with the first. `app-nginx restart` after each change.
@@ -93,13 +93,13 @@ If you are on Ultra.cc, go with the first. `app-nginx restart` after each change
 
 The frontend requests assets at `{ROOT_PATH}/assets/...`. The app mounts them via `app.mount(f"{ROOT_PATH}/assets", ...)`. If you see 404 on assets:
 
-1. Verify `itatorrents/web/dist/` contains `index.html` + `assets/`.
-2. Verify `index.html` contains `window.__ROOT_PATH__ = "/itatorrents"` (injected at serve-time).
-3. Restart the service after changing `ITA_ROOT_PATH`.
+1. Verify `unit3dprep/web/dist/` contains `index.html` + `assets/`.
+2. Verify `index.html` contains `window.__ROOT_PATH__ = "/unit3dprep"` (injected at serve-time).
+3. Restart the service after changing `U3DP_ROOT_PATH`.
 
 ### Session cookie not persisting behind HTTPS
 
-Set `ITA_HTTPS_ONLY=1` and verify nginx forwards `X-Forwarded-Proto: https`. Otherwise Starlette sets `Secure` on the cookie but the browser sees HTTP → cookie dropped.
+Set `U3DP_HTTPS_ONLY=1` and verify nginx forwards `X-Forwarded-Proto: https`. Otherwise Starlette sets `Secure` on the cookie but the browser sees HTTP → cookie dropped.
 
 ### SSE (Server-Sent Events) closes immediately
 
@@ -124,22 +124,22 @@ The CLI prompts on every run; the Web UI uses both `TMDB_API_KEY` and `TMDB_APIK
 
 ### TMDB search returns zero results
 
-Check `ITA_TMDB_LANG`. If it is `it-IT` and the title does not exist in Italian, try `en-US`.
+Check `U3DP_TMDB_LANG`. If it is `it-IT` and the title does not exist in Italian, try `en-US`.
 
 ---
 
 ## Development / Windows
 
-### Env var `ITA_ROOT_PATH=/itatorrents` gets turned into a Windows path
+### Env var `U3DP_ROOT_PATH=/unit3dprep` gets turned into a Windows path
 
 MSYS2 / Git Bash on Windows automatically convert strings that start with `/`. To bypass:
 
 ```bash
 MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
-  env ITA_ROOT_PATH=/itatorrents python -m uvicorn itatorrents.web.app:app
+  env U3DP_ROOT_PATH=/unit3dprep python -m uvicorn unit3dprep.web.app:app
 ```
 
-Or use PowerShell (`$env:ITA_ROOT_PATH = "/itatorrents"`).
+Or use PowerShell (`$env:U3DP_ROOT_PATH = "/unit3dprep"`).
 
 ### Backend build fails on Python 3.14
 
@@ -151,11 +151,11 @@ Use `setuptools.build_meta`, not `setuptools.backends.legacy` (already correct i
 
 ### The file grows large
 
-`~/.itatorrents_db.json` grows linearly with uploads. If you worry:
+`~/.unit3dprep_db.json` grows linearly with uploads. If you worry:
 
 ```bash
-jq '.[:1000]' ~/.itatorrents_db.json > ~/.itatorrents_db.json.trim
-mv ~/.itatorrents_db.json.trim ~/.itatorrents_db.json
+jq '.[:1000]' ~/.unit3dprep_db.json > ~/.unit3dprep_db.json.trim
+mv ~/.unit3dprep_db.json.trim ~/.unit3dprep_db.json
 ```
 
 Always back up first.
@@ -168,11 +168,11 @@ Known. The project **does not use** SQLite for this exact reason: history + cach
 
 ## If nothing works
 
-1. `journalctl --user -u itatorrents -f` (Ultra.cc) or `journalctl -u itatorrents -f` (VPS).
+1. `journalctl --user -u unit3dprep-web -f` (Ultra.cc) or `journalctl -u unit3dprep-web -f` (VPS).
 2. Live logs in the Web UI → Logs panel.
-3. Open an issue: <https://github.com/davidesidoti/itatorrents-seeding/issues> with:
+3. Open an issue: <https://github.com/davidesidoti/unit3dprep/issues> with:
    - Python version (`python3 --version`)
-   - `pip show itatorrents` output
+   - `pip show unit3dprep` output
    - Relevant env vars (without secrets)
    - Last ~50 lines of `journalctl`
    - Output of `GET /api/settings/fs-check`

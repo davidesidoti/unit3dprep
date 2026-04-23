@@ -1,8 +1,8 @@
-site_name: itatorrents-seeding
-site_description: Web UI + CLI per pre-flight upload su ItaTorrents.xyz
-site_url: https://davidesidoti.github.io/itatorrents-seeding/
-repo_url: https://github.com/davidesidoti/itatorrents-seeding
-repo_name: davidesidoti/itatorrents-seeding
+site_name: unit3dprep
+site_description: Web UI + CLI di pre-flight per tracker Unit3D (companion di unit3dup)
+site_url: https://davidesidoti.github.io/unit3dprep/
+repo_url: https://github.com/davidesidoti/unit3dprep
+repo_name: davidesidoti/unit3dprep
 edit_uri: edit/main/docs/
 
 docs_dir: docs
@@ -85,7 +85,7 @@ plugins:
         - locale: en
           name: English
           build: true
-          site_name: itatorrents-seeding
+          site_name: unit3dprep
           nav_translations:
             Home: Home
             Installazione: Installation
@@ -115,4 +115,4 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/davidesidoti/itatorrents-seeding
+      link: https://github.com/davidesidoti/unit3dprep

@@ -6,8 +6,46 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Fixed
-- Workflow `Deploy docs`: aggiunti `pyproject.toml` e `CHANGELOG.md` ai path filter, così ogni bump di versione/release rideploya automaticamente la documentazione su GitHub Pages (prima il sito restava fermo all'ultima modifica di `docs/`).
+---
+
+## [0.5.0] - 2026-04-23
+
+Release di rebranding. Il progetto cambia nome da `itatorrents` a **`unit3dprep`** per riflettere il supporto multi-tracker Unit3D (non più solo ItaTorrents). Pairing esplicito con `unit3dup`. Nessun intervento manuale richiesto per gli utenti esistenti: env vars legacy, dotfile e chiavi di configurazione migrano automaticamente.
+
+### Changed
+- **Package Python**: `itatorrents` → `unit3dprep`. Import path, CLI entrypoints (`unit3dprep`, `unit3dprep-web`), directory del pacchetto.
+- **Env var prefix**: `ITA_*` → `U3DP_*` (es. `U3DP_MEDIA_ROOT`, `U3DP_SECRET`, `U3DP_PORT`, `U3DP_SYSTEMD_UNIT`, ecc.).
+- **Systemd unit**: default `unit3dprep-web.service` (era `itatorrents-web.service`).
+- **Dotfile DB/cache**: `.itatorrents_*.json` → `.unit3dprep_*.json`.
+- **Repo GitHub**: `davidesidoti/unit3dprep` (redirect automatico dal vecchio nome).
+- **Documentazione**: `https://davidesidoti.github.io/unit3dprep/`.
+- **Frontend localStorage**: chiavi `itatorrents.*` → `unit3dprep.*` (pendingChangelog + logs filters).
+
+### Added
+- **Fallback env vars legacy**: le vecchie `ITA_*` sono ancora lette al primo avvio; helper `_env()` logga un warning "Using legacy env var ITA_X; rename to U3DP_X" e continua a funzionare.
+- **Auto-migrate dotfile**: all'avvio, se un `.itatorrents_*.json` esiste e il nuovo `.unit3dprep_*.json` no, viene rinominato automaticamente.
+- **Auto-upgrade config JSON**: `Unit3Dbot.json` con chiavi legacy `ITA_*` viene riscritto transparentemente con le nuove chiavi al primo load/save.
+- **Cleanup metadata doppio**: il flow di auto-update pulisce sia `itatorrents.egg-info` sia `unit3dprep.egg-info`, sia i `dist-info` orfani di entrambi i nomi, per supportare gli upgrade cross-rename senza residui.
+
+### Deprecated
+- **`ITA_*` env vars**: ancora funzionanti come fallback, ma producono warning nei log. Rinomina in `U3DP_*` alla prima occasione — verranno rimosse in una release futura.
+
+### Upgrade notes
+Nessuna azione manuale richiesta per gli utenti esistenti: fallback env + auto-rename dotfile coprono il caso comune. Per un cleanup completo su VPS/Ultra.cc:
+```
+# 1. Aggiorna il pacchetto
+pip install --upgrade "git+https://github.com/davidesidoti/unit3dprep.git@v0.5.0"
+
+# 2. (opzionale) Rinomina env vars in ~/.bashrc o nel file unit systemd
+#    ITA_*  →  U3DP_*
+
+# 3. (opzionale) Rinomina systemd unit
+mv ~/.config/systemd/user/itatorrents-web.service ~/.config/systemd/user/unit3dprep-web.service
+systemctl --user daemon-reload
+systemctl --user disable --now itatorrents-web.service 2>/dev/null || true
+systemctl --user enable --now unit3dprep-web.service
+```
+Finché non rinomini env + systemd unit, il service continuerà a funzionare con le chiavi legacy (warning nei log ma zero breaking).
 
 ---
 

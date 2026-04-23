@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run once locally to generate ITA_PASSWORD_HASH and ITA_SECRET for ~/.bashrc."""
+"""Run once locally to generate U3DP_PASSWORD_HASH and U3DP_SECRET for ~/.bashrc."""
 import getpass
 import secrets
 import sys
@@ -20,13 +20,13 @@ h = bcrypt.hashpw(pw, bcrypt.gensalt(rounds=12)).decode()
 secret = secrets.token_hex(32)
 
 print(f"""
-✅ Aggiungi queste righe a ~/.bashrc (o ~/.profile) sul VPS:
+Aggiungi queste righe a ~/.bashrc (o ~/.profile) sul VPS:
 
-export ITA_PASSWORD_HASH="{h}"
-export ITA_SECRET="{secret}"
+export U3DP_PASSWORD_HASH="{h}"
+export U3DP_SECRET="{secret}"
 export TMDB_API_KEY="<la_tua_chiave_tmdb>"
-export ITA_PORT="<porta_riservata_ultracc>"
-export ITA_HTTPS_ONLY="1"
+export U3DP_PORT="<porta_riservata_ultracc>"
+export U3DP_HTTPS_ONLY="1"
 
 Poi: source ~/.bashrc
 """)

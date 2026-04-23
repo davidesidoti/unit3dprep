@@ -92,7 +92,7 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
   useEffect(() => {
     if (phase !== 'countdown') return;
     try {
-      localStorage.setItem('itatorrents.pendingChangelog', JSON.stringify({
+      localStorage.setItem('unit3dprep.pendingChangelog', JSON.stringify({
         target, from, to, at: Date.now(),
       }));
     } catch { /* noop */ }

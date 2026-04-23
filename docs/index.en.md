@@ -1,4 +1,4 @@
-# itatorrents-seeding
+# unit3dprep
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![FastAPI](https://img.shields.io/badge/fastapi-109989?style=for-the-badge&logo=FASTAPI&logoColor=white)
@@ -8,9 +8,9 @@
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 ![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?style=for-the-badge&logo=github%20Pages&logoColor=white)
 
-**Web UI + CLI to prepare and automate uploads to [ItaTorrents.xyz](https://itatorrents.xyz).**
+**Web UI + CLI pre-flight uploader for Unit3D trackers — direct pairing with [`unit3dup`](https://pypi.org/project/unit3dup/).**
 
-Checks for Italian audio tracks, renames files according to the ItaTorrents naming convention, hardlinks them into `~/seedings/`, and launches `unit3dup` to perform the upload. Works from a terminal or from a browser.
+Checks for Italian audio tracks, renames files according to the ItaTorrents naming convention (and other Unit3D trackers), hardlinks them into `~/seedings/`, and launches `unit3dup` to perform the upload. Works from a terminal or from a browser.
 
 ![Media Library — browse your library with TMDB posters and audio badges](assets/screenshots/media_library.png)
 
@@ -42,13 +42,13 @@ pip install -e .
 python generate_hash.py
 
 # 3. Export the variables (or put them into ~/.bashrc)
-export ITA_PASSWORD_HASH="..."
-export ITA_SECRET="..."
+export U3DP_PASSWORD_HASH="..."
+export U3DP_SECRET="..."
 export TMDB_API_KEY="..."
-export ITA_PORT="8765"
+export U3DP_PORT="8765"
 
 # 4. Start the Web UI
-itatorrents-web
+unit3dprep-web
 ```
 
 Open <http://127.0.0.1:8765> and enter the password.
@@ -82,7 +82,7 @@ For full details see [Installation](installazione.md) and [Configuration](config
 
 ## Useful links
 
-- Repo: <https://github.com/davidesidoti/itatorrents-seeding>
+- Repo: <https://github.com/davidesidoti/unit3dprep>
 - ItaTorrents: <https://itatorrents.xyz>
 - TMDB API: <https://www.themoviedb.org/settings/api>
 - `unit3dup`: <https://pypi.org/project/unit3dup/>

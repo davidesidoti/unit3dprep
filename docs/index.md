@@ -1,4 +1,4 @@
-# itatorrents-seeding
+# unit3dprep
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![FastAPI](https://img.shields.io/badge/fastapi-109989?style=for-the-badge&logo=FASTAPI&logoColor=white)
@@ -8,9 +8,9 @@
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 ![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?style=for-the-badge&logo=github%20Pages&logoColor=white)
 
-**Web UI + CLI per preparare e automatizzare upload su [ItaTorrents.xyz](https://itatorrents.xyz).**
+**Web UI + CLI di pre-flight per tracker Unit3D — pairing diretto con [`unit3dup`](https://pypi.org/project/unit3dup/).**
 
-Verifica tracce audio italiane, rinomina i file secondo la nomenclatura ItaTorrents, crea hardlink in `~/seedings/` e lancia `unit3dup` per l'upload finale. Funziona da terminale o da browser.
+Verifica tracce audio italiane, rinomina secondo la nomenclatura ItaTorrents (e altri tracker Unit3D), crea hardlink in `~/seedings/` e lancia `unit3dup` per l'upload finale. Funziona da terminale o da browser.
 
 ![Media Library — sfoglia la tua libreria con poster TMDB e badge audio](assets/screenshots/media_library.png)
 
@@ -42,13 +42,13 @@ pip install -e .
 python generate_hash.py
 
 # 3. Esporta le variabili (o scrivile in ~/.bashrc)
-export ITA_PASSWORD_HASH="..."
-export ITA_SECRET="..."
+export U3DP_PASSWORD_HASH="..."
+export U3DP_SECRET="..."
 export TMDB_API_KEY="..."
-export ITA_PORT="8765"
+export U3DP_PORT="8765"
 
 # 4. Avvia la Web UI
-itatorrents-web
+unit3dprep-web
 ```
 
 Apri <http://127.0.0.1:8765> e inserisci la password.
@@ -82,7 +82,7 @@ Per i dettagli completi vedi [Installazione](installazione.md) e [Configurazione
 
 ## Link utili
 
-- Repo: <https://github.com/davidesidoti/itatorrents-seeding>
+- Repo: <https://github.com/davidesidoti/unit3dprep>
 - ItaTorrents: <https://itatorrents.xyz>
 - TMDB API: <https://www.themoviedb.org/settings/api>
 - `unit3dup`: <https://pypi.org/project/unit3dup/>

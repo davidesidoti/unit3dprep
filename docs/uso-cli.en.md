@@ -1,16 +1,16 @@
 # Usage › CLI
 
-The `itatorrents` CLI is intended for interactive use over SSH or a local terminal. It does not need the Web UI: it is a straight file → hardlink → `unit3dup` workflow.
+The `unit3dprep` CLI is intended for interactive use over SSH or a local terminal. It does not need the Web UI: it is a straight file → hardlink → `unit3dup` workflow.
 
-Entry point: `itatorrents` (registered by `pip install -e .`).
+Entry point: `unit3dprep` (registered by `pip install -e .`).
 
 ---
 
 ## Syntax
 
 ```bash
-itatorrents -u <FILE>        # movie or single episode
-itatorrents -f <FOLDER>      # series or entire season
+unit3dprep -u <FILE>        # movie or single episode
+unit3dprep -f <FOLDER>      # series or entire season
 ```
 
 `-u` and `-f` are mutually exclusive. No other flags: everything else happens through interactive prompts.
@@ -20,7 +20,7 @@ itatorrents -f <FOLDER>      # series or entire season
 ## `-u` flow (single file)
 
 ```bash
-itatorrents -u /mnt/media/movies/Dune.Part.Two.2024.mkv
+unit3dprep -u /mnt/media/movies/Dune.Part.Two.2024.mkv
 ```
 
 1. **Audio check** — `pymediainfo` lists the tracks. If Italian is missing, exits with an error.
@@ -51,7 +51,7 @@ Uploadare 'Dune Parte Due ... .mkv' su ItaTorrents? [y/n]: y
 ## `-f` flow (series / season)
 
 ```bash
-itatorrents -f /mnt/media/series/Severance/Season\ 02/
+unit3dprep -f /mnt/media/series/Severance/Season\ 02/
 ```
 
 1. **Scan** — every video file in the folder is analyzed.
@@ -74,10 +74,10 @@ You can point directly at `Series/Season 01/`: `guessit` works on individual epi
 | Variable | Effect |
 |---|---|
 | `TMDB_API_KEY` | Required by `tmdb_fetch`. Without it the TMDB prompt fails with an error. |
-| `ITA_MEDIA_ROOT` | Not used directly by the CLI, but useful for short absolute paths via completion. |
-| `ITA_SEEDINGS_DIR` | Changes where hardlinks are created. |
+| `U3DP_MEDIA_ROOT` | Not used directly by the CLI, but useful for short absolute paths via completion. |
+| `U3DP_SEEDINGS_DIR` | Changes where hardlinks are created. |
 
-The CLI reads `ITA_SEEDINGS_DIR` through `core.seedings_dir()`, so it also respects `Unit3Dbot.json`.
+The CLI reads `U3DP_SEEDINGS_DIR` through `core.seedings_dir()`, so it also respects `Unit3Dbot.json`.
 
 ---
 
@@ -122,8 +122,8 @@ The path is always `.resolve()`-d (absolute, symlinks resolved). `-b` = batch mo
 | TMDB | Always manual (ID) | Search + automatic match |
 | Final name | Inline edit | Edit with preview |
 | Upload | `unit3dup` foreground | `unit3dup` in a PTY with SSE stream |
-| History | **Does not** write to the DB | Writes `ITA_DB_PATH` |
+| History | **Does not** write to the DB | Writes `U3DP_DB_PATH` |
 | Batch | One file/folder at a time | Same |
 
 !!! warning "No history writes"
-    The CLI does not update `~/.itatorrents_db.json`. If you want uploads to show up in the Web UI "Uploaded" panel, go through the wizard or `quickupload`.
+    The CLI does not update `~/.unit3dprep_db.json`. If you want uploads to show up in the Web UI "Uploaded" panel, go through the wizard or `quickupload`.

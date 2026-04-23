@@ -2,7 +2,7 @@
 
 Guida specifica per **[Ultra.cc](https://ultra.cc)**. Ultra.cc è un seedbox managed: niente `sudo`, niente Docker, Python da `pyenv` come utente non privilegiato, nginx in modalità "user-proxy" configurato via file in `~/.apps/nginx/proxy.d/`.
 
-Tutta l'app gira come servizio **systemd user** (non system). L'URL pubblico finale ha la forma `https://<user>.<host>.usbx.me/itatorrents`.
+Tutta l'app gira come servizio **systemd user** (non system). L'URL pubblico finale ha la forma `https://<user>.<host>.usbx.me/unit3dprep`.
 
 Link ufficiali Ultra.cc su cui si basa questa guida:
 
@@ -21,7 +21,7 @@ Elenca le porte libere del tuo range:
 app-ports free
 ```
 
-Scegli una porta **all'interno del range assegnato** (es. `45678`) e annotala — la userai come `ITA_PORT`. Usare porte fuori range viola la Fair Usage Policy.
+Scegli una porta **all'interno del range assegnato** (es. `45678`) e annotala — la userai come `U3DP_PORT`. Usare porte fuori range viola la Fair Usage Policy.
 
 Mostra anche quelle già allocate ad altre app:
 
@@ -46,10 +46,10 @@ Clona e installa:
 
 ```bash
 cd ~
-git clone https://github.com/davidesidoti/itatorrents-seeding.git
-cd itatorrents-seeding
-python3 -m venv ~/.venvs/itatorrents
-source ~/.venvs/itatorrents/bin/activate
+git clone https://github.com/davidesidoti/unit3dprep.git
+cd unit3dprep
+python3 -m venv ~/.venvs/unit3dprep
+source ~/.venvs/unit3dprep/bin/activate
 pip install -e .
 pip install unit3dup
 ```
@@ -58,7 +58,7 @@ Verifica che `unit3dup` sia nel PATH:
 
 ```bash
 which unit3dup
-# atteso: /home/<user>/.venvs/itatorrents/bin/unit3dup
+# atteso: /home/<user>/.venvs/unit3dprep/bin/unit3dup
 ```
 
 ---
@@ -69,21 +69,21 @@ which unit3dup
 python generate_hash.py
 ```
 
-L'output suggerisce già `ITA_HTTPS_ONLY=1`. Aggiungi le righe a `~/.bashrc`:
+L'output suggerisce già `U3DP_HTTPS_ONLY=1`. Aggiungi le righe a `~/.bashrc`:
 
 ```bash
-# itatorrents-seeding
-export ITA_PASSWORD_HASH="$2b$12$..."
-export ITA_SECRET="..."
+# unit3dprep
+export U3DP_PASSWORD_HASH="$2b$12$..."
+export U3DP_SECRET="..."
 export TMDB_API_KEY="..."
-export ITA_HOST="127.0.0.1"
-export ITA_PORT="45678"                 # la porta presa da `app-ports free`
-export ITA_ROOT_PATH="/itatorrents"
-export ITA_HTTPS_ONLY="1"
+export U3DP_HOST="127.0.0.1"
+export U3DP_PORT="45678"                 # la porta presa da `app-ports free`
+export U3DP_ROOT_PATH="/unit3dprep"
+export U3DP_HTTPS_ONLY="1"
 
 # opzionale — se i tuoi media stanno fuori ~/media
-# export ITA_MEDIA_ROOT="/home/<user>/files/media"
-# export ITA_SEEDINGS_DIR="/home/<user>/files/seedings"
+# export U3DP_MEDIA_ROOT="/home/<user>/files/media"
+# export U3DP_SEEDINGS_DIR="/home/<user>/files/seedings"
 ```
 
 Ricarica:
@@ -92,8 +92,8 @@ Ricarica:
 source ~/.bashrc
 ```
 
-!!! note "Perché `ITA_ROOT_PATH=/itatorrents`"
-    L'nginx di Ultra.cc **non** strippa il prefisso `/itatorrents` quando forwarda al backend. Quindi l'app FastAPI deve registrare tutte le route *con* quel prefisso (il codice lo fa automaticamente leggendo `ITA_ROOT_PATH`). Se metti `ITA_ROOT_PATH=""`, le route non matchano e vedi solo 404.
+!!! note "Perché `U3DP_ROOT_PATH=/unit3dprep`"
+    L'nginx di Ultra.cc **non** strippa il prefisso `/unit3dprep` quando forwarda al backend. Quindi l'app FastAPI deve registrare tutte le route *con* quel prefisso (il codice lo fa automaticamente leggendo `U3DP_ROOT_PATH`). Se metti `U3DP_ROOT_PATH=""`, le route non matchano e vedi solo 404.
 
 ---
 
@@ -116,18 +116,18 @@ Crea la cartella (se non esiste):
 mkdir -p ~/.config/systemd/user
 ```
 
-Crea `~/.config/systemd/user/itatorrents.service`:
+Crea `~/.config/systemd/user/unit3dprep.service`:
 
 ```ini
 [Unit]
-Description=itatorrents-seeding web UI
+Description=unit3dprep web UI
 After=network-online.target
 
 [Service]
 Type=exec
 # %h = home dell'utente
-EnvironmentFile=%h/.config/itatorrents.env
-ExecStart=%h/.venvs/itatorrents/bin/itatorrents-web
+EnvironmentFile=%h/.config/unit3dprep.env
+ExecStart=%h/.venvs/unit3dprep/bin/unit3dprep-web
 Restart=on-failure
 RestartSec=5
 
@@ -139,31 +139,31 @@ Sposta le variabili in un file dedicato (così systemd le trova anche senza pass
 
 ```bash
 mkdir -p ~/.config
-cat > ~/.config/itatorrents.env <<'EOF'
-ITA_PASSWORD_HASH=$2b$12$...
-ITA_SECRET=...
+cat > ~/.config/unit3dprep.env <<'EOF'
+U3DP_PASSWORD_HASH=$2b$12$...
+U3DP_SECRET=...
 TMDB_API_KEY=...
-ITA_HOST=127.0.0.1
-ITA_PORT=45678
-ITA_ROOT_PATH=/itatorrents
-ITA_HTTPS_ONLY=1
+U3DP_HOST=127.0.0.1
+U3DP_PORT=45678
+U3DP_ROOT_PATH=/unit3dprep
+U3DP_HTTPS_ONLY=1
 EOF
-chmod 600 ~/.config/itatorrents.env
+chmod 600 ~/.config/unit3dprep.env
 ```
 
 Abilita e avvia:
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable --now itatorrents.service
-systemctl --user status itatorrents.service
-journalctl --user -u itatorrents.service -f
+systemctl --user enable --now unit3dprep.service
+systemctl --user status unit3dprep.service
+journalctl --user -u unit3dprep.service -f
 ```
 
 Verifica lo stato di enable:
 
 ```bash
-systemctl --user is-enabled itatorrents.service
+systemctl --user is-enabled unit3dprep.service
 ```
 
 !!! tip "Linger"
@@ -174,9 +174,9 @@ systemctl --user is-enabled itatorrents.service
     Se `Linger=no`, contatta il supporto.
 
 !!! note "Nome della unit diverso?"
-    L'auto-update in-app (bottone "Update app" nella Sidebar) usa `systemctl --user restart <unit>` al termine dell'aggiornamento. Il default è `itatorrents.service`; se hai rinominato la unit (es. `itatorrents-web.service`), aggiungi nel `[Service]` del file:
+    L'auto-update in-app (bottone "Update app" nella Sidebar) usa `systemctl --user restart <unit>` al termine dell'aggiornamento. Il default è `unit3dprep.service`; se hai rinominato la unit (es. `unit3dprep-web.service`), aggiungi nel `[Service]` del file:
     ```ini
-    Environment=ITA_SYSTEMD_UNIT=itatorrents-web.service
+    Environment=U3DP_SYSTEMD_UNIT=unit3dprep-web.service
     ```
     oppure salva il nome in **Settings › App Auto-Update**. Senza questa configurazione `can_update_app` rimane `false` e il bottone è disabilitato.
 
@@ -184,10 +184,10 @@ systemctl --user is-enabled itatorrents.service
 
 ## 6 — Nginx user-proxy
 
-Crea (o modifica) `~/.apps/nginx/proxy.d/itatorrents.conf`:
+Crea (o modifica) `~/.apps/nginx/proxy.d/unit3dprep.conf`:
 
 ```nginx
-location /itatorrents/ {
+location /unit3dprep/ {
     proxy_pass              http://127.0.0.1:45678;
     proxy_http_version      1.1;
     proxy_set_header        Host              $host;
@@ -202,7 +202,7 @@ location /itatorrents/ {
 ```
 
 !!! warning "Niente slash finale in `proxy_pass`"
-    `proxy_pass http://127.0.0.1:45678;` (senza slash finale dopo la porta) → nginx **non strippa** `/itatorrents` → l'app lo riceve. Questo è l'abbinamento corretto con `ITA_ROOT_PATH=/itatorrents`. Se aggiungi uno slash finale (`http://127.0.0.1:45678/;`) nginx strippa e devi resettare `ITA_ROOT_PATH=""`.
+    `proxy_pass http://127.0.0.1:45678;` (senza slash finale dopo la porta) → nginx **non strippa** `/unit3dprep` → l'app lo riceve. Questo è l'abbinamento corretto con `U3DP_ROOT_PATH=/unit3dprep`. Se aggiungi uno slash finale (`http://127.0.0.1:45678/;`) nginx strippa e devi resettare `U3DP_ROOT_PATH=""`.
 
 Ricarica nginx:
 
@@ -219,17 +219,17 @@ app-nginx restart
 Apri nel browser:
 
 ```
-https://<user>.<host>.usbx.me/itatorrents
+https://<user>.<host>.usbx.me/unit3dprep
 ```
 
 Dovresti vedere il login. Inserisci la password.
 
 Se vedi 404 o la pagina bianca:
 
-1. `journalctl --user -u itatorrents -f` — il server è up?
-2. `curl -I http://127.0.0.1:45678/itatorrents/` dalla shell — risponde 200?
-3. Il file `~/.apps/nginx/proxy.d/itatorrents.conf` è stato caricato? `app-nginx restart` fatto?
-4. `ITA_ROOT_PATH` combacia tra env e `proxy_pass`?
+1. `journalctl --user -u unit3dprep-web -f` — il server è up?
+2. `curl -I http://127.0.0.1:45678/unit3dprep/` dalla shell — risponde 200?
+3. Il file `~/.apps/nginx/proxy.d/unit3dprep.conf` è stato caricato? `app-nginx restart` fatto?
+4. `U3DP_ROOT_PATH` combacia tra env e `proxy_pass`?
 
 ---
 
@@ -278,16 +278,16 @@ Se preferisci aggiornare da shell (o se l'in-app update fallisce):
 
 ```bash
 # installazione via pip-from-git (no checkout .git)
-~/.venvs/itatorrents/bin/pip install --upgrade --force-reinstall \
-  "git+https://github.com/davidesidoti/itatorrents-seeding.git@vX.Y.Z"
-systemctl --user restart itatorrents.service
+~/.venvs/unit3dprep/bin/pip install --upgrade --force-reinstall \
+  "git+https://github.com/davidesidoti/unit3dprep.git@vX.Y.Z"
+systemctl --user restart unit3dprep.service
 
 # oppure, se hai un checkout git con .git presente
-cd ~/itatorrents-seeding
+cd ~/unit3dprep
 git pull --ff-only origin main
-source ~/.venvs/itatorrents/bin/activate
+source ~/.venvs/unit3dprep/bin/activate
 pip install -e .
-systemctl --user restart itatorrents.service
+systemctl --user restart unit3dprep.service
 ```
 
 Frontend: il pacchetto pubblicato include già la `dist/` buildata, non serve Node su Ultra.cc.
@@ -298,11 +298,11 @@ Frontend: il pacchetto pubblicato include già la `dist/` buildata, non serve No
 
 | Problema | Causa | Fix |
 |---|---|---|
-| 404 su `/itatorrents` | nginx non ricaricato | `app-nginx restart` |
-| Pagina bianca, 200 OK | `ITA_ROOT_PATH` e `proxy_pass` disallineati | Senza slash → `ITA_ROOT_PATH=/itatorrents` |
-| Cookie non persistenti | mancanza `ITA_HTTPS_ONLY=1` o mismatch protocollo | Impostalo e riavvia |
+| 404 su `/unit3dprep` | nginx non ricaricato | `app-nginx restart` |
+| Pagina bianca, 200 OK | `U3DP_ROOT_PATH` e `proxy_pass` disallineati | Senza slash → `U3DP_ROOT_PATH=/unit3dprep` |
+| Cookie non persistenti | mancanza `U3DP_HTTPS_ONLY=1` o mismatch protocollo | Impostalo e riavvia |
 | Service non parte dopo logout | linger disabilitato | `loginctl show-user` / ticket supporto |
 | `OSError: Invalid cross-device link` | `seedings` su FS diverso | Sposta `~/seedings` sotto `$HOME` |
-| `unit3dup: command not found` | venv non attivo per systemd | `which unit3dup` → inseriscilo nel PATH via `Environment=PATH=%h/.venvs/itatorrents/bin:/usr/bin` in `.service` |
+| `unit3dup: command not found` | venv non attivo per systemd | `which unit3dup` → inseriscilo nel PATH via `Environment=PATH=%h/.venvs/unit3dprep/bin:/usr/bin` in `.service` |
 
 Vedi anche [Troubleshooting generale](troubleshooting.md).

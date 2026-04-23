@@ -73,14 +73,19 @@ export function App() {
   useEffect(() => {
     if (!authed) return;
     try {
-      const raw = localStorage.getItem('itatorrents.pendingChangelog');
+      const legacy = localStorage.getItem('itatorrents.pendingChangelog');
+      if (legacy && !localStorage.getItem('unit3dprep.pendingChangelog')) {
+        localStorage.setItem('unit3dprep.pendingChangelog', legacy);
+      }
+      if (legacy) localStorage.removeItem('itatorrents.pendingChangelog');
+      const raw = localStorage.getItem('unit3dprep.pendingChangelog');
       if (!raw) return;
       const j = JSON.parse(raw);
       if (j && j.target && j.to) {
         setPendingChangelog({ target: j.target, from: j.from || '', to: j.to });
       }
     } catch { /* noop */ }
-    localStorage.removeItem('itatorrents.pendingChangelog');
+    localStorage.removeItem('unit3dprep.pendingChangelog');
   }, [authed]);
 
   if (authed === null) {

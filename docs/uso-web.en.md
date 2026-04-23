@@ -5,16 +5,16 @@ The Web UI is a React SPA served by FastAPI. It covers the full ItaTorrents work
 Start:
 
 ```bash
-itatorrents-web
+unit3dprep-web
 ```
 
-Open the resulting URL (`http://<ITA_HOST>:<ITA_PORT><ITA_ROOT_PATH>`, default `http://127.0.0.1:8765`).
+Open the resulting URL (`http://<U3DP_HOST>:<U3DP_PORT><U3DP_ROOT_PATH>`, default `http://127.0.0.1:8765`).
 
 ---
 
 ## Login
 
-First screen: password field. Credentials are validated against `ITA_PASSWORD_HASH` (bcrypt). The session is signed with `ITA_SECRET` (itsdangerous) and lasts as long as the browser keeps the cookie.
+First screen: password field. Credentials are validated against `U3DP_PASSWORD_HASH` (bcrypt). The session is signed with `U3DP_SECRET` (itsdangerous) and lasts as long as the browser keeps the cookie.
 
 !!! note "Middleware order"
     Behind the scenes: `SessionMiddleware` must be added **after** the auth middleware (LIFO = last added is outermost). If auth tries to read `request.session` before SessionMiddleware is installed, it crashes with `AssertionError: SessionMiddleware must be installed`.
@@ -25,7 +25,7 @@ First screen: password field. Credentials are validated against `ITA_PASSWORD_HA
 
 ![Media Library with TMDB posters, audio language badges and detail panel](assets/screenshots/media_library.png)
 
-Lists categories (subfolders of `ITA_MEDIA_ROOT`) and items inside them.
+Lists categories (subfolders of `U3DP_MEDIA_ROOT`) and items inside them.
 
 Features:
 
@@ -50,13 +50,13 @@ Step-by-step flow. Alternative to the CLI with more options and persistent histo
 
 Typical steps:
 
-1. **Select source** — file or folder under `ITA_MEDIA_ROOT`.
+1. **Select source** — file or folder under `U3DP_MEDIA_ROOT`.
 2. **Audio check** — if `W_AUDIO_CHECK`, scans the tracks.
 3. **TMDB** — search or ID entry. If `W_AUTO_TMDB`, auto-fetch from an existing ID.
 4. **Name preview** — editable; if `W_CONFIRM_NAMES` is OFF, skips the confirmation.
-5. **Hardlink** — into `ITA_SEEDINGS_DIR`. If `W_HARDLINK_ONLY`, it stops here and records exit code `0`.
+5. **Hardlink** — into `U3DP_SEEDINGS_DIR`. If `W_HARDLINK_ONLY`, it stops here and records exit code `0`.
 6. **Upload** — launches `unit3dup` inside a PTY and streams the output live via SSE (`GET /wizard/{token}/stream`).
-7. **History write** — `update_exit_code(seeding_path, code)` persists into `ITA_DB_PATH`.
+7. **History write** — `update_exit_code(seeding_path, code)` persists into `U3DP_DB_PATH`.
 
 ### Quick upload
 
@@ -126,8 +126,8 @@ Sections:
 - **Torrent client** — type + credentials (qBit / Transmission / rTorrent).
 - **Image host** — preference order + API keys for PTSCREENS, PASSIMA, IMGBB, etc.
 - **Upload options** — `DUPLICATE_ON`, `ANON`, `NUMBER_OF_SCREENSHOTS`, `COMPRESS_SCSHOT`, ...
-- **Seeding Flow** — `ITA_*` with effective values (env vs config) via `env_runtime()`. `UNIT3DUP_CONFIG` is read-only.
-- **App Auto-Update** — `ITA_SYSTEMD_UNIT`, systemd user unit name used by the "Update app" button for the post-update restart. Default `itatorrents.service`; on Ultra.cc typically `itatorrents-web.service`.
+- **Seeding Flow** — `U3DP_*` with effective values (env vs config) via `env_runtime()`. `UNIT3DUP_CONFIG` is read-only.
+- **App Auto-Update** — `U3DP_SYSTEMD_UNIT`, systemd user unit name used by the "Update app" button for the post-update restart. Default `unit3dprep.service`; on Ultra.cc typically `unit3dprep-web.service`.
 - **Wizard Defaults** — all `W_*`.
 
 Secrets masked as `__SET__` — the field still appears populated. Editing other keys does not wipe secrets.
@@ -151,7 +151,7 @@ On click:
 2. When done, a "Refresh in 5…1" countdown + automatic browser reload.
 3. Post-reload popup with the new release changelog (GitHub release body).
 
-The "Update app" button stays disabled (`can_update_app: false`) if the systemd user unit is not reachable. See [Configuration › In-app auto-update](configurazione.en.md#in-app-auto-update) for details (including the `ITA_SYSTEMD_UNIT` key).
+The "Update app" button stays disabled (`can_update_app: false`) if the systemd user unit is not reachable. See [Configuration › In-app auto-update](configurazione.en.md#in-app-auto-update) for details (including the `U3DP_SYSTEMD_UNIT` key).
 
 Endpoints: `GET /api/version/info`, `GET /api/version/changelog?v=X`, `GET /api/version/update/{app|unit3dup}/stream` (SSE), `POST /api/version/refresh`.
 
@@ -159,7 +159,7 @@ Endpoints: `GET /api/version/info`, `GET /api/version/changelog?v=X`, `GET /api/
 
 ## Logs
 
-Real-time log stream via SSE. Anything `uvicorn` / the app writes to `logbuf` (`itatorrents/web/logbuf.py`) shows up here.
+Real-time log stream via SSE. Anything `uvicorn` / the app writes to `logbuf` (`unit3dprep/web/logbuf.py`) shows up here.
 
 Useful for debugging without opening a shell on the VPS.
 
@@ -181,4 +181,4 @@ Breakpoint handled by `isMobile` (App.tsx → Sidebar / TopBar / Library / Setti
 
 ## Programmatic access?
 
-Every UI view consumes the JSON API under `{ITA_ROOT_PATH}/api/*`. You can call it directly with a valid session cookie. See `itatorrents/web/api/*.py` for the full list of routers.
+Every UI view consumes the JSON API under `{U3DP_ROOT_PATH}/api/*`. You can call it directly with a valid session cookie. See `unit3dprep/web/api/*.py` for the full list of routers.

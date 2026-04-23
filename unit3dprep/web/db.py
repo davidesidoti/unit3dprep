@@ -11,11 +11,13 @@ _lock = threading.Lock()
 
 def _db_path() -> Path:
     """Re-resolve on every call so UI edits take effect without restart."""
+    default = str(Path.home() / ".unit3dprep_db.json")
     try:
         from . import config
-        return Path(config.runtime_setting("ITA_DB_PATH", default=str(Path.home() / ".itatorrents_db.json")))
+        return Path(config.runtime_setting("U3DP_DB_PATH", default=default))
     except Exception:
-        return Path(os.environ.get("ITA_DB_PATH") or (Path.home() / ".itatorrents_db.json"))
+        from ._env import env as _env
+        return Path(_env("U3DP_DB_PATH", "ITA_DB_PATH", default) or default)
 
 
 # Back-compat alias — resolved at import time (tests, external callers).

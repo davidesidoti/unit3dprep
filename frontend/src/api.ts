@@ -3,7 +3,7 @@
 
 const base = (() => {
   // Backend injects `window.__ROOT_PATH__` into index.html at serve time so
-  // the SPA knows its reverse-proxy mount (e.g. '/itatorrents').
+  // the SPA knows its reverse-proxy mount (e.g. '/unit3dprep').
   const w = window as unknown as { __ROOT_PATH__?: string };
   if (typeof w.__ROOT_PATH__ === 'string') return w.__ROOT_PATH__.replace(/\/$/, '');
   return '';

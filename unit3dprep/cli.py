@@ -145,7 +145,7 @@ def handle_file(path: Path):
         hardlink_file(path, target, overwrite=True)
         print(f"Hardlink creato: {target}")
 
-    if not prompt_confirm(f"Uploadare '{target.name}' su ItaTorrents? [y/n]: "):
+    if not prompt_confirm(f"Uploadare '{target.name}' tramite unit3dup? [y/n]:"):
         print("Annullato (hardlink rimane in ~/seedings).")
         sys.exit(0)
 
@@ -244,7 +244,7 @@ def handle_folder(folder: Path):
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description="Verifica lingua italiana, rinomina secondo nomenclatura ItaTorrents e carica via unit3dup."
+        description="Verifica lingua italiana, rinomina secondo nomenclatura ItaTorrents e carica tramite unit3dup."
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-u", "--upload", metavar="FILE", help="Singolo file video (film)")

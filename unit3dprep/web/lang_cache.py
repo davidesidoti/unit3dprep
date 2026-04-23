@@ -1,15 +1,12 @@
-"""TMDB metadata cache — JSON file store. Thread-safe. No sqlite3.
+"""Audio language cache — JSON file store. Thread-safe. No sqlite3.
 
-Keys are resolved absolute source_path strings.
-Schema per entry (all fields optional for backward compat — read with .get()):
-  { tmdb_id, tmdb_kind,
-    title,          # primary lang (TMDB_DEFAULT_LANG, default it-IT)
-    title_en,       # en-US title
-    original_title, # TMDB original_title / original_name
-    year, poster,
-    overview,       # primary lang
-    overview_en,    # en-US
-    fetched_at }
+Keys are source_path strings (unresolved for series/seasons, same convention as tmdb_cache).
+Schema per entry:
+  {
+    "langs": ["ITA", "ENG", ...],
+    "episode_langs": { "<str(filepath)>": ["ITA", "ENG"] },  # only for series/seasons
+    "scanned_at": "YYYY-MM-DD HH:MM:SS"
+  }
 """
 import asyncio
 import json
@@ -22,11 +19,13 @@ _lock = threading.Lock()
 
 
 def _cache_path() -> Path:
+    default = str(Path.home() / ".unit3dprep_lang_cache.json")
     try:
         from . import config
-        return Path(config.runtime_setting("ITA_TMDB_CACHE_PATH", default=str(Path.home() / ".itatorrents_tmdb_cache.json")))
+        return Path(config.runtime_setting("U3DP_LANG_CACHE_PATH", default=default))
     except Exception:
-        return Path(os.environ.get("ITA_TMDB_CACHE_PATH") or (Path.home() / ".itatorrents_tmdb_cache.json"))
+        from ._env import env as _env
+        return Path(_env("U3DP_LANG_CACHE_PATH", "ITA_LANG_CACHE_PATH", default) or default)
 
 
 CACHE_PATH = _cache_path()
@@ -93,22 +92,27 @@ async def _run(fn, *args):
     return await loop.run_in_executor(None, fn, *args)
 
 
-async def get_cache(source_path: str) -> dict | None:
+async def get_lang(source_path: str) -> dict | None:
     return await _run(_get_sync, source_path)
 
 
-async def set_cache(source_path: str, **fields):
-    record = {**fields, "fetched_at": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())}
+async def set_lang(source_path: str, langs: list, episode_langs: dict | None = None):
+    record: dict = {
+        "langs": langs,
+        "scanned_at": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+    }
+    if episode_langs is not None:
+        record["episode_langs"] = episode_langs
     await _run(_set_sync, source_path, record)
 
 
-async def get_many(source_paths: list) -> dict:
+async def get_many_langs(source_paths: list) -> dict:
     return await _run(_get_many_sync, [str(sp) for sp in source_paths])
 
 
-async def delete_cache(source_path: str):
+async def delete_lang(source_path: str):
     await _run(_delete_sync, source_path)
 
 
-async def list_all_cache() -> dict:
+async def list_all_langs() -> dict:
     return await _run(_list_all_sync)

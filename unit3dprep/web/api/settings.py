@@ -1,4 +1,4 @@
-"""Unit3Dbot.json read/write + runtime ITA_* env view + filesystem checks."""
+"""Unit3Dbot.json read/write + runtime U3DP_* env view + filesystem checks."""
 from __future__ import annotations
 
 import os

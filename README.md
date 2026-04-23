@@ -1,4 +1,4 @@
-# itatorrents-seeding
+# unit3dprep
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
 ![FastAPI](https://img.shields.io/badge/fastapi-109989?style=for-the-badge&logo=FASTAPI&logoColor=white)
@@ -8,14 +8,14 @@
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 ![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?style=for-the-badge&logo=github%20Pages&logoColor=white)
 
-Web UI + CLI per preparare e automatizzare upload su [ItaTorrents.xyz](https://itatorrents.xyz).
-Verifica tracce audio italiane, rinomina secondo la nomenclatura ItaTorrents, crea hardlink in `~/seedings/` e lancia `unit3dup` per l'upload.
+Web UI + CLI di pre-flight per tracker Unit3D — pairing diretto con [`unit3dup`](https://pypi.org/project/unit3dup/).
+Verifica tracce audio italiane, rinomina secondo la nomenclatura ItaTorrents (e altri tracker Unit3D), crea hardlink in `~/seedings/` e lancia `unit3dup` per l'upload.
 
 Include un sistema di **auto-update in-app**: polling GitHub Releases + PyPI, badge "update available" nella Sidebar, click → `pip install` live-streamed + restart del servizio + popup changelog dopo il reload.
 
 ![Media Library](docs/assets/screenshots/media_library.png)
 
-**Documentazione completa → <https://davidesidoti.github.io/itatorrents-seeding/>**
+**Documentazione completa → <https://davidesidoti.github.io/unit3dprep/>**
 
 ---
 
@@ -23,25 +23,27 @@ Include un sistema di **auto-update in-app**: polling GitHub Releases + PyPI, ba
 
 ```bash
 pip install -e .
-python generate_hash.py      # genera ITA_PASSWORD_HASH + ITA_SECRET
-itatorrents-web              # avvia la Web UI
+python generate_hash.py      # genera U3DP_PASSWORD_HASH + U3DP_SECRET
+unit3dprep-web               # avvia la Web UI
 ```
 
-Variabili d'ambiente minime: `ITA_PASSWORD_HASH`, `ITA_SECRET`, `TMDB_API_KEY`, `ITA_PORT`.
-Dettagli completi nella [guida Installazione](https://davidesidoti.github.io/itatorrents-seeding/installazione/).
+Variabili d'ambiente minime: `U3DP_PASSWORD_HASH`, `U3DP_SECRET`, `TMDB_API_KEY`, `U3DP_PORT`.
+Dettagli completi nella [guida Installazione](https://davidesidoti.github.io/unit3dprep/installazione/).
+
+> Le legacy env vars `ITA_*` sono ancora lette come fallback (deprecated, warning nei log). Rinomina alla prima occasione.
 
 ---
 
 ## Guide
 
-- [Installazione](https://davidesidoti.github.io/itatorrents-seeding/installazione/)
-- [Configurazione](https://davidesidoti.github.io/itatorrents-seeding/configurazione/)
-- [Uso › CLI](https://davidesidoti.github.io/itatorrents-seeding/uso-cli/)
-- [Uso › Web UI](https://davidesidoti.github.io/itatorrents-seeding/uso-web/)
-- [Deploy › VPS (sudo/Docker)](https://davidesidoti.github.io/itatorrents-seeding/deploy-vps/)
-- [Deploy › Ultra.cc](https://davidesidoti.github.io/itatorrents-seeding/deploy-ultracc/)
-- [Nomenclatura](https://davidesidoti.github.io/itatorrents-seeding/nomenclatura/)
-- [Troubleshooting](https://davidesidoti.github.io/itatorrents-seeding/troubleshooting/)
+- [Installazione](https://davidesidoti.github.io/unit3dprep/installazione/)
+- [Configurazione](https://davidesidoti.github.io/unit3dprep/configurazione/)
+- [Uso › CLI](https://davidesidoti.github.io/unit3dprep/uso-cli/)
+- [Uso › Web UI](https://davidesidoti.github.io/unit3dprep/uso-web/)
+- [Deploy › VPS (sudo/Docker)](https://davidesidoti.github.io/unit3dprep/deploy-vps/)
+- [Deploy › Ultra.cc](https://davidesidoti.github.io/unit3dprep/deploy-ultracc/)
+- [Nomenclatura](https://davidesidoti.github.io/unit3dprep/nomenclatura/)
+- [Troubleshooting](https://davidesidoti.github.io/unit3dprep/troubleshooting/)
 
 English mirror: aggiungi `/en/` al path (es. `/en/installation/`).
 
@@ -60,6 +62,6 @@ Poi apri <http://127.0.0.1:8000>.
 
 ## Link
 
-- Repo: <https://github.com/davidesidoti/itatorrents-seeding>
-- Tracker: <https://itatorrents.xyz>
+- Repo: <https://github.com/davidesidoti/unit3dprep>
+- Tracker target principale: <https://itatorrents.xyz>
 - Nomenclatura (legacy markdown): [`itatorrents-nomenclatura.md`](itatorrents-nomenclatura.md)

@@ -1,12 +1,12 @@
 """Auth helpers: bcrypt password check, session management."""
-import os
-
 import bcrypt
 from fastapi import Request
 from starlette.responses import RedirectResponse
 
-PASSWORD_HASH = os.environ.get("ITA_PASSWORD_HASH", "")
-SECRET_KEY = os.environ.get("ITA_SECRET", "changeme-set-ITA_SECRET")
+from ._env import env as _env
+
+PASSWORD_HASH = _env("U3DP_PASSWORD_HASH", "ITA_PASSWORD_HASH", "") or ""
+SECRET_KEY = _env("U3DP_SECRET", "ITA_SECRET", "changeme-set-U3DP_SECRET") or "changeme-set-U3DP_SECRET"
 SESSION_ID_KEY = "session_id"
 AUTH_KEY = "authenticated"
 

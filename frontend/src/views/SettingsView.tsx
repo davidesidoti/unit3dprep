@@ -594,7 +594,7 @@ function SeedingSection({
   useEffect(() => {
     api.get<FsCheck>('/api/settings/fs-check').then(setFsCheck).catch(() => {});
     api.get<Categories>('/api/library/categories').then(setCats).catch(() => {});
-  }, [cfg.ITA_MEDIA_ROOT, cfg.ITA_SEEDINGS_DIR]);
+  }, [cfg.U3DP_MEDIA_ROOT, cfg.U3DP_SEEDINGS_DIR]);
 
   const restartNote = (
     <span style={{
@@ -611,9 +611,9 @@ function SeedingSection({
         fontFamily: 'var(--font-display)', marginBottom: 10, lineHeight: 1.6,
       }}>
         Subfolders of this directory are auto-discovered as library categories.
-        Env ITA_MEDIA_ROOT overrides this value until unset.
+        Env U3DP_MEDIA_ROOT overrides this value until unset.
       </p>
-      <Field cfg={cfg} set={set} k="ITA_MEDIA_ROOT" label="ITA_MEDIA_ROOT" wide />
+      <Field cfg={cfg} set={set} k="U3DP_MEDIA_ROOT" label="U3DP_MEDIA_ROOT" wide />
       {cats && (
         <div style={{
           marginTop: 8, padding: '8px 10px', background: 'var(--bg-card)',
@@ -634,7 +634,7 @@ function SeedingSection({
       )}
 
       <div style={GROUP_LABEL}>Seedings (Hardlink Target)</div>
-      <Field cfg={cfg} set={set} k="ITA_SEEDINGS_DIR" label="ITA_SEEDINGS_DIR" wide />
+      <Field cfg={cfg} set={set} k="U3DP_SEEDINGS_DIR" label="U3DP_SEEDINGS_DIR" wide />
       {fsCheck && (
         <div style={{
           marginTop: 8, display: 'flex', alignItems: 'center', gap: 8,
@@ -658,9 +658,9 @@ function SeedingSection({
 
       <div style={GROUP_LABEL}>Upload History Database</div>
       <div style={{ display: 'grid', gap: 10 }}>
-        <Field cfg={cfg} set={set} k="ITA_DB_PATH" label="ITA_DB_PATH" wide />
-        <Field cfg={cfg} set={set} k="ITA_TMDB_CACHE_PATH" label="ITA_TMDB_CACHE_PATH" wide />
-        <Field cfg={cfg} set={set} k="ITA_LANG_CACHE_PATH" label="ITA_LANG_CACHE_PATH" wide />
+        <Field cfg={cfg} set={set} k="U3DP_DB_PATH" label="U3DP_DB_PATH" wide />
+        <Field cfg={cfg} set={set} k="U3DP_TMDB_CACHE_PATH" label="U3DP_TMDB_CACHE_PATH" wide />
+        <Field cfg={cfg} set={set} k="U3DP_LANG_CACHE_PATH" label="U3DP_LANG_CACHE_PATH" wide />
       </div>
 
       <div style={GROUP_LABEL}>Web UI Server</div>
@@ -672,18 +672,18 @@ function SeedingSection({
         the service for changes to take effect.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: twoCols, gap: 10 }}>
-        <Field cfg={cfg} set={set} k="ITA_HOST" label="ITA_HOST" />
-        <Field cfg={cfg} set={set} k="ITA_PORT" label="ITA_PORT" />
+        <Field cfg={cfg} set={set} k="U3DP_HOST" label="U3DP_HOST" />
+        <Field cfg={cfg} set={set} k="U3DP_PORT" label="U3DP_PORT" />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: twoCols, gap: 10, marginTop: 10 }}>
-        <Field cfg={cfg} set={set} k="ITA_ROOT_PATH" label="ITA_ROOT_PATH (nginx prefix)" />
-        <Field cfg={cfg} set={set} k="ITA_TMDB_LANG" label="ITA_TMDB_LANG" />
+        <Field cfg={cfg} set={set} k="U3DP_ROOT_PATH" label="U3DP_ROOT_PATH (nginx prefix)" />
+        <Field cfg={cfg} set={set} k="U3DP_TMDB_LANG" label="U3DP_TMDB_LANG" />
       </div>
       <div style={{ marginTop: 10 }}>
         <ToggleRow
-          cfg={cfg} set={set} k="ITA_HTTPS_ONLY"
+          cfg={cfg} set={set} k="U3DP_HTTPS_ONLY"
           label="HTTPS-only session cookies"
-          sub="ITA_HTTPS_ONLY — restart required"
+          sub="U3DP_HTTPS_ONLY — restart required"
         />
       </div>
 
@@ -694,17 +694,16 @@ function SeedingSection({
       }}>
         Name of the systemd user unit that runs this service. Used by the "Update app"
         button to check unit availability and trigger <code>systemctl --user restart</code>{' '}
-        after a successful update. Default: <code>itatorrents.service</code>.
-        Ultra.cc deploys typically use <code>itatorrents-web.service</code>.
+        after a successful update. Default: <code>unit3dprep-web.service</code>.
       </p>
-      <Field cfg={cfg} set={set} k="ITA_SYSTEMD_UNIT" label="ITA_SYSTEMD_UNIT" wide />
+      <Field cfg={cfg} set={set} k="U3DP_SYSTEMD_UNIT" label="U3DP_SYSTEMD_UNIT" wide />
 
       <div style={GROUP_LABEL}>Effective Values (live)</div>
       <p style={{
         fontSize: 11, color: 'var(--fg-4)',
         fontFamily: 'var(--font-display)', marginBottom: 8,
       }}>
-        Env vars still override Unit3Dbot.json. Auth secrets (ITA_SECRET, ITA_PASSWORD_HASH,
+        Env vars still override Unit3Dbot.json. Auth secrets (U3DP_SECRET, U3DP_PASSWORD_HASH,
         UNIT3DUP_CONFIG) stay env-only.{restartNote}
       </p>
       <div style={{ display: 'grid', gap: 4 }}>

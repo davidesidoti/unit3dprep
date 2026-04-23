@@ -16,15 +16,15 @@ Questa guida copre l'installazione su un sistema Linux/macOS/WSL con Python 3.10
 ## 1 — Clona e installa
 
 ```bash
-git clone https://github.com/davidesidoti/itatorrents-seeding.git
-cd itatorrents-seeding
+git clone https://github.com/davidesidoti/unit3dprep.git
+cd unit3dprep
 pip install -e .
 ```
 
 L'installazione editabile ti permette di fare `git pull` e ricevere gli aggiornamenti senza reinstallare. Entry points registrati:
 
-- `itatorrents` → CLI interattiva
-- `itatorrents-web` → server Web UI
+- `unit3dprep` → CLI interattiva
+- `unit3dprep-web` → server Web UI
 
 ## 2 — Genera hash password e secret
 
@@ -35,17 +35,17 @@ python generate_hash.py
 Ti chiede una password (doppia conferma) e stampa le righe da esportare:
 
 ```bash
-export ITA_PASSWORD_HASH="$2b$12$..."
-export ITA_SECRET="..."
+export U3DP_PASSWORD_HASH="$2b$12$..."
+export U3DP_SECRET="..."
 export TMDB_API_KEY="<la_tua_chiave_tmdb>"
-export ITA_PORT="8765"
-export ITA_HTTPS_ONLY="1"
+export U3DP_PORT="8765"
+export U3DP_HTTPS_ONLY="1"
 ```
 
 Copiale in `~/.bashrc` (o `~/.profile` / `~/.zshrc`) e ricarica con `source ~/.bashrc`.
 
 !!! warning "Secret obbligatori"
-    Senza `ITA_PASSWORD_HASH` e `ITA_SECRET` la Web UI non parte. Il secret firma i cookie di sessione: non condividerlo mai e non committarlo.
+    Senza `U3DP_PASSWORD_HASH` e `U3DP_SECRET` la Web UI non parte. Il secret firma i cookie di sessione: non condividerlo mai e non committarlo.
 
 ## 3 — Prepara le cartelle
 
@@ -72,13 +72,13 @@ Gli hardlink funzionano solo all'interno dello stesso filesystem. Controlla:
 df ~/media ~/seedings
 ```
 
-Entrambi i path devono elencare lo **stesso device**. Se differiscono, sposta `~/seedings/` su un altro punto dell'FS dei media oppure usa `ITA_SEEDINGS_DIR` per puntarlo altrove (vedi [Configurazione](configurazione.md)).
+Entrambi i path devono elencare lo **stesso device**. Se differiscono, sposta `~/seedings/` su un altro punto dell'FS dei media oppure usa `U3DP_SEEDINGS_DIR` per puntarlo altrove (vedi [Configurazione](configurazione.md)).
 
 L'endpoint `GET /api/settings/fs-check` fa lo stesso controllo via Web UI.
 
 ## 4 — (Opzionale) Ricompila il frontend
 
-Il frontend React è pre-buildato in `itatorrents/web/dist/` e committato nel repo. Ricostruiscilo solo se hai modificato il codice in `frontend/`:
+Il frontend React è pre-buildato in `unit3dprep/web/dist/` e committato nel repo. Ricostruiscilo solo se hai modificato il codice in `frontend/`:
 
 ```bash
 cd frontend
@@ -86,12 +86,12 @@ npm install
 npm run build
 ```
 
-La build popola `itatorrents/web/dist/`. `MANIFEST.in` include quella cartella nel wheel, quindi chi installa via pip non ha bisogno di Node.
+La build popola `unit3dprep/web/dist/`. `MANIFEST.in` include quella cartella nel wheel, quindi chi installa via pip non ha bisogno di Node.
 
 ## 5 — Avvia
 
 ```bash
-itatorrents-web
+unit3dprep-web
 ```
 
 Apri <http://127.0.0.1:8765>. Login con la password scelta in `generate_hash.py`.
@@ -99,8 +99,8 @@ Apri <http://127.0.0.1:8765>. Login con la password scelta in `generate_hash.py`
 Per la CLI:
 
 ```bash
-itatorrents -u /path/al/film.mkv
-itatorrents -f /path/alla/stagione
+unit3dprep -u /path/al/film.mkv
+unit3dprep -f /path/alla/stagione
 ```
 
 Vedi [Uso › CLI](uso-cli.md) e [Uso › Web UI](uso-web.md).

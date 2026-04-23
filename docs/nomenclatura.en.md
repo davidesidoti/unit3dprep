@@ -1,6 +1,6 @@
 # ItaTorrents naming convention
 
-Official ItaTorrents naming conventions. `itatorrents-seeding` builds filenames according to these rules from `guessit` + `pymediainfo` + TMDB.
+Official ItaTorrents naming conventions. `unit3dprep` builds filenames according to these rules from `guessit` + `pymediainfo` + TMDB.
 
 !!! note "Source"
     Content derived from `itatorrents-nomenclatura.md` in the repo. Authoritative updates from [ItaTorrents](https://itatorrents.xyz).

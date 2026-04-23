@@ -53,7 +53,7 @@ def _infer_source(name: str) -> str:
         return "tracker"
     if "client" in n or "qbit" in n:
         return "client"
-    if n.startswith("itatorrents"):
+    if n.startswith("unit3dprep") or n.startswith("itatorrents"):
         return "app"
     return "app"
 

@@ -1,6 +1,6 @@
 # Nomenclatura ItaTorrents
 
-Convenzioni di denominazione ufficiali ItaTorrents. `itatorrents-seeding` costruisce i nomi secondo queste regole a partire da `guessit` + `pymediainfo` + TMDB.
+Convenzioni di denominazione ufficiali ItaTorrents. `unit3dprep` costruisce i nomi secondo queste regole a partire da `guessit` + `pymediainfo` + TMDB.
 
 !!! note "Fonte"
     Contenuto derivato da `itatorrents-nomenclatura.md` nel repo. Aggiornamenti ufficiali da [ItaTorrents](https://itatorrents.xyz).

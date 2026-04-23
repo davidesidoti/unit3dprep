@@ -19,6 +19,8 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from ._env import env as _env_get
+
 _CONFIG_PATH = Path(
     os.environ.get(
         "UNIT3DUP_CONFIG",
@@ -26,6 +28,21 @@ _CONFIG_PATH = Path(
     )
 )
 _lock = threading.Lock()
+
+# Map legacy ITA_* config keys to new U3DP_* keys for one-way upgrade on load.
+_LEGACY_KEY_MAP = {
+    "ITA_MEDIA_ROOT": "U3DP_MEDIA_ROOT",
+    "ITA_SEEDINGS_DIR": "U3DP_SEEDINGS_DIR",
+    "ITA_DB_PATH": "U3DP_DB_PATH",
+    "ITA_TMDB_CACHE_PATH": "U3DP_TMDB_CACHE_PATH",
+    "ITA_LANG_CACHE_PATH": "U3DP_LANG_CACHE_PATH",
+    "ITA_ROOT_PATH": "U3DP_ROOT_PATH",
+    "ITA_TMDB_LANG": "U3DP_TMDB_LANG",
+    "ITA_HOST": "U3DP_HOST",
+    "ITA_PORT": "U3DP_PORT",
+    "ITA_HTTPS_ONLY": "U3DP_HTTPS_ONLY",
+    "ITA_SYSTEMD_UNIT": "U3DP_SYSTEMD_UNIT",
+}
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "ITT_URL": "https://itatorrents.xyz",
@@ -128,19 +145,19 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "PANEL_MESSAGE_BORDER_COLOR": "yellow",
     "WELCOME_MESSAGE": "https://itatorrents.xyz",
 
-    # Seeding Flow — runtime settings (can be overridden by ITA_* env vars).
+    # Seeding Flow — runtime settings (can be overridden by U3DP_* env vars).
     # Empty string means "fall back to default resolved in runtime_setting()".
-    "ITA_MEDIA_ROOT": "",
-    "ITA_SEEDINGS_DIR": "",
-    "ITA_DB_PATH": "",
-    "ITA_TMDB_CACHE_PATH": "",
-    "ITA_LANG_CACHE_PATH": "",
-    "ITA_ROOT_PATH": "",
-    "ITA_TMDB_LANG": "it-IT",
-    "ITA_HOST": "127.0.0.1",
-    "ITA_PORT": "8765",
-    "ITA_HTTPS_ONLY": False,
-    "ITA_SYSTEMD_UNIT": "",
+    "U3DP_MEDIA_ROOT": "",
+    "U3DP_SEEDINGS_DIR": "",
+    "U3DP_DB_PATH": "",
+    "U3DP_TMDB_CACHE_PATH": "",
+    "U3DP_LANG_CACHE_PATH": "",
+    "U3DP_ROOT_PATH": "",
+    "U3DP_TMDB_LANG": "it-IT",
+    "U3DP_HOST": "127.0.0.1",
+    "U3DP_PORT": "8765",
+    "U3DP_HTTPS_ONLY": False,
+    "U3DP_SYSTEMD_UNIT": "",
 
     # Wizard Defaults — control default UI behaviour of the upload wizard.
     "W_AUDIO_CHECK": True,
@@ -165,6 +182,15 @@ def config_path() -> Path:
     return _CONFIG_PATH
 
 
+def _upgrade_legacy_keys(data: dict[str, Any]) -> dict[str, Any]:
+    for old, new in _LEGACY_KEY_MAP.items():
+        if old in data and new not in data:
+            data[new] = data.pop(old)
+        elif old in data:
+            data.pop(old)
+    return data
+
+
 def load() -> dict[str, Any]:
     with _lock:
         if not _CONFIG_PATH.exists():
@@ -174,6 +200,7 @@ def load() -> dict[str, Any]:
                 data = json.load(f)
         except (json.JSONDecodeError, OSError):
             return dict(DEFAULT_CONFIG)
+    data = _upgrade_legacy_keys(data)
     merged = dict(DEFAULT_CONFIG)
     merged.update(data)
     return merged
@@ -181,6 +208,7 @@ def load() -> dict[str, Any]:
 
 def save(cfg: dict[str, Any]) -> None:
     _CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    cfg = _upgrade_legacy_keys(dict(cfg))
     serialized = json.dumps(cfg, indent=2, ensure_ascii=False)
     with _lock:
         fd, tmp = tempfile.mkstemp(
@@ -222,30 +250,38 @@ def merge_secrets(existing: dict[str, Any], incoming: dict[str, Any]) -> dict[st
 # ---------------------------------------------------------------------------
 
 _RUNTIME_DEFAULTS: dict[str, str] = {
-    "ITA_MEDIA_ROOT": str(Path.home() / "media"),
-    "ITA_SEEDINGS_DIR": str(Path.home() / "seedings"),
-    "ITA_DB_PATH": str(Path.home() / ".itatorrents_db.json"),
-    "ITA_TMDB_CACHE_PATH": str(Path.home() / ".itatorrents_tmdb_cache.json"),
-    "ITA_LANG_CACHE_PATH": str(Path.home() / ".itatorrents_lang_cache.json"),
-    "ITA_ROOT_PATH": "",
-    "ITA_TMDB_LANG": "it-IT",
-    "ITA_HOST": "127.0.0.1",
-    "ITA_PORT": "8765",
-    "ITA_HTTPS_ONLY": "0",
-    "ITA_SYSTEMD_UNIT": "itatorrents.service",
+    "U3DP_MEDIA_ROOT": str(Path.home() / "media"),
+    "U3DP_SEEDINGS_DIR": str(Path.home() / "seedings"),
+    "U3DP_DB_PATH": str(Path.home() / ".unit3dprep_db.json"),
+    "U3DP_TMDB_CACHE_PATH": str(Path.home() / ".unit3dprep_tmdb_cache.json"),
+    "U3DP_LANG_CACHE_PATH": str(Path.home() / ".unit3dprep_lang_cache.json"),
+    "U3DP_ROOT_PATH": "",
+    "U3DP_TMDB_LANG": "it-IT",
+    "U3DP_HOST": "127.0.0.1",
+    "U3DP_PORT": "8765",
+    "U3DP_HTTPS_ONLY": "0",
+    "U3DP_SYSTEMD_UNIT": "unit3dprep-web.service",
 }
 
 
+def _legacy_env_key(key: str) -> str | None:
+    for legacy, new in _LEGACY_KEY_MAP.items():
+        if new == key:
+            return legacy
+    return None
+
+
 def runtime_setting(key: str, default: str | None = None) -> str:
-    """Resolve an ITA_* runtime setting. Precedence: env var → Unit3Dbot.json → default.
+    """Resolve a U3DP_* runtime setting. Precedence: env var (new → legacy ITA_*) → Unit3Dbot.json → default.
 
     Called on every access so settings saved through the web UI take effect
     without restarting the server.
     """
-    env_val = os.environ.get(key)
+    env_val = _env_get(key, _legacy_env_key(key))
     if env_val is not None and env_val != "":
         return env_val
-    cfg_val = load().get(key, "")
+    cfg = load()
+    cfg_val = cfg.get(key, "")
     if isinstance(cfg_val, bool):
         cfg_val = "1" if cfg_val else "0"
     if cfg_val:
@@ -262,20 +298,19 @@ def env_runtime() -> dict[str, str]:
     using. `UNIT3DUP_CONFIG` is install-time only.
     """
     return {
-        "ITA_HOST": runtime_setting("ITA_HOST"),
-        "ITA_PORT": runtime_setting("ITA_PORT"),
-        "ITA_ROOT_PATH": runtime_setting("ITA_ROOT_PATH"),
-        "ITA_TMDB_LANG": runtime_setting("ITA_TMDB_LANG"),
-        "ITA_HTTPS_ONLY": runtime_setting("ITA_HTTPS_ONLY"),
-        "ITA_DB_PATH": runtime_setting("ITA_DB_PATH"),
-        "ITA_TMDB_CACHE_PATH": runtime_setting("ITA_TMDB_CACHE_PATH"),
-        "ITA_LANG_CACHE_PATH": runtime_setting("ITA_LANG_CACHE_PATH"),
-        "ITA_MEDIA_ROOT": runtime_setting("ITA_MEDIA_ROOT"),
-        "ITA_SEEDINGS_DIR": runtime_setting("ITA_SEEDINGS_DIR"),
-        "ITA_SYSTEMD_UNIT": runtime_setting("ITA_SYSTEMD_UNIT"),
+        "U3DP_HOST": runtime_setting("U3DP_HOST"),
+        "U3DP_PORT": runtime_setting("U3DP_PORT"),
+        "U3DP_ROOT_PATH": runtime_setting("U3DP_ROOT_PATH"),
+        "U3DP_TMDB_LANG": runtime_setting("U3DP_TMDB_LANG"),
+        "U3DP_HTTPS_ONLY": runtime_setting("U3DP_HTTPS_ONLY"),
+        "U3DP_DB_PATH": runtime_setting("U3DP_DB_PATH"),
+        "U3DP_TMDB_CACHE_PATH": runtime_setting("U3DP_TMDB_CACHE_PATH"),
+        "U3DP_LANG_CACHE_PATH": runtime_setting("U3DP_LANG_CACHE_PATH"),
+        "U3DP_MEDIA_ROOT": runtime_setting("U3DP_MEDIA_ROOT"),
+        "U3DP_SEEDINGS_DIR": runtime_setting("U3DP_SEEDINGS_DIR"),
+        "U3DP_SYSTEMD_UNIT": runtime_setting("U3DP_SYSTEMD_UNIT"),
         "UNIT3DUP_CONFIG": str(_CONFIG_PATH),
     }
 
 
-# Back-compat alias — older call sites still import env_readonly.
 env_readonly = env_runtime

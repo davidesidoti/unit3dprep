@@ -2,7 +2,7 @@
 
 Specific guide for **[Ultra.cc](https://ultra.cc)**. Ultra.cc is a managed seedbox: no `sudo`, no Docker, Python from `pyenv` as an unprivileged user, nginx in "user-proxy" mode configured via files in `~/.apps/nginx/proxy.d/`.
 
-The app runs as a **systemd user** service (not system). The final public URL looks like `https://<user>.<host>.usbx.me/itatorrents`.
+The app runs as a **systemd user** service (not system). The final public URL looks like `https://<user>.<host>.usbx.me/unit3dprep`.
 
 Official Ultra.cc references this guide is based on:
 
@@ -21,7 +21,7 @@ List free ports from your assigned range:
 app-ports free
 ```
 
-Pick a port **inside your assigned range** (e.g. `45678`) and note it — you will use it as `ITA_PORT`. Using ports outside the range violates the Fair Usage Policy.
+Pick a port **inside your assigned range** (e.g. `45678`) and note it — you will use it as `U3DP_PORT`. Using ports outside the range violates the Fair Usage Policy.
 
 Show ports already allocated to other apps:
 
@@ -46,10 +46,10 @@ Clone and install:
 
 ```bash
 cd ~
-git clone https://github.com/davidesidoti/itatorrents-seeding.git
-cd itatorrents-seeding
-python3 -m venv ~/.venvs/itatorrents
-source ~/.venvs/itatorrents/bin/activate
+git clone https://github.com/davidesidoti/unit3dprep.git
+cd unit3dprep
+python3 -m venv ~/.venvs/unit3dprep
+source ~/.venvs/unit3dprep/bin/activate
 pip install -e .
 pip install unit3dup
 ```
@@ -58,7 +58,7 @@ Check that `unit3dup` is on PATH:
 
 ```bash
 which unit3dup
-# expected: /home/<user>/.venvs/itatorrents/bin/unit3dup
+# expected: /home/<user>/.venvs/unit3dprep/bin/unit3dup
 ```
 
 ---
@@ -69,21 +69,21 @@ which unit3dup
 python generate_hash.py
 ```
 
-The output already suggests `ITA_HTTPS_ONLY=1`. Add the lines to `~/.bashrc`:
+The output already suggests `U3DP_HTTPS_ONLY=1`. Add the lines to `~/.bashrc`:
 
 ```bash
-# itatorrents-seeding
-export ITA_PASSWORD_HASH="$2b$12$..."
-export ITA_SECRET="..."
+# unit3dprep
+export U3DP_PASSWORD_HASH="$2b$12$..."
+export U3DP_SECRET="..."
 export TMDB_API_KEY="..."
-export ITA_HOST="127.0.0.1"
-export ITA_PORT="45678"                 # the port picked via `app-ports free`
-export ITA_ROOT_PATH="/itatorrents"
-export ITA_HTTPS_ONLY="1"
+export U3DP_HOST="127.0.0.1"
+export U3DP_PORT="45678"                 # the port picked via `app-ports free`
+export U3DP_ROOT_PATH="/unit3dprep"
+export U3DP_HTTPS_ONLY="1"
 
 # optional — if your media live outside ~/media
-# export ITA_MEDIA_ROOT="/home/<user>/files/media"
-# export ITA_SEEDINGS_DIR="/home/<user>/files/seedings"
+# export U3DP_MEDIA_ROOT="/home/<user>/files/media"
+# export U3DP_SEEDINGS_DIR="/home/<user>/files/seedings"
 ```
 
 Reload:
@@ -92,8 +92,8 @@ Reload:
 source ~/.bashrc
 ```
 
-!!! note "Why `ITA_ROOT_PATH=/itatorrents`"
-    Ultra.cc's nginx **does not strip** the `/itatorrents` prefix when forwarding to the backend. So the FastAPI app must register every route *with* that prefix (the code does this automatically by reading `ITA_ROOT_PATH`). If you set `ITA_ROOT_PATH=""`, routes won't match and you'll see 404s.
+!!! note "Why `U3DP_ROOT_PATH=/unit3dprep`"
+    Ultra.cc's nginx **does not strip** the `/unit3dprep` prefix when forwarding to the backend. So the FastAPI app must register every route *with* that prefix (the code does this automatically by reading `U3DP_ROOT_PATH`). If you set `U3DP_ROOT_PATH=""`, routes won't match and you'll see 404s.
 
 ---
 
@@ -116,18 +116,18 @@ Create the folder if missing:
 mkdir -p ~/.config/systemd/user
 ```
 
-Create `~/.config/systemd/user/itatorrents.service`:
+Create `~/.config/systemd/user/unit3dprep.service`:
 
 ```ini
 [Unit]
-Description=itatorrents-seeding web UI
+Description=unit3dprep web UI
 After=network-online.target
 
 [Service]
 Type=exec
 # %h = user home
-EnvironmentFile=%h/.config/itatorrents.env
-ExecStart=%h/.venvs/itatorrents/bin/itatorrents-web
+EnvironmentFile=%h/.config/unit3dprep.env
+ExecStart=%h/.venvs/unit3dprep/bin/unit3dprep-web
 Restart=on-failure
 RestartSec=5
 
@@ -139,31 +139,31 @@ Move the variables into a dedicated file (so systemd finds them without relying 
 
 ```bash
 mkdir -p ~/.config
-cat > ~/.config/itatorrents.env <<'EOF'
-ITA_PASSWORD_HASH=$2b$12$...
-ITA_SECRET=...
+cat > ~/.config/unit3dprep.env <<'EOF'
+U3DP_PASSWORD_HASH=$2b$12$...
+U3DP_SECRET=...
 TMDB_API_KEY=...
-ITA_HOST=127.0.0.1
-ITA_PORT=45678
-ITA_ROOT_PATH=/itatorrents
-ITA_HTTPS_ONLY=1
+U3DP_HOST=127.0.0.1
+U3DP_PORT=45678
+U3DP_ROOT_PATH=/unit3dprep
+U3DP_HTTPS_ONLY=1
 EOF
-chmod 600 ~/.config/itatorrents.env
+chmod 600 ~/.config/unit3dprep.env
 ```
 
 Enable and start:
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable --now itatorrents.service
-systemctl --user status itatorrents.service
-journalctl --user -u itatorrents.service -f
+systemctl --user enable --now unit3dprep.service
+systemctl --user status unit3dprep.service
+journalctl --user -u unit3dprep.service -f
 ```
 
 Verify enable state:
 
 ```bash
-systemctl --user is-enabled itatorrents.service
+systemctl --user is-enabled unit3dprep.service
 ```
 
 !!! tip "Linger"
@@ -174,9 +174,9 @@ systemctl --user is-enabled itatorrents.service
     If `Linger=no`, contact support.
 
 !!! note "Renamed the unit?"
-    The in-app auto-update ("Update app" button in the Sidebar) runs `systemctl --user restart <unit>` when done. Default is `itatorrents.service`; if you renamed the unit (e.g. `itatorrents-web.service`), add to the `[Service]` block:
+    The in-app auto-update ("Update app" button in the Sidebar) runs `systemctl --user restart <unit>` when done. Default is `unit3dprep.service`; if you renamed the unit (e.g. `unit3dprep-web.service`), add to the `[Service]` block:
     ```ini
-    Environment=ITA_SYSTEMD_UNIT=itatorrents-web.service
+    Environment=U3DP_SYSTEMD_UNIT=unit3dprep-web.service
     ```
     or save the name via **Settings › App Auto-Update**. Without this, `can_update_app` stays `false` and the button is disabled.
 
@@ -184,10 +184,10 @@ systemctl --user is-enabled itatorrents.service
 
 ## 6 — Nginx user-proxy
 
-Create (or edit) `~/.apps/nginx/proxy.d/itatorrents.conf`:
+Create (or edit) `~/.apps/nginx/proxy.d/unit3dprep.conf`:
 
 ```nginx
-location /itatorrents/ {
+location /unit3dprep/ {
     proxy_pass              http://127.0.0.1:45678;
     proxy_http_version      1.1;
     proxy_set_header        Host              $host;
@@ -202,7 +202,7 @@ location /itatorrents/ {
 ```
 
 !!! warning "No trailing slash in `proxy_pass`"
-    `proxy_pass http://127.0.0.1:45678;` (no trailing slash after the port) → nginx **does not strip** `/itatorrents` → the app receives it. This is the correct pairing with `ITA_ROOT_PATH=/itatorrents`. If you add a trailing slash (`http://127.0.0.1:45678/;`) nginx strips and you must set `ITA_ROOT_PATH=""`.
+    `proxy_pass http://127.0.0.1:45678;` (no trailing slash after the port) → nginx **does not strip** `/unit3dprep` → the app receives it. This is the correct pairing with `U3DP_ROOT_PATH=/unit3dprep`. If you add a trailing slash (`http://127.0.0.1:45678/;`) nginx strips and you must set `U3DP_ROOT_PATH=""`.
 
 Reload nginx:
 
@@ -219,17 +219,17 @@ app-nginx restart
 Open in your browser:
 
 ```
-https://<user>.<host>.usbx.me/itatorrents
+https://<user>.<host>.usbx.me/unit3dprep
 ```
 
 You should see the login screen. Enter the password.
 
 If you see a 404 or blank page:
 
-1. `journalctl --user -u itatorrents -f` — is the server up?
-2. `curl -I http://127.0.0.1:45678/itatorrents/` from the shell — does it answer 200?
-3. Was `~/.apps/nginx/proxy.d/itatorrents.conf` loaded? Did you run `app-nginx restart`?
-4. Does `ITA_ROOT_PATH` match `proxy_pass`?
+1. `journalctl --user -u unit3dprep-web -f` — is the server up?
+2. `curl -I http://127.0.0.1:45678/unit3dprep/` from the shell — does it answer 200?
+3. Was `~/.apps/nginx/proxy.d/unit3dprep.conf` loaded? Did you run `app-nginx restart`?
+4. Does `U3DP_ROOT_PATH` match `proxy_pass`?
 
 ---
 
@@ -278,16 +278,16 @@ If you prefer the shell (or if in-app update fails):
 
 ```bash
 # pip-from-git install (no .git checkout)
-~/.venvs/itatorrents/bin/pip install --upgrade --force-reinstall \
-  "git+https://github.com/davidesidoti/itatorrents-seeding.git@vX.Y.Z"
-systemctl --user restart itatorrents.service
+~/.venvs/unit3dprep/bin/pip install --upgrade --force-reinstall \
+  "git+https://github.com/davidesidoti/unit3dprep.git@vX.Y.Z"
+systemctl --user restart unit3dprep.service
 
 # or, if you have a git checkout with .git present
-cd ~/itatorrents-seeding
+cd ~/unit3dprep
 git pull --ff-only origin main
-source ~/.venvs/itatorrents/bin/activate
+source ~/.venvs/unit3dprep/bin/activate
 pip install -e .
-systemctl --user restart itatorrents.service
+systemctl --user restart unit3dprep.service
 ```
 
 Frontend: the published package ships the pre-built `dist/`, no Node needed on Ultra.cc.
@@ -298,11 +298,11 @@ Frontend: the published package ships the pre-built `dist/`, no Node needed on U
 
 | Problem | Cause | Fix |
 |---|---|---|
-| 404 on `/itatorrents` | nginx not reloaded | `app-nginx restart` |
-| Blank page, 200 OK | `ITA_ROOT_PATH` and `proxy_pass` misaligned | No trailing slash → `ITA_ROOT_PATH=/itatorrents` |
-| Cookie not persisting | missing `ITA_HTTPS_ONLY=1` or protocol mismatch | Set it and restart |
+| 404 on `/unit3dprep` | nginx not reloaded | `app-nginx restart` |
+| Blank page, 200 OK | `U3DP_ROOT_PATH` and `proxy_pass` misaligned | No trailing slash → `U3DP_ROOT_PATH=/unit3dprep` |
+| Cookie not persisting | missing `U3DP_HTTPS_ONLY=1` or protocol mismatch | Set it and restart |
 | Service does not start after logout | linger disabled | `loginctl show-user` / support ticket |
 | `OSError: Invalid cross-device link` | `seedings` on a different FS | Move `~/seedings` under `$HOME` |
-| `unit3dup: command not found` | venv not active for systemd | `which unit3dup` → add it to PATH via `Environment=PATH=%h/.venvs/itatorrents/bin:/usr/bin` in `.service` |
+| `unit3dup: command not found` | venv not active for systemd | `which unit3dup` → add it to PATH via `Environment=PATH=%h/.venvs/unit3dprep/bin:/usr/bin` in `.service` |
 
 See also [general Troubleshooting](troubleshooting.md).

@@ -28,6 +28,7 @@ from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 from ..config import runtime_setting
+from .._env import env as _env
 
 try:
     from packaging.version import InvalidVersion, Version
@@ -37,14 +38,14 @@ except ImportError:
 
 router = APIRouter(prefix="/api", tags=["version"])
 
-GITHUB_REPO = os.environ.get("ITA_GITHUB_REPO", "davidesidoti/itatorrents-seeding")
+GITHUB_REPO = _env("U3DP_GITHUB_REPO", "ITA_GITHUB_REPO", "davidesidoti/unit3dprep") or "davidesidoti/unit3dprep"
 PYPI_URL = "https://pypi.org/pypi/unit3dup/json"
 
 
 def _systemd_unit() -> str:
     """Runtime-resolved systemd unit name. Reads from env → Unit3Dbot.json → default."""
-    return runtime_setting("ITA_SYSTEMD_UNIT", "itatorrents.service")
-USER_AGENT = "itatorrents-seeding/version-check"
+    return runtime_setting("U3DP_SYSTEMD_UNIT", "unit3dprep-web.service")
+USER_AGENT = "unit3dprep/version-check"
 
 _CACHE_TTL = 600.0
 _CHANGELOG_TTL = 3600.0
@@ -69,7 +70,7 @@ def _current_app_version() -> str:
             pass
     try:
         from importlib.metadata import version
-        return version("itatorrents")
+        return version("unit3dprep")
     except Exception:
         pass
     try:
@@ -374,7 +375,7 @@ async def update_app():
                 subprocess.run(
                     [
                         "systemd-run", "--user", "--on-active=3s",
-                        "--unit", f"itatorrents-restart-{int(time.time())}",
+                        "--unit", f"unit3dprep-restart-{int(time.time())}",
                         "systemctl", "--user", "restart", _systemd_unit(),
                     ],
                     stdin=subprocess.DEVNULL,
@@ -407,13 +408,12 @@ async def _clean_stale_metadata(repo: Path) -> AsyncGenerator[dict, None]:
     """Remove stale egg-info (source tree) and orphan dist-info (site-packages)
     that can shadow the fresh install and confuse importlib.metadata.
     """
-    egg_info = repo / "itatorrents.egg-info"
-    if egg_info.exists():
-        yield _sse("log", f"removing stale egg-info: {egg_info}")
-        shutil.rmtree(egg_info, ignore_errors=True)
+    for egg_name in ("unit3dprep.egg-info", "itatorrents.egg-info"):
+        egg_info = repo / egg_name
+        if egg_info.exists():
+            yield _sse("log", f"removing stale egg-info: {egg_info}")
+            shutil.rmtree(egg_info, ignore_errors=True)
 
-    # Locate every site-packages reachable by the interpreter and drop
-    # any `itatorrents-*.dist-info` that isn't the one pip just wrote.
     try:
         import site
         roots: list[Path] = []
@@ -422,16 +422,16 @@ async def _clean_stale_metadata(repo: Path) -> AsyncGenerator[dict, None]:
             if rp.exists() and rp not in roots:
                 roots.append(rp)
         for root in roots:
-            for d in root.glob("itatorrents-*.dist-info"):
-                yield _sse("log", f"removing dist-info: {d}")
-                shutil.rmtree(d, ignore_errors=True)
-            # `__editable__.itatorrents-*.pth` pointers older than current version
-            for pth in root.glob("__editable__.itatorrents-*.pth"):
-                yield _sse("log", f"removing editable pth: {pth}")
-                try:
-                    pth.unlink()
-                except Exception:
-                    pass
+            for pkg in ("unit3dprep", "itatorrents"):
+                for d in root.glob(f"{pkg}-*.dist-info"):
+                    yield _sse("log", f"removing dist-info: {d}")
+                    shutil.rmtree(d, ignore_errors=True)
+                for pth in root.glob(f"__editable__.{pkg}-*.pth"):
+                    yield _sse("log", f"removing editable pth: {pth}")
+                    try:
+                        pth.unlink()
+                    except Exception:
+                        pass
     except Exception as exc:
         yield _sse("log", f"cleanup warning: {exc}")
 
@@ -478,17 +478,19 @@ async def _update_app_from_git() -> AsyncGenerator[dict, None]:
             yield ev
 
     # Uninstall in a loop (pip doesn't remove orphan dist-info reliably).
-    for _ in range(3):
-        done_uninstall = False
-        async for ev in _stream_subprocess(
-            [sys.executable, "-m", "pip", "uninstall", "-y", "itatorrents"], cwd=repo
-        ):
-            if ev["event"] == "exit":
-                done_uninstall = True
+    # Target both the new name and the legacy one for mid-rename upgrades.
+    for pkg_name in ("unit3dprep", "itatorrents"):
+        for _ in range(3):
+            done_uninstall = False
+            async for ev in _stream_subprocess(
+                [sys.executable, "-m", "pip", "uninstall", "-y", pkg_name], cwd=repo
+            ):
+                if ev["event"] == "exit":
+                    done_uninstall = True
+                    break
+                yield ev
+            if done_uninstall:
                 break
-            yield ev
-        if done_uninstall:
-            break
 
     async for ev in _clean_stale_metadata(repo):
         yield ev

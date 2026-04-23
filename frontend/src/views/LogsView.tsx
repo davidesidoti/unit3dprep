@@ -46,9 +46,25 @@ function normalizeSource(s: string | undefined): string {
   return s || 'app';
 }
 
-const LS_SOURCES = 'itatorrents.logs.hiddenSources';
-const LS_KINDS = 'itatorrents.logs.hiddenKinds';
-const LS_AUTO = 'itatorrents.logs.autoScroll';
+const LS_SOURCES = 'unit3dprep.logs.hiddenSources';
+const LS_KINDS = 'unit3dprep.logs.hiddenKinds';
+const LS_AUTO = 'unit3dprep.logs.autoScroll';
+
+// One-shot migration from legacy keys.
+(() => {
+  try {
+    const map: Record<string, string> = {
+      'itatorrents.logs.hiddenSources': LS_SOURCES,
+      'itatorrents.logs.hiddenKinds': LS_KINDS,
+      'itatorrents.logs.autoScroll': LS_AUTO,
+    };
+    for (const [old, neu] of Object.entries(map)) {
+      const v = localStorage.getItem(old);
+      if (v !== null && localStorage.getItem(neu) === null) localStorage.setItem(neu, v);
+      if (v !== null) localStorage.removeItem(old);
+    }
+  } catch { /* ignore */ }
+})();
 
 function loadSet<T extends string>(key: string, fallback: T[]): Set<T> {
   try {
