@@ -299,6 +299,12 @@ async def update_unit3dup():
             yield _sse("done", {"ok": False})
             return
         after = _current_unit3dup_version()
+        # Invalidate cached /version/info so the next poll re-computes
+        # `newer` against the freshly installed version — otherwise the
+        # 10-min TTL keeps the old `{newer: true}` and the update button
+        # stays visible even though the install succeeded.
+        _cache["data"] = None
+        _cache["at"] = 0.0
         yield _sse("done", {"ok": True, "target": "unit3dup", "from": before, "to": after})
 
     return EventSourceResponse(gen())
