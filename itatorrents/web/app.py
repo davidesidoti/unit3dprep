@@ -26,6 +26,7 @@ from .api import (
     tmdb as tmdb_api,
     trackers as trackers_api,
     uploaded as uploaded_api,
+    version as version_api,
     wizard as wizard_api,
 )
 
@@ -93,6 +94,7 @@ for r in (
     tmdb_api.router,
     trackers_api.router,
     uploaded_api.router,
+    version_api.router,
     wizard_api.router,
 ):
     app.include_router(r, prefix=ROOT_PATH)

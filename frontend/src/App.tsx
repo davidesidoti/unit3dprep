@@ -11,7 +11,8 @@ import { LogsView } from './views/LogsView';
 import { LoginView } from './views/LoginView';
 import { UploadModal } from './modals/UploadModal';
 import { WizardModal } from './modals/WizardModal';
-import type { WizardCtx } from './types';
+import { ChangelogModal } from './modals/ChangelogModal';
+import type { WizardCtx, VersionInfo } from './types';
 
 type View =
   | 'queue' | 'library' | 'uploaded' | 'upload'
@@ -31,6 +32,10 @@ export function App() {
   const [queueFilter, setQueueFilter] = useState('');
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [pendingChangelog, setPendingChangelog] = useState<
+    { target: 'app' | 'unit3dup'; from: string; to: string } | null
+  >(null);
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth <= 768);
@@ -50,6 +55,33 @@ export function App() {
   useEffect(() => {
     if (view !== 'upload') localStorage.setItem(STORAGE_KEY, view);
   }, [view]);
+
+  useEffect(() => {
+    if (!authed) return;
+    let cancelled = false;
+    const fetchVersion = async () => {
+      try {
+        const v = await api.get<VersionInfo>('/api/version/info');
+        if (!cancelled) setVersionInfo(v);
+      } catch { /* ignore */ }
+    };
+    fetchVersion();
+    const iv = window.setInterval(fetchVersion, 15 * 60_000);
+    return () => { cancelled = true; window.clearInterval(iv); };
+  }, [authed]);
+
+  useEffect(() => {
+    if (!authed) return;
+    try {
+      const raw = localStorage.getItem('itatorrents.pendingChangelog');
+      if (!raw) return;
+      const j = JSON.parse(raw);
+      if (j && j.target && j.to) {
+        setPendingChangelog({ target: j.target, from: j.from || '', to: j.to });
+      }
+    } catch { /* noop */ }
+    localStorage.removeItem('itatorrents.pendingChangelog');
+  }, [authed]);
 
   if (authed === null) {
     return (
@@ -76,6 +108,8 @@ export function App() {
         isMobile={isMobile}
         drawerOpen={drawerOpen}
         onCloseDrawer={() => setDrawerOpen(false)}
+        versionInfo={versionInfo}
+        onUpdateCompleted={(target, from, to) => setPendingChangelog({ target, from, to })}
       />
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
@@ -100,6 +134,14 @@ export function App() {
       </div>
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
       {wizardCtx && <WizardModal ctx={wizardCtx} onClose={() => setWizardCtx(null)} />}
+      {pendingChangelog && (
+        <ChangelogModal
+          target={pendingChangelog.target}
+          from={pendingChangelog.from}
+          to={pendingChangelog.to}
+          onClose={() => setPendingChangelog(null)}
+        />
+      )}
     </div>
   );
 }

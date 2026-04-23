@@ -3,7 +3,8 @@ import {
   List, Library, CheckCircle, UploadCloud, Search, Settings, Terminal, LogOut, X,
 } from 'lucide-react';
 import { api } from '../api';
-import type { TrackerStatus } from '../types';
+import type { TrackerStatus, VersionInfo } from '../types';
+import { UpdateBanner } from './UpdateBanner';
 
 const NAV = [
   { id: 'queue',    icon: List,         label: 'Queue' },
@@ -21,9 +22,14 @@ interface Props {
   isMobile?: boolean;
   drawerOpen?: boolean;
   onCloseDrawer?: () => void;
+  versionInfo?: VersionInfo | null;
+  onUpdateCompleted?: (target: 'app' | 'unit3dup', from: string, to: string) => void;
 }
 
-export function Sidebar({ activeView, setActiveView, isMobile, drawerOpen, onCloseDrawer }: Props) {
+export function Sidebar({
+  activeView, setActiveView, isMobile, drawerOpen, onCloseDrawer,
+  versionInfo, onUpdateCompleted,
+}: Props) {
   const [trackers, setTrackers] = useState<TrackerStatus[]>([
     { name: 'ITT', online: false },
     { name: 'PTT', online: false },
@@ -90,7 +96,7 @@ export function Sidebar({ activeView, setActiveView, isMobile, drawerOpen, onClo
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: 10,
             color: 'var(--fg-3)', marginTop: 2,
-          }}>v0.2.0</div>
+          }}>{versionInfo?.app?.current ? `v${versionInfo.app.current}` : '—'}</div>
         </div>
         {isMobile && (
           <button
@@ -145,6 +151,10 @@ export function Sidebar({ activeView, setActiveView, isMobile, drawerOpen, onClo
         })}
       </nav>
 
+      <UpdateBanner
+        info={versionInfo || null}
+        onCompleted={(target, from, to) => onUpdateCompleted?.(target, from, to)}
+      />
       <div style={{ padding: '12px 18px 10px', borderTop: '1px solid var(--border-subtle)' }}>
         <div style={{
           fontSize: 10, fontWeight: 600, color: 'var(--fg-4)',
