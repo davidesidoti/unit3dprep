@@ -127,6 +127,7 @@ Sezioni:
 - **Image host** — ordine preferenza + API key per PTSCREENS, PASSIMA, IMGBB, ecc.
 - **Opzioni upload** — `DUPLICATE_ON`, `ANON`, `NUMBER_OF_SCREENSHOTS`, `COMPRESS_SCSHOT`, ...
 - **Seeding Flow** — `ITA_*` con valori effettivi (env vs config) via `env_runtime()`. Read-only per `UNIT3DUP_CONFIG`.
+- **App Auto-Update** — `ITA_SYSTEMD_UNIT`, nome della systemd user unit usata dal bottone "Update app" per il restart post-aggiornamento. Default `itatorrents.service`; su Ultra.cc tipicamente `itatorrents-web.service`.
 - **Wizard Defaults** — tutte le `W_*`.
 
 Secret mascherati come `__SET__` — il campo appare riempito. Modificare altre chiavi non cancella i secret.
@@ -134,6 +135,25 @@ Secret mascherati come `__SET__` — il campo appare riempito. Modificare altre 
 Endpoint: `GET /api/settings`, `PUT /api/settings`, `GET /api/settings/fs-check`.
 
 Mobile: la nav a sinistra diventa una riga orizzontale scrollabile; le griglie 2-col collassano in 1-col.
+
+---
+
+## Auto-update in-app
+
+In basso a sinistra nella Sidebar, sopra la lista tracker, compare un banner quando è disponibile una release più recente della tua versione installata (app o `unit3dup`).
+
+- **App** → GitHub Releases (`api.github.com/repos/.../releases/latest`). Il flow sceglie automaticamente `git pull + pip install -e .` se il sorgente è un checkout git, altrimenti `pip install --upgrade --force-reinstall git+URL@vX`.
+- **unit3dup** → PyPI (`pypi.org/pypi/unit3dup/json`). `pip install --upgrade unit3dup`.
+
+Al click:
+
+1. Modal con log `pip`/`git` live-streamed via SSE (`/api/version/update/{app|unit3dup}/stream`).
+2. Al termine countdown "Refresh automatico in 5…1" + reload automatico del browser.
+3. Post-reload popup con il changelog della nuova versione (release body da GitHub).
+
+Il bottone "Update app" rimane disabilitato (`can_update_app: false`) se la user unit systemd non è accessibile. Vedi [Configurazione › Auto-update in-app](configurazione.md#auto-update-in-app) per dettagli (inclusa la chiave `ITA_SYSTEMD_UNIT`).
+
+Endpoint: `GET /api/version/info`, `GET /api/version/changelog?v=X`, `GET /api/version/update/{app|unit3dup}/stream` (SSE), `POST /api/version/refresh`.
 
 ---
 

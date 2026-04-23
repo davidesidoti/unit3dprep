@@ -27,6 +27,8 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
+from ..config import runtime_setting
+
 try:
     from packaging.version import InvalidVersion, Version
 except ImportError:
@@ -36,8 +38,12 @@ except ImportError:
 router = APIRouter(prefix="/api", tags=["version"])
 
 GITHUB_REPO = os.environ.get("ITA_GITHUB_REPO", "davidesidoti/itatorrents-seeding")
-SYSTEMD_UNIT = os.environ.get("ITA_SYSTEMD_UNIT", "itatorrents.service")
 PYPI_URL = "https://pypi.org/pypi/unit3dup/json"
+
+
+def _systemd_unit() -> str:
+    """Runtime-resolved systemd unit name. Reads from env → Unit3Dbot.json → default."""
+    return runtime_setting("ITA_SYSTEMD_UNIT", "itatorrents.service")
 USER_AGENT = "itatorrents-seeding/version-check"
 
 _CACHE_TTL = 600.0
@@ -155,7 +161,7 @@ def _systemd_available() -> bool:
         return False
     try:
         r = subprocess.run(
-            ["systemctl", "--user", "cat", SYSTEMD_UNIT],
+            ["systemctl", "--user", "cat", _systemd_unit()],
             capture_output=True, text=True, timeout=5,
         )
         return r.returncode == 0
@@ -311,7 +317,7 @@ async def update_app():
         yield _sse("start", {"target": "app", "current": before, "mode": mode})
 
         if not _systemd_available():
-            yield _sse("error", {"message": f"systemd unit '{SYSTEMD_UNIT}' not available"})
+            yield _sse("error", {"message": f"systemd unit '{_systemd_unit()}' not available"})
             yield _sse("done", {"ok": False})
             return
 
@@ -342,7 +348,7 @@ async def update_app():
 
         try:
             subprocess.Popen(
-                ["systemctl", "--user", "restart", SYSTEMD_UNIT],
+                ["systemctl", "--user", "restart", _systemd_unit()],
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -395,7 +401,7 @@ async def _update_app_from_git() -> AsyncGenerator[dict, None]:
             yield ev
 
     after = _current_app_version()
-    yield _sse("log", f"restarting systemd unit {SYSTEMD_UNIT}…")
+    yield _sse("log", f"restarting systemd unit {_systemd_unit()}…")
     yield _sse("done", {"ok": True, "target": "app", "from": before, "to": after, "mode": "git"})
 
 
@@ -434,5 +440,5 @@ async def _update_app_from_pip() -> AsyncGenerator[dict, None]:
         yield ev
 
     after = _current_app_version()
-    yield _sse("log", f"restarting systemd unit {SYSTEMD_UNIT}…")
+    yield _sse("log", f"restarting systemd unit {_systemd_unit()}…")
     yield _sse("done", {"ok": True, "target": "app", "from": before, "to": after, "mode": "pip"})

@@ -39,6 +39,8 @@
 | `ITA_DB_PATH` | `~/.itatorrents_db.json` | Upload history (JSON). |
 | `ITA_TMDB_CACHE_PATH` | `~/.itatorrents_tmdb_cache.json` | TMDB query cache. |
 | `ITA_LANG_CACHE_PATH` | `~/.itatorrents_lang_cache.json` | Audio language detection cache. |
+| `ITA_SYSTEMD_UNIT` | `itatorrents.service` | Systemd user unit name used by the "Update app" button for `systemctl --user cat/restart`. On Ultra.cc set to `itatorrents-web.service`. |
+| `ITA_GITHUB_REPO` | `davidesidoti/itatorrents-seeding` | `owner/repo` slug used to poll GitHub releases (env-only, read at import). |
 
 ### Install / path
 
@@ -102,6 +104,48 @@ export ITA_ROOT_PATH="/itatorrents"
 The SPA reads `window.__ROOT_PATH__` injected at serve-time into `index.html`, so assets and API calls automatically hit the right prefix with no rebuild.
 
 On a generic VPS where nginx strips the prefix (`proxy_pass http://127.0.0.1:8765/;` with trailing slash), set `ITA_ROOT_PATH=""` instead and handle the path from the server block.
+
+---
+
+## In-app auto-update
+
+The Web UI ships an integrated update system (badge at the bottom-left of the Sidebar, above the trackers list):
+
+- **App**: compares the installed version (`importlib.metadata.version("itatorrents")`) against the [latest GitHub release](https://github.com/davidesidoti/itatorrents-seeding/releases). If `newer == true` the "Update app" button appears.
+- **unit3dup**: compares against PyPI (`https://pypi.org/pypi/unit3dup/json`).
+
+Clicking triggers the SSE endpoint `/api/version/update/{app|unit3dup}/stream`: live-streamed `pip install` in the modal, systemd service restart, browser auto-reload with a changelog popup.
+
+### App prerequisites
+
+The "Update app" button stays disabled (`can_update_app: false`) when:
+
+- `systemctl` is not in `PATH`, or
+- the configured unit does not exist (`systemctl --user cat <unit>` fails).
+
+On Ultra.cc the user unit is typically `itatorrents-web.service`, not the default `itatorrents.service`. Set it via:
+
+```ini
+# ~/.config/systemd/user/itatorrents-web.service
+[Service]
+Environment=ITA_SYSTEMD_UNIT=itatorrents-web.service
+```
+
+or save the key through **Settings › App Auto-Update**. The key is read at runtime, so a Save takes effect immediately. `daemon-reload` + restart are only needed when you add a fresh `Environment=` entry.
+
+### Install mode
+
+`_install_mode()` picks the flow based on the install layout:
+
+- **git** — source has a reachable `.git` (typical for `pip install -e .` from a checkout). Runs `git pull --ff-only origin main` + `pip install -e .`.
+- **pip** — installed via `pip install git+https://...@vX` (no `.git`). Runs `pip install --upgrade --force-reinstall git+URL@vX`.
+
+!!! note "Editable install + service WorkingDirectory"
+    If the systemd `[Service]` has `WorkingDirectory=<repo>` and that folder contains `.git`, Python imports `itatorrents` from the local source (editable) even when you installed via `pip install git+...`. The flow becomes "git" as a consequence. To force the pip flow, use `WorkingDirectory=%h` and remove/rename the checkout.
+
+### GitHub token (optional)
+
+The `api.github.com` anonymous rate limit is 60 requests/hour per IP. This should be enough (polling every 15 min), but in case of saturation a token-via-env path is tracked as a follow-up — not yet implemented.
 
 ---
 

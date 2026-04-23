@@ -687,6 +687,18 @@ function SeedingSection({
         />
       </div>
 
+      <div style={GROUP_LABEL}>App Auto-Update</div>
+      <p style={{
+        fontSize: 11, color: 'var(--fg-4)',
+        fontFamily: 'var(--font-display)', marginBottom: 8,
+      }}>
+        Name of the systemd user unit that runs this service. Used by the "Update app"
+        button to check unit availability and trigger <code>systemctl --user restart</code>{' '}
+        after a successful update. Default: <code>itatorrents.service</code>.
+        Ultra.cc deploys typically use <code>itatorrents-web.service</code>.
+      </p>
+      <Field cfg={cfg} set={set} k="ITA_SYSTEMD_UNIT" label="ITA_SYSTEMD_UNIT" wide />
+
       <div style={GROUP_LABEL}>Effective Values (live)</div>
       <p style={{
         fontSize: 11, color: 'var(--fg-4)',

@@ -140,6 +140,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "ITA_HOST": "127.0.0.1",
     "ITA_PORT": "8765",
     "ITA_HTTPS_ONLY": False,
+    "ITA_SYSTEMD_UNIT": "",
 
     # Wizard Defaults — control default UI behaviour of the upload wizard.
     "W_AUDIO_CHECK": True,
@@ -230,6 +231,7 @@ _RUNTIME_DEFAULTS: dict[str, str] = {
     "ITA_HOST": "127.0.0.1",
     "ITA_PORT": "8765",
     "ITA_HTTPS_ONLY": "0",
+    "ITA_SYSTEMD_UNIT": "itatorrents.service",
 }
 
 
@@ -269,6 +271,7 @@ def env_runtime() -> dict[str, str]:
         "ITA_LANG_CACHE_PATH": runtime_setting("ITA_LANG_CACHE_PATH"),
         "ITA_MEDIA_ROOT": runtime_setting("ITA_MEDIA_ROOT"),
         "ITA_SEEDINGS_DIR": runtime_setting("ITA_SEEDINGS_DIR"),
+        "ITA_SYSTEMD_UNIT": runtime_setting("ITA_SYSTEMD_UNIT"),
         "UNIT3DUP_CONFIG": str(_CONFIG_PATH),
     }
 

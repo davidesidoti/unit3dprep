@@ -127,6 +127,7 @@ Sections:
 - **Image host** — preference order + API keys for PTSCREENS, PASSIMA, IMGBB, etc.
 - **Upload options** — `DUPLICATE_ON`, `ANON`, `NUMBER_OF_SCREENSHOTS`, `COMPRESS_SCSHOT`, ...
 - **Seeding Flow** — `ITA_*` with effective values (env vs config) via `env_runtime()`. `UNIT3DUP_CONFIG` is read-only.
+- **App Auto-Update** — `ITA_SYSTEMD_UNIT`, systemd user unit name used by the "Update app" button for the post-update restart. Default `itatorrents.service`; on Ultra.cc typically `itatorrents-web.service`.
 - **Wizard Defaults** — all `W_*`.
 
 Secrets masked as `__SET__` — the field still appears populated. Editing other keys does not wipe secrets.
@@ -134,6 +135,25 @@ Secrets masked as `__SET__` — the field still appears populated. Editing other
 Endpoints: `GET /api/settings`, `PUT /api/settings`, `GET /api/settings/fs-check`.
 
 Mobile: the left nav becomes a horizontally scrollable row; 2-col grids collapse to 1-col.
+
+---
+
+## In-app auto-update
+
+At the bottom-left of the Sidebar, above the trackers list, a banner appears when a newer release of the installed app or `unit3dup` is available.
+
+- **App** → GitHub Releases (`api.github.com/repos/.../releases/latest`). The flow auto-picks `git pull + pip install -e .` if the source is a git checkout, otherwise `pip install --upgrade --force-reinstall git+URL@vX`.
+- **unit3dup** → PyPI (`pypi.org/pypi/unit3dup/json`). `pip install --upgrade unit3dup`.
+
+On click:
+
+1. Modal with `pip`/`git` output live-streamed via SSE (`/api/version/update/{app|unit3dup}/stream`).
+2. When done, a "Refresh in 5…1" countdown + automatic browser reload.
+3. Post-reload popup with the new release changelog (GitHub release body).
+
+The "Update app" button stays disabled (`can_update_app: false`) if the systemd user unit is not reachable. See [Configuration › In-app auto-update](configurazione.en.md#in-app-auto-update) for details (including the `ITA_SYSTEMD_UNIT` key).
+
+Endpoints: `GET /api/version/info`, `GET /api/version/changelog?v=X`, `GET /api/version/update/{app|unit3dup}/stream` (SSE), `POST /api/version/refresh`.
 
 ---
 

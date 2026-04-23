@@ -173,6 +173,13 @@ systemctl --user is-enabled itatorrents.service
     ```
     If `Linger=no`, contact support.
 
+!!! note "Renamed the unit?"
+    The in-app auto-update ("Update app" button in the Sidebar) runs `systemctl --user restart <unit>` when done. Default is `itatorrents.service`; if you renamed the unit (e.g. `itatorrents-web.service`), add to the `[Service]` block:
+    ```ini
+    Environment=ITA_SYSTEMD_UNIT=itatorrents-web.service
+    ```
+    or save the name via **Settings › App Auto-Update**. Without this, `can_update_app` stays `false` and the button is disabled.
+
 ---
 
 ## 6 — Nginx user-proxy
@@ -259,28 +266,31 @@ nano ~/Unit3Dup_config/Unit3Dbot.json
 
 ## Updates
 
+### Via Web UI (recommended)
+
+When a new GitHub release is available, an "Update available" banner appears at the bottom-left of the Sidebar. Click → modal shows `pip install` live-streamed, followed by an auto-reload countdown, then a post-reload popup with the changelog.
+
+The same button handles `unit3dup` (latest from PyPI). Prerequisites: the user unit must exist and be accessible via `systemctl --user cat`. See the note above if you renamed it.
+
+### Manual
+
+If you prefer the shell (or if in-app update fails):
+
 ```bash
+# pip-from-git install (no .git checkout)
+~/.venvs/itatorrents/bin/pip install --upgrade --force-reinstall \
+  "git+https://github.com/davidesidoti/itatorrents-seeding.git@vX.Y.Z"
+systemctl --user restart itatorrents.service
+
+# or, if you have a git checkout with .git present
 cd ~/itatorrents-seeding
-git pull
+git pull --ff-only origin main
 source ~/.venvs/itatorrents/bin/activate
 pip install -e .
 systemctl --user restart itatorrents.service
 ```
 
-Frontend (only if you have Node locally, not on Ultra.cc):
-
-```bash
-# on YOUR machine
-cd frontend
-npm install
-npm run build
-cd ..
-git add itatorrents/web/dist
-git commit -m "rebuild frontend"
-git push
-```
-
-Then on the VPS `git pull`.
+Frontend: the published package ships the pre-built `dist/`, no Node needed on Ultra.cc.
 
 ---
 

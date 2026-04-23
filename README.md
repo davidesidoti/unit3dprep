@@ -11,6 +11,8 @@
 Web UI + CLI per preparare e automatizzare upload su [ItaTorrents.xyz](https://itatorrents.xyz).
 Verifica tracce audio italiane, rinomina secondo la nomenclatura ItaTorrents, crea hardlink in `~/seedings/` e lancia `unit3dup` per l'upload.
 
+Include un sistema di **auto-update in-app**: polling GitHub Releases + PyPI, badge "update available" nella Sidebar, click → `pip install` live-streamed + restart del servizio + popup changelog dopo il reload.
+
 ![Media Library](docs/assets/screenshots/media_library.png)
 
 **Documentazione completa → <https://davidesidoti.github.io/itatorrents-seeding/>**

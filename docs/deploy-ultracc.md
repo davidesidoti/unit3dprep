@@ -173,6 +173,13 @@ systemctl --user is-enabled itatorrents.service
     ```
     Se `Linger=no`, contatta il supporto.
 
+!!! note "Nome della unit diverso?"
+    L'auto-update in-app (bottone "Update app" nella Sidebar) usa `systemctl --user restart <unit>` al termine dell'aggiornamento. Il default è `itatorrents.service`; se hai rinominato la unit (es. `itatorrents-web.service`), aggiungi nel `[Service]` del file:
+    ```ini
+    Environment=ITA_SYSTEMD_UNIT=itatorrents-web.service
+    ```
+    oppure salva il nome in **Settings › App Auto-Update**. Senza questa configurazione `can_update_app` rimane `false` e il bottone è disabilitato.
+
 ---
 
 ## 6 — Nginx user-proxy
@@ -259,28 +266,31 @@ nano ~/Unit3Dup_config/Unit3Dbot.json
 
 ## Aggiornamenti
 
+### Via Web UI (consigliato)
+
+Quando è disponibile una nuova release GitHub, in basso a sinistra nella Sidebar compare un banner "Update available". Click → il modal mostra `pip install` live-streamed, al termine countdown di reload automatico, post-reload popup con il changelog.
+
+Lo stesso bottone gestisce anche `unit3dup` (latest da PyPI). Pre-requisiti: la user unit deve esistere ed essere accessibile a `systemctl --user cat`. Vedi la nota sopra se hai rinominato la unit.
+
+### Manuale
+
+Se preferisci aggiornare da shell (o se l'in-app update fallisce):
+
 ```bash
+# installazione via pip-from-git (no checkout .git)
+~/.venvs/itatorrents/bin/pip install --upgrade --force-reinstall \
+  "git+https://github.com/davidesidoti/itatorrents-seeding.git@vX.Y.Z"
+systemctl --user restart itatorrents.service
+
+# oppure, se hai un checkout git con .git presente
 cd ~/itatorrents-seeding
-git pull
+git pull --ff-only origin main
 source ~/.venvs/itatorrents/bin/activate
 pip install -e .
 systemctl --user restart itatorrents.service
 ```
 
-Frontend (solo se hai Node localmente, non su Ultra.cc):
-
-```bash
-# sulla TUA macchina
-cd frontend
-npm install
-npm run build
-cd ..
-git add itatorrents/web/dist
-git commit -m "rebuild frontend"
-git push
-```
-
-Poi sul VPS `git pull`.
+Frontend: il pacchetto pubblicato include già la `dist/` buildata, non serve Node su Ultra.cc.
 
 ---
 
