@@ -46,15 +46,39 @@ function normalizeSource(s: string | undefined): string {
   return s || 'app';
 }
 
+const LS_SOURCES = 'itatorrents.logs.hiddenSources';
+const LS_KINDS = 'itatorrents.logs.hiddenKinds';
+const LS_AUTO = 'itatorrents.logs.autoScroll';
+
+function loadSet<T extends string>(key: string, fallback: T[]): Set<T> {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return new Set(fallback);
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return new Set(parsed as T[]);
+  } catch { /* ignore */ }
+  return new Set(fallback);
+}
+
+function loadBool(key: string, fallback: boolean): boolean {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw === null) return fallback;
+    return raw === 'true';
+  } catch {
+    return fallback;
+  }
+}
+
 export function LogsView() {
   const [lines, setLines] = useState<LogLine[]>([]);
   const [paused, setPaused] = useState(false);
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScroll, setAutoScroll] = useState<boolean>(() => loadBool(LS_AUTO, true));
   const [search, setSearch] = useState('');
   // Default: hide 'http' (still noisy even after backend fix) to keep the tail readable.
-  const [hiddenSources, setHiddenSources] = useState<Set<string>>(() => new Set(['http']));
+  const [hiddenSources, setHiddenSources] = useState<Set<string>>(() => loadSet<string>(LS_SOURCES, ['http']));
   // Default: hide 'debug' so unit3dup decorative lines stay folded.
-  const [hiddenKinds, setHiddenKinds] = useState<Set<LogKind>>(() => new Set(['debug']));
+  const [hiddenKinds, setHiddenKinds] = useState<Set<LogKind>>(() => loadSet<LogKind>(LS_KINDS, ['debug']));
   const boxRef = useRef<HTMLDivElement>(null);
   const bufferRef = useRef<LogLine[]>([]);
   const pausedRef = useRef(false);
@@ -79,6 +103,16 @@ export function LogsView() {
   useEffect(() => {
     if (!paused) setLines(bufferRef.current);
   }, [paused]);
+
+  useEffect(() => {
+    try { localStorage.setItem(LS_SOURCES, JSON.stringify([...hiddenSources])); } catch { /* ignore */ }
+  }, [hiddenSources]);
+  useEffect(() => {
+    try { localStorage.setItem(LS_KINDS, JSON.stringify([...hiddenKinds])); } catch { /* ignore */ }
+  }, [hiddenKinds]);
+  useEffect(() => {
+    try { localStorage.setItem(LS_AUTO, String(autoScroll)); } catch { /* ignore */ }
+  }, [autoScroll]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
