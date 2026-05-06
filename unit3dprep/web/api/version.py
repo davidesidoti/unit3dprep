@@ -56,8 +56,19 @@ def _webup_repo_path() -> Path:
 
 
 def _webup_python() -> str:
-    venv_bin = runtime_setting("WEBUP_VENV_BIN", str(_webup_repo_path() / ".venv" / "bin"))
-    return str(Path(venv_bin).expanduser() / "python")
+    """Resolve the python interpreter that has Unit3DwebUp installed.
+
+    Precedence: WEBUP_VENV_BIN → <WEBUP_REPO_PATH>/.venv/bin → sys.executable
+    (the running unit3dprep interpreter — works when both packages share a
+    single venv, which is the canonical PyPI install layout).
+    """
+    explicit = runtime_setting("WEBUP_VENV_BIN", "")
+    if explicit:
+        return str(Path(explicit).expanduser() / "python")
+    legacy = _webup_repo_path() / ".venv" / "bin" / "python"
+    if legacy.exists():
+        return str(legacy)
+    return sys.executable
 USER_AGENT = "unit3dprep/version-check"
 
 _CACHE_TTL = 600.0
@@ -244,8 +255,15 @@ async def _compute_info() -> dict:
 
 
 def _webup_can_update() -> bool:
-    repo = _webup_repo_path()
-    if not (repo / ".git").exists():
+    """True iff we have a python interpreter able to `pip install --upgrade
+    Unit3DwebUp` AND a reachable systemd user unit for the webup service.
+
+    The legacy git-clone path (`<WEBUP_REPO_PATH>/.git`) is no longer required
+    — Unit3DwebUp 0.0.x is distributed via PyPI, so a pip install is the
+    canonical update path. If a checkout exists we'll still `git pull` it
+    before pip-installing, but its absence is not a failure.
+    """
+    if not Path(_webup_python()).exists():
         return False
     if not shutil.which("systemctl"):
         return False
@@ -392,32 +410,37 @@ async def update_webup():
         )
         yield _sse("start", {"target": "webup", "current": before})
 
-        repo = _webup_repo_path()
-        if not (repo / ".git").exists():
-            yield _sse("error", {"message": f"webup repo not found at {repo} (set WEBUP_REPO_PATH)"})
-            yield _sse("done", {"ok": False})
-            return
         if not _webup_can_update():
-            yield _sse("error", {"message": f"webup systemd unit '{_webup_systemd_unit()}' not available"})
+            py = _webup_python()
+            if not Path(py).exists():
+                yield _sse("error", {"message": f"webup python not found at {py} (set WEBUP_VENV_BIN)"})
+            else:
+                yield _sse("error", {"message": f"webup systemd unit '{_webup_systemd_unit()}' not available"})
             yield _sse("done", {"ok": False})
             return
 
-        for argv in (
-            ["git", "fetch", "--all"],
-            ["git", "pull", "--ff-only"],
-        ):
-            async for ev in _stream_subprocess(argv, cwd=repo):
-                if ev["event"] == "exit":
-                    if json.loads(ev["data"])["code"] != 0:
-                        yield _sse("error", {"message": f"{argv[0]} {argv[1]} failed"})
-                        yield _sse("done", {"ok": False})
-                        return
-                    break
-                yield ev
+        repo = _webup_repo_path()
+        # Optional: if a git checkout exists at WEBUP_REPO_PATH, refresh it first.
+        # PyPI install does not require this; we only do it for users who run
+        # webup from a local checkout (legacy / dev setups).
+        if (repo / ".git").exists():
+            for argv in (
+                ["git", "fetch", "--all"],
+                ["git", "pull", "--ff-only"],
+            ):
+                async for ev in _stream_subprocess(argv, cwd=repo):
+                    if ev["event"] == "exit":
+                        if json.loads(ev["data"])["code"] != 0:
+                            yield _sse("error", {"message": f"{argv[0]} {argv[1]} failed"})
+                            yield _sse("done", {"ok": False})
+                            return
+                        break
+                    yield ev
 
         py = _webup_python()
+        pip_cwd = repo if repo.exists() else None
         async for ev in _stream_subprocess(
-            [py, "-m", "pip", "install", "--upgrade", "Unit3DwebUp"], cwd=repo
+            [py, "-m", "pip", "install", "--upgrade", "Unit3DwebUp"], cwd=pip_cwd
         ):
             if ev["event"] == "exit":
                 if json.loads(ev["data"])["code"] != 0:
