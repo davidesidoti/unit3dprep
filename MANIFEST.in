@@ -1,4 +1,3 @@
 recursive-include unit3dprep/web/dist *
 include README.md
 include LICENSE
-include itatorrents-nomenclatura.md

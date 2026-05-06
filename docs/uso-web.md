@@ -1,6 +1,6 @@
 # Uso › Web UI
 
-La Web UI è una SPA React servita da FastAPI. Copre l'intero workflow di pre-flight Unit3D dal browser: scansione libreria, upload guidato, coda torrent, storico, configurazione, log in tempo reale. Disponibile in **italiano e inglese** (selettore nella TopBar, *v0.6.0*).
+La Web UI è una SPA React servita da FastAPI. Copre l'intero workflow di pre-flight Unit3D dal browser: scansione libreria, upload guidato, coda torrent, storico, configurazione, log in tempo reale, integrazione live con Unit3DWebUp. Disponibile in **italiano e inglese** (selettore nella TopBar).
 
 Avvio:
 
@@ -8,7 +8,7 @@ Avvio:
 unit3dprep-web
 ```
 
-Apri l'URL risultante (`http://<U3DP_HOST>:<U3DP_PORT><U3DP_ROOT_PATH>`, default `http://127.0.0.1:8765`).
+Apri l'URL risultante (`http://<U3DP_HOST>:<U3DP_PORT><U3DP_ROOT_PATH>`, default `http://127.0.0.1:8765`). Assicurati che [Unit3DWebUp](integrazione-webup.md) sia in ascolto su `WEBUP_URL` (default `127.0.0.1:8000`).
 
 ---
 
@@ -29,16 +29,18 @@ Lista le categorie (sottocartelle di `U3DP_MEDIA_ROOT`) e gli item al loro inter
 
 Funzionalità:
 
-- **Dropdown categoria** — le categorie sono auto-scoperte (`GET /api/library/categories`). Non hardcoded.
+- **Dropdown categoria** — auto-scoperte (`GET /api/library/categories`). Non hardcoded.
 - **Lista item** — ogni riga mostra titolo, anno (se da TMDB), dimensione totale, lingue audio rilevate.
 - **Ordinamento** — nome, anno, dimensione.
 - **Ricerca** — filtro live sul nome.
 - **Nascondi uploadati** — toggle controllato da `W_HIDE_UPLOADED`.
+- **Nascondi senza ITA** — toggle controllato da `W_HIDE_NO_ITALIAN`.
 - **Detail panel** — click su un item apre un panel laterale (mobile: overlay a tutto schermo) con file list, match TMDB, azioni.
 - **Rescan lingue audio** — bottone che stream-a via SSE la scansione `pymediainfo` aggiornando la cache.
 - **Match TMDB manuale** — campo per inserire un ID, bottone cerca con preview risultati.
-- **Selezione multipla** — checkbox su ogni item; action bar con "Seleziona tutto", "Deseleziona", "Marca come caricato" per operazioni in blocco. *(v0.6.1)*
-- **Filtro tipo** — toggle per mostrare solo film (`kind === 'movie'`), nascondendo serie e stagioni. *(v0.6.1)*
+- **Selezione multipla** — checkbox su ogni item; action bar con "Seleziona tutto", "Deseleziona", "Marca come caricato" per operazioni in blocco.
+- **Filtro tipo** — toggle per mostrare solo film (`kind === 'movie'`), nascondendo serie e stagioni.
+- **Mark uploaded a tutti i livelli** — per le serie: intera serie, singola stagione, singolo episodio.
 
 Endpoint coinvolti: `GET /api/library/categories`, `GET /api/library/{category}`, `GET /api/library/{category}/{item}`, `POST /api/library/{category}/{item}/langs`, `POST /api/tmdb/search`, `POST /api/tmdb/fetch`.
 
@@ -48,7 +50,7 @@ Endpoint coinvolti: `GET /api/library/categories`, `GET /api/library/{category}`
 
 ![Upload Wizard — step TMDB con preview titolo e metadati](assets/screenshots/upload_wizard.png)
 
-Flusso guidato in step. Alternativa alla CLI con più opzioni e storico persistente.
+Flusso guidato in step. Alternativa alla CLI con storico persistente, progress bar grafica e log live SSE.
 
 Step tipici:
 
@@ -56,13 +58,17 @@ Step tipici:
 2. **Check audio** — se `W_AUDIO_CHECK`, scansiona le tracce.
 3. **TMDB** — ricerca o inserimento ID. Se `W_AUTO_TMDB`, auto-fetch da ID esistente.
 4. **Preview nome** — editabile; se `W_CONFIRM_NAMES` è OFF, salta la conferma.
-5. **Hardlink** — in `U3DP_SEEDINGS_DIR`. Se `W_HARDLINK_ONLY`, termina qui e registra exit code `0`.
-6. **Upload** — lancia `unit3dup` in PTY e stream-a l'output live via SSE (`GET /wizard/{token}/stream`).
-7. **Registrazione storico** — `update_exit_code(seeding_path, code)` scrive in `U3DP_DB_PATH`.
+5. **Hardlink** — in `U3DP_SEEDINGS_DIR/.unit3dprep/<jobid>/...` (sandbox per-upload, vedi [Integrazione Unit3DWebUp](integrazione-webup.md#semantica-scan_path-sandbox-per-upload)). Se `W_HARDLINK_ONLY`, termina qui e registra exit code `0`.
+6. **Upload** — il bridge HTTP esegue `setenv → scan → maketorrent → upload → seed` su Unit3DWebUp e stream-a log + progress al frontend via SSE (`GET /wizard/{token}/stream`). Phase weights mostrati in barra: setenv 3% / scan 27% / maketorrent 45% / upload 15% / seed 10%.
+7. **Registrazione storico** — `update_exit_code(seeding_path, code)` scrive in `U3DP_DB_PATH` (anche su `wizard_finish` quando `W_HARDLINK_ONLY=1`, exit code 0).
 
 ### Quick upload
 
-`POST /upload/quick` salta gran parte del wizard per utenti esperti: ricevi direttamente un job ID e consumi `GET /upload/{job}/stream`. Usalo se hai già file rinominati in `~/seedings/`.
+`POST /upload/quick` salta gran parte del wizard per utenti esperti: ricevi direttamente un job ID e consumi `GET /upload/{job}/stream`. Usalo se hai già file rinominati in `~/seedings/`. Il flow chiama `stream_webup` direttamente, senza pre-flight di unit3dprep.
+
+### Dry-run
+
+Se `U3DP_DRY_RUN_TRACKER=1`, il wizard salta `/upload` ma esegue tutto il resto. Utile in dev/WSL.
 
 ---
 
@@ -70,13 +76,13 @@ Step tipici:
 
 ![Upload Queue — coda qBittorrent con progress bar e stato seeding](assets/screenshots/queue.png)
 
-Mostra i torrent attivi nel client configurato (`TORRENT_CLIENT` in `Unit3Dbot.json`: `qbittorrent`, `transmission`, `rtorrent`).
+Mostra i torrent attivi nel client configurato (`TORRENT_CLIENT` nel `.env`: `qbittorrent`, `transmission`, `rtorrent`).
 
 - Filtro per nome e per stato (downloading, seeding, paused, error).
 - Refresh automatico.
 - Link ai file locali.
 
-Endpoint: `GET /api/queue`. Credenziali client lette da `QBIT_*` / `TRASM_*` / `RTORR_*`.
+Endpoint: `GET /api/queue`. Credenziali client lette dalle chiavi `QBIT_*` / `TRASM_*` / `RTORR_*` del `.env` condiviso.
 
 ---
 
@@ -85,7 +91,7 @@ Endpoint: `GET /api/queue`. Credenziali client lette da `QBIT_*` / `TRASM_*` / `
 Tabella degli upload completati (`GET /api/uploaded`). Campi:
 
 - Path locale in `~/seedings/`.
-- Exit code `unit3dup` (0 = ok, ≠0 = errore, `pending` = mai finito).
+- Exit code del bridge webup (0 = ok, ≠0 = errore, `pending` = mai finito).
 - Tracker di destinazione.
 - Timestamp.
 - Dimensione.
@@ -102,13 +108,13 @@ Su mobile la tabella ha `overflow-x:auto` con `min-width:820px` per garantire le
 
 ![Search Tracker — risultati ITT con tag tipo/risoluzione e conteggio seeders](assets/screenshots/search.png)
 
-Ricerca un torrent su ITT (sempre) e su PTT/SIS (se configurati in `Unit3Dbot.json` con URL + API key valide).
+Ricerca un torrent su ITT (sempre) e su PTT/SIS (se configurati con URL + API key valide nel `.env`).
 
 - Tab per tracker.
 - Mostra link, dimensione, seeders, freeleech, data upload.
 - Utile per duplicate-check prima di caricare.
 
-Endpoint: `GET /api/trackers` (status) + `GET /api/search?q=...`.
+Endpoint: `GET /api/trackers` (status) + `GET /api/search?q=...`. Sotto il cofano `POST /api/webup/filter` proxia `Unit3DWebUp /filter`.
 
 !!! note "Stato tracker"
     Un tracker appare "Online" solo se URL e API key sono entrambi settati *e* la API key non è il placeholder `"no_key"`. I tracker nella sidebar sono tutti elencati, anche quelli non configurati (badge grigio "Not set").
@@ -119,19 +125,23 @@ Endpoint: `GET /api/trackers` (status) + `GET /api/search?q=...`.
 
 ![Settings — pannello Preferenze con toggle comportamento upload e screenshot](assets/screenshots/settings.png)
 
-Editor completo di `Unit3Dbot.json` direttamente dal browser.
+Editor completo del `.env` condiviso direttamente dal browser. Ogni Save:
+
+1. scrive atomico in `$ENVPATH/.env` (nomenclatura canonica `TRACKER__* / TORRENT__* / PREFS__*` su disco);
+2. propaga le chiavi modificate a Unit3DWebUp via `POST /setenv` (no restart richiesto).
 
 Sezioni:
 
 - **Tracker** — URL, API key, PID per ITT / PTT / SIS; lista `MULTI_TRACKER`.
 - **Metadata** — TMDB, TVDB, IGDB, YouTube.
 - **Torrent client** — tipo + credenziali (qBit / Transmission / rTorrent).
-- **Image host** — ordine preferenza + API key per PTSCREENS, PASSIMA, IMGBB, ecc.
-- **Opzioni upload** — `DUPLICATE_ON`, `ANON`, `NUMBER_OF_SCREENSHOTS`, `COMPRESS_SCSHOT`, ...
-- **Seeding Flow** — `U3DP_*` con valori effettivi (env vs config) via `env_runtime()`. Read-only per `UNIT3DUP_CONFIG`.
-- **App Auto-Update** — `U3DP_SYSTEMD_UNIT`, nome della systemd user unit usata dal bottone "Update app" per il restart post-aggiornamento. Default `unit3dprep.service`; su Ultra.cc tipicamente `unit3dprep-web.service`.
+- **Image host** — ordine preferenza + API key per PTSCREENS, PASSIMA, IMGBB, IMGFI, ecc. L'ordine nella lista è proiettato in `PREFS__<HOST>_PRIORITY` (1, 2, …, 99 per host non in lista).
+- **Opzioni upload** — `ANON`, `PERSONAL_RELEASE`, `NUMBER_OF_SCREENSHOTS`, `COMPRESS_SCSHOT`, `TAG_ORDER_*`, ecc.
+- **Seeding Flow** — `U3DP_*` con valori effettivi (env vs file) via `env_runtime()`. Read-only per `UNIT3DUP_CONFIG`.
+- **Versione** — vedi [sezione dedicata](#versione-e-auto-update).
+- **App Auto-Update** — `U3DP_SYSTEMD_UNIT`, nome systemd user unit usata dal bottone "Update app" per il restart post-aggiornamento. Default `unit3dprep.service`; su Ultra.cc tipicamente `unit3dprep-web.service`.
 - **Wizard Defaults** — tutte le `W_*`.
-- **Interface** — selettore lingua (IT / EN); preferenza salvata in `localStorage` e sincronizzata con `U3DP_LANG` via `PUT /api/settings`. *(v0.6.0)*
+- **Interface** — selettore lingua (IT / EN); preferenza salvata in `localStorage` e sincronizzata con `U3DP_LANG` via `PUT /api/settings`.
 
 Secret mascherati come `__SET__` — il campo appare riempito. Modificare altre chiavi non cancella i secret.
 
@@ -141,28 +151,55 @@ Mobile: la nav a sinistra diventa una riga orizzontale scrollabile; le griglie 2
 
 ---
 
-## Auto-update in-app
+## Versione e auto-update
 
-In basso a sinistra nella Sidebar, sopra la lista tracker, compare un banner quando è disponibile una release più recente della tua versione installata (app o `unit3dup`).
+In **Settings › Versione** trovi due card affiancate:
 
-- **App** → GitHub Releases (`api.github.com/repos/.../releases/latest`). Il flow sceglie automaticamente `git pull + pip install -e .` se il sorgente è un checkout git, altrimenti `pip install --upgrade --force-reinstall git+URL@vX`.
-- **unit3dup** → PyPI (`pypi.org/pypi/unit3dup/json`). `pip install --upgrade unit3dup`.
+- **App** — versione corrente (`importlib.metadata` o `pyproject.toml` in modalità git) vs ultima [release GitHub](https://github.com/davidesidoti/unit3dprep/releases).
+- **Unit3DWebUp** — versione installata nel venv di webup vs ultima su [PyPI](https://pypi.org/project/Unit3DwebUp/).
 
-Al click:
+Ogni card espone:
 
-1. Modal con log `pip`/`git` live-streamed via SSE (`/api/version/update/{app|unit3dup}/stream`).
-2. Al termine countdown "Refresh automatico in 5…1" + reload automatico del browser.
-3. Post-reload popup con il changelog della nuova versione (release body da GitHub).
+- Pulsante **Controlla aggiornamenti** (force `POST /api/version/refresh` — bypassa cache 10 min).
+- Pulsante **Installa aggiornamento** (visibile solo se `newer == true`).
+- Accordion **Changelog** con il body della release GitHub (per app) o link a PyPI (per webup).
 
-Il bottone "Update app" rimane disabilitato (`can_update_app: false`) se la user unit systemd non è accessibile. Vedi [Configurazione › Auto-update in-app](configurazione.md#auto-update-in-app) per dettagli (inclusa la chiave `U3DP_SYSTEMD_UNIT`).
+Click su Installa:
 
-Endpoint: `GET /api/version/info`, `GET /api/version/changelog?v=X`, `GET /api/version/update/{app|unit3dup}/stream` (SSE), `POST /api/version/refresh`.
+1. Modal `UpdateProgressModal` con log `pip` / `git` live-streamed via SSE (`GET /api/version/update/{app|webup}/stream`).
+2. Backend invalida `_cache` di `/api/version/info` su `done`, riavvia systemd in scope transient (`systemd-run --user --on-active=3s`).
+3. Countdown 5s + reload del browser; popup post-reload con il changelog (chiave `unit3dprep.pendingChangelog` in localStorage).
+
+!!! warning "EventSource auto-riconnette"
+    Se un endpoint SSE chiude la connessione (es. dopo `systemctl restart`), il browser ripete la richiesta → re-esecuzione dell'endpoint. Il modal chiama `closeSSE()` su `done`/`error` per evitare il loop. Se modifichi il modal, mantieni questo invariante.
+
+Endpoint: `GET /api/version/info`, `GET /api/version/changelog?v=X`, `GET /api/version/update/{app|webup}/stream` (SSE), `POST /api/version/refresh`.
+
+---
+
+## Health Unit3DWebUp
+
+In **Settings › Tracker** (o sezione Integrazioni a seconda del rendering) compare la card **Unit3DWebUp**:
+
+- Stato `online` / `offline` (cache 5s, ping a `WEBUP_URL/setting`).
+- Versione installata.
+- Latenza ping in ms.
+- Indicatore WebSocket (connessione attiva al canale eventi del bot).
+- Pulsante **"Spingi config"** — esegue `POST /api/webup/sync` (push di tutto il payload `.env` mappato a webup, utile dopo ripristino backup o se sospetti drift).
+- Pulsante **"Aggiorna"** — link rapido alla card Versione.
+
+Endpoint: `GET /api/webup/health`, `POST /api/webup/sync`, `GET /api/webup/setting`.
 
 ---
 
 ## Logs
 
-Stream log in tempo reale via SSE. Tutto ciò che `uvicorn` / l'app scrive su `logbuf` (`unit3dprep/web/logbuf.py`) arriva qui.
+Stream log in tempo reale via SSE. Tutto ciò che `uvicorn` / l'app scrive su `logbuf` (`unit3dprep/web/logbuf.py`) arriva qui, classificato per:
+
+- **source** — `app`, `wizard`, `quickupload`, `webup` (rimpiazza `unit3dup` legacy), `system`.
+- **kind** — `info` / `ok` / `warn` / `error` / `progress`.
+
+Filtri persistiti in `localStorage` (chiavi `unit3dprep.logs.{hiddenSources,hiddenKinds,autoScroll}`).
 
 Utile per debugging senza aprire una shell sul VPS.
 
@@ -184,4 +221,4 @@ Breakpoint gestito da `isMobile` (App.tsx → Sidebar / TopBar / Library / Setti
 
 ## Bisogni accesso programmatico?
 
-Tutte le view della UI consumano l'API JSON sotto `{U3DP_ROOT_PATH}/api/*`. Puoi chiamarla direttamente con cookie di sessione valido. Vedi `unit3dprep/web/api/*.py` per la lista completa dei router.
+Tutte le view della UI consumano l'API JSON sotto `{U3DP_ROOT_PATH}/api/*`. Puoi chiamarla direttamente con cookie di sessione valido. Vedi `unit3dprep/web/api/*.py` per la lista completa dei router (settings, version, webup, library, queue, uploaded, search, tmdb, fs).

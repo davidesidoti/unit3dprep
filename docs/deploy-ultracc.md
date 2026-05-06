@@ -2,7 +2,7 @@
 
 Guida specifica per **[Ultra.cc](https://ultra.cc)**. Ultra.cc è un seedbox managed: niente `sudo`, niente Docker, Python da `pyenv` come utente non privilegiato, nginx in modalità "user-proxy" configurato via file in `~/.apps/nginx/proxy.d/`.
 
-Tutta l'app gira come servizio **systemd user** (non system). L'URL pubblico finale ha la forma `https://<user>.<host>.usbx.me/unit3dprep`.
+L'app gira come due servizi **systemd user**: `unit3dprep-web.service` (Web UI) e `unit3dwebup.service` (bot upload). L'URL pubblico finale ha la forma `https://<user>.<host>.usbx.me/unit3dprep`.
 
 Link ufficiali Ultra.cc su cui si basa questa guida:
 
@@ -13,25 +13,52 @@ Link ufficiali Ultra.cc su cui si basa questa guida:
 
 ## 1 — SSH e porta riservata
 
-Collegati in SSH alla tua macchina Ultra.cc.
-
-Elenca le porte libere del tuo range:
+Collegati in SSH alla tua macchina Ultra.cc. Elenca le porte libere del tuo range:
 
 ```bash
 app-ports free
 ```
 
-Scegli una porta **all'interno del range assegnato** (es. `45678`) e annotala — la userai come `U3DP_PORT`. Usare porte fuori range viola la Fair Usage Policy.
-
-Mostra anche quelle già allocate ad altre app:
+Scegli una porta **all'interno del range assegnato** (es. `45678`) per la Web UI e annotala come `U3DP_PORT`. Usare porte fuori range viola la Fair Usage Policy.
 
 ```bash
 app-ports show
 ```
 
+!!! info "Solo una porta riservata"
+    `Unit3DWebUp` resta su `127.0.0.1:8000` (loopback non riservato) — webup parla solo con la Web UI tramite localhost, non viene esposto pubblicamente. Sia Redis (`127.0.0.1:6379`) sia webup non richiedono riserva di porta.
+
 ---
 
-## 2 — Installa il pacchetto
+## 2 — Verifica Redis
+
+Ultra.cc preinstalla Redis in user mode su `127.0.0.1:6379`. Verifica:
+
+```bash
+redis-cli ping
+```
+
+Risposta attesa: `PONG`. Se non risponde, contatta il supporto.
+
+!!! warning "Redis non spostabile"
+    Webup hardcoda Redis a `localhost:6379`. Le env vars `REDIS_HOST` / `REDIS_PORT` sono ignorate. Niente riserva di porta richiesta.
+
+---
+
+## 3 — ffmpeg
+
+Verifica che ffmpeg sia disponibile:
+
+```bash
+which ffmpeg
+ffmpeg -version | head -1
+```
+
+Se manca, contatta il supporto: webup lo richiede silenziosamente per generare gli screenshot, e senza il `/scan` ritorna 0 item.
+
+---
+
+## 4 — Installa unit3dprep + Unit3DWebUp
 
 Ultra.cc ha Python via `pyenv`. Verifica:
 
@@ -40,9 +67,9 @@ python3 --version
 which python3
 ```
 
-Su Ultra.cc il Python default è spesso 3.13 in pyenv, che ha `_sqlite3` rotto (`undefined symbol: sqlite3_deserialize`). **Non è un problema** per questo progetto: l'app usa storico JSON, non SQLite. Se però vedi altri tool andare in errore su `import sqlite3`, installa un Python 3.11 con `pyenv install 3.11` e fai `pyenv local 3.11.X`.
+Su Ultra.cc il Python default è spesso 3.13 in pyenv, che ha `_sqlite3` rotto (`undefined symbol: sqlite3_deserialize`). **Non è un problema** per questo progetto: l'app usa storico JSON, non SQLite. Se altri tool ti danno errori `_sqlite3`, installa Python 3.11 con `pyenv install 3.11` e fai `pyenv local 3.11.X`.
 
-Clona e installa:
+Stesso venv per entrambi i pacchetti (semplice):
 
 ```bash
 cd ~
@@ -50,54 +77,60 @@ git clone https://github.com/davidesidoti/unit3dprep.git
 cd unit3dprep
 python3 -m venv ~/.venvs/unit3dprep
 source ~/.venvs/unit3dprep/bin/activate
+pip install --upgrade pip
 pip install -e .
-pip install unit3dup
+pip install Unit3DwebUp
 ```
 
-Verifica che `unit3dup` sia nel PATH:
+Verifica entrambi gli entry point:
 
 ```bash
-which unit3dup
-# atteso: /home/<user>/.venvs/unit3dprep/bin/unit3dup
+which unit3dprep-web
+~/.venvs/unit3dprep/bin/python -c "import unit3dwup.start; print(unit3dwup.start.app)"
 ```
+
+!!! tip "Niente `requirements.txt` per webup"
+    Il branch `0.0.x` di `Unit3DWebUp` non distribuisce `requirements.txt`. L'auto-update integrato fa `pip install --upgrade Unit3DwebUp` (NON `pip install -r requirements.txt`).
 
 ---
 
-## 3 — Secret e variabili d'ambiente
+## 5 — Genera secret e prepara `.env`
 
 ```bash
 python generate_hash.py
 ```
 
-L'output suggerisce già `U3DP_HTTPS_ONLY=1`. Aggiungi le righe a `~/.bashrc`:
+Crea il `.env` condiviso:
 
 ```bash
-# unit3dprep
-export U3DP_PASSWORD_HASH="$2b$12$..."
-export U3DP_SECRET="..."
-export TMDB_API_KEY="..."
-export U3DP_HOST="127.0.0.1"
-export U3DP_PORT="45678"                 # la porta presa da `app-ports free`
-export U3DP_ROOT_PATH="/unit3dprep"
-export U3DP_HTTPS_ONLY="1"
+mkdir -p ~/.config/unit3dprep
+cat > ~/.config/unit3dprep/.env <<'EOF'
+# Auth
+U3DP_PASSWORD_HASH='$2b$12$...'
+U3DP_SECRET=hex-secret
+TMDB_API_KEY=la-tua-chiave-tmdb
 
-# opzionale — se i tuoi media stanno fuori ~/media
-# export U3DP_MEDIA_ROOT="/home/<user>/files/media"
-# export U3DP_SEEDINGS_DIR="/home/<user>/files/seedings"
+# Web UI
+U3DP_HOST=127.0.0.1
+U3DP_PORT=45678
+U3DP_ROOT_PATH=/unit3dprep
+U3DP_HTTPS_ONLY=1
+
+# Bridge
+WEBUP_URL=http://127.0.0.1:8000
+EOF
+chmod 600 ~/.config/unit3dprep/.env
 ```
 
-Ricarica:
-
-```bash
-source ~/.bashrc
-```
+!!! danger "Apici singoli sull'hash bcrypt"
+    L'hash contiene `$`. Senza apici singoli bash espande `$2b`/`$12` come variabili vuote → login 401 silenzioso.
 
 !!! note "Perché `U3DP_ROOT_PATH=/unit3dprep`"
-    L'nginx di Ultra.cc **non** strippa il prefisso `/unit3dprep` quando forwarda al backend. Quindi l'app FastAPI deve registrare tutte le route *con* quel prefisso (il codice lo fa automaticamente leggendo `U3DP_ROOT_PATH`). Se metti `U3DP_ROOT_PATH=""`, le route non matchano e vedi solo 404.
+    L'nginx di Ultra.cc **non** strippa il prefisso `/unit3dprep` quando forwarda al backend. Quindi l'app FastAPI registra le route *con* quel prefisso (lo legge da `U3DP_ROOT_PATH`). Con `U3DP_ROOT_PATH=""` le route non matchano e vedi solo 404.
 
 ---
 
-## 4 — Prepara cartelle
+## 6 — Prepara cartelle media
 
 ```bash
 mkdir -p ~/media/{movies,series,anime} ~/seedings
@@ -108,81 +141,100 @@ Su Ultra.cc tipicamente `$HOME` è tutto sullo stesso device, quindi nessun prob
 
 ---
 
-## 5 — Systemd user unit
-
-Crea la cartella (se non esiste):
+## 7 — Systemd user units
 
 ```bash
 mkdir -p ~/.config/systemd/user
 ```
 
-Crea `~/.config/systemd/user/unit3dprep.service`:
+### `unit3dwebup.service`
 
-```ini
+Il template è già nel repo: [`deploy/systemd/unit3dwebup.service`](https://github.com/davidesidoti/unit3dprep/blob/main/deploy/systemd/unit3dwebup.service). Adattalo al tuo venv:
+
+```bash
+cat > ~/.config/systemd/user/unit3dwebup.service <<'EOF'
+[Unit]
+Description=Unit3DWebUp FastAPI bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+# DO NOT set DOCKER here — webup uses a bare truthy check.
+Environment=PYTHONUNBUFFERED=1
+Environment=ENVPATH=%h/.config/unit3dprep
+ExecStart=%h/.venvs/unit3dprep/bin/uvicorn unit3dwup.start:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+```
+
+### `unit3dprep-web.service`
+
+```bash
+cat > ~/.config/systemd/user/unit3dprep-web.service <<'EOF'
 [Unit]
 Description=unit3dprep web UI
-After=network-online.target
+After=network-online.target unit3dwebup.service
+Wants=network-online.target unit3dwebup.service
 
 [Service]
 Type=exec
-# %h = home dell'utente
-EnvironmentFile=%h/.config/unit3dprep.env
+EnvironmentFile=%h/.config/unit3dprep/.env
+Environment=ENVPATH=%h/.config/unit3dprep
+Environment=U3DP_SYSTEMD_UNIT=unit3dprep-web.service
+Environment=WEBUP_SYSTEMD_UNIT=unit3dwebup.service
+Environment=WEBUP_VENV_BIN=%h/.venvs/unit3dprep/bin
 ExecStart=%h/.venvs/unit3dprep/bin/unit3dprep-web
 Restart=on-failure
 RestartSec=5
 
 [Install]
 WantedBy=default.target
-```
-
-Sposta le variabili in un file dedicato (così systemd le trova anche senza passare da `~/.bashrc`):
-
-```bash
-mkdir -p ~/.config
-cat > ~/.config/unit3dprep.env <<'EOF'
-U3DP_PASSWORD_HASH=$2b$12$...
-U3DP_SECRET=...
-TMDB_API_KEY=...
-U3DP_HOST=127.0.0.1
-U3DP_PORT=45678
-U3DP_ROOT_PATH=/unit3dprep
-U3DP_HTTPS_ONLY=1
 EOF
-chmod 600 ~/.config/unit3dprep.env
 ```
 
-Abilita e avvia:
+!!! note "`WEBUP_VENV_BIN` quando webup vive nello stesso venv"
+    `WEBUP_VENV_BIN` dice al lookup versione (e all'auto-update) dove trovare il `python` con `Unit3DwebUp` installato. Default legacy `~/dev/Unit3DWebUp/.venv/bin` non esiste se hai seguito la guida (webup nello stesso venv di unit3dprep). Senza questa env la card "Versione → Unit3DWebUp" mostra "Corrente: -" e il bottone update è disabilitato.
+
+!!! warning "Mai impostare `DOCKER`"
+    Webup `config/settings.py` usa `env_file=ENV_FILE if not os.getenv("DOCKER") else None` (truthy check). `DOCKER=false` (stringa) → `env_file=None` → webup ignora il `.env` → ogni richiesta 500 con "Field required". Omettilo dal file unit.
+
+!!! note "`U3DP_SYSTEMD_UNIT=unit3dprep-web.service` è obbligatorio su Ultra.cc"
+    Il bottone "Update app" usa `systemctl --user cat <unit>` per validare la unit. Default è `unit3dprep.service`; senza l'override `can_update_app` resta `false` e il bottone è disabilitato.
+
+Abilita e avvia (l'ordine importa — webup deve essere up prima dell'app):
 
 ```bash
 systemctl --user daemon-reload
-systemctl --user enable --now unit3dprep.service
-systemctl --user status unit3dprep.service
-journalctl --user -u unit3dprep.service -f
+systemctl --user enable --now unit3dwebup.service
+systemctl --user enable --now unit3dprep-web.service
+systemctl --user status unit3dwebup.service unit3dprep-web.service
+journalctl --user -u unit3dwebup.service -u unit3dprep-web.service -f
 ```
 
-Verifica lo stato di enable:
+Smoke test del bot:
 
 ```bash
-systemctl --user is-enabled unit3dprep.service
+curl -s -X POST http://127.0.0.1:8000/setting -H 'Content-Type: application/json' -d '{}' | head -c 200
 ```
 
+Risposta: `{"userPreferences": ...}`.
+
 !!! tip "Linger"
-    Ultra.cc abilita `loginctl enable-linger` automaticamente per gli utenti, quindi il servizio parte anche senza sessione SSH attiva. Se dubbi:
+    Ultra.cc abilita `loginctl enable-linger` automaticamente, quindi i servizi partono anche senza sessione SSH attiva. Verifica:
     ```bash
     loginctl show-user $(whoami) | grep -i linger
     ```
     Se `Linger=no`, contatta il supporto.
 
-!!! note "Nome della unit diverso?"
-    L'auto-update in-app (bottone "Update app" nella Sidebar) usa `systemctl --user restart <unit>` al termine dell'aggiornamento. Il default è `unit3dprep.service`; se hai rinominato la unit (es. `unit3dprep-web.service`), aggiungi nel `[Service]` del file:
-    ```ini
-    Environment=U3DP_SYSTEMD_UNIT=unit3dprep-web.service
-    ```
-    oppure salva il nome in **Settings › App Auto-Update**. Senza questa configurazione `can_update_app` rimane `false` e il bottone è disabilitato.
-
 ---
 
-## 6 — Nginx user-proxy
+## 8 — Nginx user-proxy
 
 Crea (o modifica) `~/.apps/nginx/proxy.d/unit3dprep.conf`:
 
@@ -202,7 +254,7 @@ location /unit3dprep/ {
 ```
 
 !!! warning "Niente slash finale in `proxy_pass`"
-    `proxy_pass http://127.0.0.1:45678;` (senza slash finale dopo la porta) → nginx **non strippa** `/unit3dprep` → l'app lo riceve. Questo è l'abbinamento corretto con `U3DP_ROOT_PATH=/unit3dprep`. Se aggiungi uno slash finale (`http://127.0.0.1:45678/;`) nginx strippa e devi resettare `U3DP_ROOT_PATH=""`.
+    `proxy_pass http://127.0.0.1:45678;` (senza slash finale) → nginx **non strippa** `/unit3dprep` → l'app lo riceve. Abbinato a `U3DP_ROOT_PATH=/unit3dprep`. Con uno slash finale (`http://127.0.0.1:45678/;`) nginx strippa, e devi resettare `U3DP_ROOT_PATH=""`.
 
 Ricarica nginx:
 
@@ -210,11 +262,11 @@ Ricarica nginx:
 app-nginx restart
 ```
 
-(oppure dal pannello di controllo UCP → Nginx → Restart).
+(oppure dal pannello UCP → Nginx → Restart).
 
 ---
 
-## 7 — Verifica
+## 9 — Verifica end-to-end
 
 Apri nel browser:
 
@@ -222,75 +274,78 @@ Apri nel browser:
 https://<user>.<host>.usbx.me/unit3dprep
 ```
 
-Dovresti vedere il login. Inserisci la password.
-
-Se vedi 404 o la pagina bianca:
+Login con la password. Se vedi 404 o pagina bianca:
 
 1. `journalctl --user -u unit3dprep-web -f` — il server è up?
-2. `curl -I http://127.0.0.1:45678/unit3dprep/` dalla shell — risponde 200?
-3. Il file `~/.apps/nginx/proxy.d/unit3dprep.conf` è stato caricato? `app-nginx restart` fatto?
-4. `U3DP_ROOT_PATH` combacia tra env e `proxy_pass`?
+2. `journalctl --user -u unit3dwebup -f` — il bot è up?
+3. `curl -I http://127.0.0.1:45678/unit3dprep/` dalla shell — risponde 200?
+4. `curl -X POST http://127.0.0.1:8000/setting -d '{}' -H 'Content-Type: application/json'` — webup risponde JSON?
+5. Il file `~/.apps/nginx/proxy.d/unit3dprep.conf` è stato caricato? `app-nginx restart` fatto?
+6. `U3DP_ROOT_PATH` combacia tra `.env` e `proxy_pass`?
 
 ---
 
-## 8 — Configurazione `unit3dup`
+## 10 — Configurazione iniziale (Web UI)
 
-`unit3dup` su Ultra.cc si configura tramite lo stesso `Unit3Dbot.json`. Se non esiste ancora, la Web UI lo crea al primo salvataggio da Settings.
-
-Imposta almeno:
-
-- `ITT_URL`, `ITT_APIKEY`, `ITT_PID` (dal tuo profilo ItaTorrents)
-- `TMDB_APIKEY` (stesso valore di `TMDB_API_KEY`)
-- `TORRENT_CLIENT` = `qbittorrent` (tipicamente), `QBIT_HOST=127.0.0.1`, `QBIT_PORT=<porta qBit Ultra.cc>`, `QBIT_USER`, `QBIT_PASS`
-- `TAG` = qualcosa tipo `ItaTorrentsBot` (appare nel nome file finale)
-
-Alternativamente edita a mano:
-
-```bash
-nano ~/Unit3Dup_config/Unit3Dbot.json
-```
-
-(Ultra.cc potrebbe averlo in `~/.config/Unit3Dup/` o simile se lo hai installato diversamente — usa `UNIT3DUP_CONFIG` per puntarlo esplicitamente.)
+1. Login → **Settings → Tracker** → URL/API key/PID per ITT (e PTT/SIS).
+2. **Torrent client** → host/port/credenziali qBittorrent (porta tipicamente assegnata da Ultra.cc nel pannello).
+3. **Image host** → almeno una chiave configurata, ordinata in `IMAGE_HOST_ORDER`.
+4. **Metadata** → conferma `TMDB_APIKEY`.
+5. Save → ogni chiave viene scritta in `~/.config/unit3dprep/.env` con nomenclatura canonica e propagata a `unit3dwebup` via `POST /setenv` (no restart).
+6. Verifica la card **Unit3DWebUp** in Settings: deve essere verde con versione e latenza ms.
 
 ---
 
-## 9 — Upload di test
+## 11 — Upload di test
 
-1. Metti un file `.mkv` con audio italiano in `~/media/movies/<Titolo>/`.
+1. Metti un `.mkv` con audio italiano in `~/media/movies/<Titolo>/`.
 2. Apri la Web UI → Library → seleziona `movies` → l'item appare.
 3. Click → Upload Wizard → segui i passi.
 4. Verifica nello Storico che l'exit code diventi `0`.
 5. In Queue dovrebbe comparire il torrent seedato dal tuo qBit.
 
+Se vuoi testare la pipeline senza polluire il tracker, imposta `U3DP_DRY_RUN_TRACKER=1` in `.env` e ripeti il test: il wizard salta `/upload` ma esegue `setenv → scan → maketorrent → seed`.
+
 ---
 
-## Aggiornamenti
+## 12 — Aggiornamenti
 
 ### Via Web UI (consigliato)
 
-Quando è disponibile una nuova release GitHub, in basso a sinistra nella Sidebar compare un banner "Update available". Click → il modal mostra `pip install` live-streamed, al termine countdown di reload automatico, post-reload popup con il changelog.
+In **Settings → Versione** ci sono due card (App + Unit3DWebUp). Click su "Installa aggiornamento" → modal SSE con log live → restart systemd transient → reload del browser → popup changelog. Vedi [Uso › Web UI](uso-web.md#versione-e-auto-update).
 
-Lo stesso bottone gestisce anche `unit3dup` (latest da PyPI). Pre-requisiti: la user unit deve esistere ed essere accessibile a `systemctl --user cat`. Vedi la nota sopra se hai rinominato la unit.
+Pre-requisiti già garantiti dai due `Environment=` nelle unit:
+
+- `U3DP_SYSTEMD_UNIT=unit3dprep-web.service`
+- `WEBUP_SYSTEMD_UNIT=unit3dwebup.service`
 
 ### Manuale
 
-Se preferisci aggiornare da shell (o se l'in-app update fallisce):
-
 ```bash
-# installazione via pip-from-git (no checkout .git)
-~/.venvs/unit3dprep/bin/pip install --upgrade --force-reinstall \
-  "git+https://github.com/davidesidoti/unit3dprep.git@vX.Y.Z"
-systemctl --user restart unit3dprep.service
-
-# oppure, se hai un checkout git con .git presente
+# App in modalità editable (.git presente):
 cd ~/unit3dprep
 git pull --ff-only origin main
-source ~/.venvs/unit3dprep/bin/activate
-pip install -e .
-systemctl --user restart unit3dprep.service
+~/.venvs/unit3dprep/bin/pip install -e .
+
+# App via pip-from-git (no checkout .git):
+~/.venvs/unit3dprep/bin/pip install --upgrade --force-reinstall \
+  "git+https://github.com/davidesidoti/unit3dprep.git@vX.Y.Z"
+
+# Webup (sempre via PyPI):
+~/.venvs/unit3dprep/bin/pip install --upgrade Unit3DwebUp
+
+systemctl --user restart unit3dwebup.service
+systemctl --user restart unit3dprep-web.service
 ```
 
-Frontend: il pacchetto pubblicato include già la `dist/` buildata, non serve Node su Ultra.cc.
+Frontend: il pacchetto pubblicato include già la `dist/` buildata, no Node su Ultra.cc.
+
+!!! note "Cleanup `dist-info` orfani"
+    Dopo rename del pacchetto o reinstall ripetuti può restare un `<oldname>-<ver>.dist-info` orfano in `site-packages` che `pip uninstall` non rimuove ("Can't uninstall — No files were found"). Pulisci a mano:
+    ```bash
+    find ~/.venvs ~/.local -name "unit3dprep-*.dist-info" -o -name "itatorrents-*.dist-info"
+    rm -rf <ogni dist-info orfana>
+    ```
 
 ---
 
@@ -300,9 +355,12 @@ Frontend: il pacchetto pubblicato include già la `dist/` buildata, non serve No
 |---|---|---|
 | 404 su `/unit3dprep` | nginx non ricaricato | `app-nginx restart` |
 | Pagina bianca, 200 OK | `U3DP_ROOT_PATH` e `proxy_pass` disallineati | Senza slash → `U3DP_ROOT_PATH=/unit3dprep` |
-| Cookie non persistenti | mancanza `U3DP_HTTPS_ONLY=1` o mismatch protocollo | Impostalo e riavvia |
+| Cookie non persistenti | mancanza `U3DP_HTTPS_ONLY=1` o mismatch protocollo | Imposta + restart |
 | Service non parte dopo logout | linger disabilitato | `loginctl show-user` / ticket supporto |
 | `OSError: Invalid cross-device link` | `seedings` su FS diverso | Sposta `~/seedings` sotto `$HOME` |
-| `unit3dup: command not found` | venv non attivo per systemd | `which unit3dup` → inseriscilo nel PATH via `Environment=PATH=%h/.venvs/unit3dprep/bin:/usr/bin` in `.service` |
+| Webup `500` dovunque | `DOCKER` env settato o `.env` con valori vuoti | Rimuovi `DOCKER`; usa Settings UI per scrivere il `.env` |
+| Card Versione `Corrente: -` | `Unit3DwebUp` non installato nel venv letto da `WEBUP_VENV_BIN` | `~/.venvs/unit3dprep/bin/pip install Unit3DwebUp` |
+| `can_update_app: false` | `U3DP_SYSTEMD_UNIT` non override-ato | Aggiungi `Environment=U3DP_SYSTEMD_UNIT=unit3dprep-web.service` al file unit |
+| `status=203/EXEC` su systemctl | path in `ExecStart` non esiste | `ls -la <path>` — verifica `which unit3dprep-web` |
 
 Vedi anche [Troubleshooting generale](troubleshooting.md).
