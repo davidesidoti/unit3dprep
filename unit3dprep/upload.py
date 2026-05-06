@@ -3,9 +3,17 @@
 Holds audio-check results, name-build helpers, and hardlink utilities. The
 actual upload step is handled by `unit3dprep.web.webup_orchestrator` (HTTP
 calls to Unit3DWebUp) — there is no longer any unit3dup CLI subprocess.
+
+Hardlink layout: every upload lives in its own per-job sandbox directory
+under `<seedings>/.unit3dprep/<jobid>/...`. This isolates each upload from
+the rest of the seedings tree so Unit3DWebUp's `/scan` (which always
+processes the entire SCAN_PATH) never re-scans unrelated files. The
+sandbox path is deterministic from the final name, so re-uploading the
+same item overwrites its sandbox cleanly.
 """
 from __future__ import annotations
 
+import hashlib
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +30,23 @@ from .core import (
     has_italian_audio,
     map_source,
 )
+
+
+_SANDBOX_PARENT = ".unit3dprep"
+
+
+def _sandbox_id(key: str) -> str:
+    """Stable 8-char id derived from `key` (the final name).
+
+    Same final_name → same sandbox dir → re-uploads overwrite cleanly.
+    """
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
+
+
+def _sandbox_dir(key: str) -> Path:
+    """Resolve the per-job sandbox directory inside the configured seedings root."""
+    seed = seedings_dir()
+    return seed / _SANDBOX_PARENT / _sandbox_id(key)
 
 
 @dataclass
@@ -88,9 +113,15 @@ def build_movie_name_from_file(
 
 
 def do_hardlink_movie(src: Path, final_name: str) -> Path:
-    seed = seedings_dir()
-    seed.mkdir(parents=True, exist_ok=True)
-    target = seed / f"{final_name}{src.suffix.lower()}"
+    """Hardlink a single movie file into its dedicated sandbox.
+
+    Layout: `<seedings>/.unit3dprep/<jobid>/<final_name>.<ext>`.
+    SCAN_PATH for webup will be the sandbox dir; webup sees one file → one
+    Media → no concurrent scan of unrelated seedings entries.
+    """
+    sandbox = _sandbox_dir(final_name)
+    sandbox.mkdir(parents=True, exist_ok=True)
+    target = sandbox / f"{final_name}{src.suffix.lower()}"
     hardlink_file(src, target, overwrite=True)
     return target
 
@@ -100,9 +131,15 @@ def do_hardlink_series(
     folder_name: str,
     episode_rename: dict[Path, str],
 ) -> Path:
-    seed = seedings_dir()
-    seed.mkdir(parents=True, exist_ok=True)
-    target_dir = seed / folder_name
+    """Hardlink an entire series/season pack into its dedicated sandbox.
+
+    Layout: `<seedings>/.unit3dprep/<jobid>/<folder_name>/<episodes>`.
+    SCAN_PATH for webup will be the sandbox dir; webup sees one subfolder
+    → one Media (recognized as a pack).
+    """
+    sandbox = _sandbox_dir(folder_name)
+    sandbox.mkdir(parents=True, exist_ok=True)
+    target_dir = sandbox / folder_name
     if target_dir.exists():
         shutil.rmtree(target_dir)
     hardlink_tree(src_dir, target_dir, episode_rename)
