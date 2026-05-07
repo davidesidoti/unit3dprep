@@ -106,7 +106,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "ITT_URL": "https://itatorrents.xyz",
     "ITT_APIKEY": "",
     "ITT_PID": "",
-    "PTT_URL": "https://polishtorrent.top/",
+    "PTT_URL": "https://polishtorrent.top",
     "PTT_APIKEY": "no_key",
     "PTT_PID": "no_key",
     "SIS_URL": "https://no_tracker.xyz",
@@ -650,6 +650,27 @@ def _migrate_json_to_env() -> bool:
     return True
 
 
+_TRACKER_URL_KEYS = {"ITT_URL", "PTT_URL", "SIS_URL"}
+
+
+def _normalize_tracker_urls(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Strip trailing slashes from tracker base URLs.
+
+    Webup builds the announce URL by appending ``/announce/<pid>`` to
+    ``TRACKER__<X>_URL``. A trailing slash on the configured URL produces
+    ``https://tracker.tld//announce/<pid>`` which the tracker rejects with
+    404, leaving qBittorrent unable to register and the torrent silently
+    invisible on the site even though webup's ``/upload`` returned 200.
+    """
+    for k in _TRACKER_URL_KEYS:
+        v = cfg.get(k)
+        if isinstance(v, str):
+            stripped = v.rstrip("/")
+            if stripped != v:
+                cfg[k] = stripped
+    return cfg
+
+
 def load() -> dict[str, Any]:
     env_path = _resolve_env_path()
     if not env_path.exists():
@@ -661,11 +682,12 @@ def load() -> dict[str, Any]:
     short = _canonical_to_short(raw)
     merged = dict(DEFAULT_CONFIG)
     merged.update(short)
-    return merged
+    return _normalize_tracker_urls(merged)
 
 
 def save(cfg: dict[str, Any]) -> None:
     cfg = _upgrade_legacy_keys(dict(cfg))
+    cfg = _normalize_tracker_urls(cfg)
     canonical = _short_to_canonical(cfg)
     text = _dump_env_file(canonical)
     env_path = _resolve_env_path()
