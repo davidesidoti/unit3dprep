@@ -68,6 +68,140 @@ import re
 _RX_MAKETORRENT_PCT = re.compile(r"-\s*(\d+(?:\.\d+)?)\s*$")
 
 
+# ---------------------------------------------------------------------------
+# .torrent announce-URL workaround
+#
+# Webup builds the announce URL with `f"{settings.tracker.ITT_URL}/announce/
+# {settings.tracker.ITT_PID}"` (see unit3dwup/config/api_data.py). Pydantic-
+# settings normalizes `HttpUrl` fields by appending a trailing slash, so the
+# resulting URL contains a doubled slash:
+#
+#     https://itatorrents.xyz//announce/<pid>
+#
+# ItaTorrents (and other Unit3D trackers) returns 404 on that path. qBittorrent
+# reports "not found" on the announce, the torrent never registers, and the
+# upload appears completed but is invisible on the tracker. We patch the
+# .torrent file on disk between /maketorrent and /seed so qBit receives a
+# clean announce URL. The info-dict bytes are preserved verbatim to keep the
+# infohash stable.
+# ---------------------------------------------------------------------------
+
+_BAD_ANNOUNCE = b"//announce/"
+_GOOD_ANNOUNCE = b"/announce/"
+
+
+def _bdecode(data: bytes, idx: int):
+    c = data[idx:idx+1]
+    if c.isdigit():
+        colon = data.index(b":", idx)
+        n = int(data[idx:colon])
+        start = colon + 1
+        return data[start:start+n], start + n
+    if c == b"i":
+        end = data.index(b"e", idx)
+        return int(data[idx+1:end]), end + 1
+    if c == b"l":
+        items = []
+        idx += 1
+        while data[idx:idx+1] != b"e":
+            v, idx = _bdecode(data, idx)
+            items.append(v)
+        return items, idx + 1
+    if c == b"d":
+        d: dict = {}
+        idx += 1
+        while data[idx:idx+1] != b"e":
+            k, idx = _bdecode(data, idx)
+            v, idx = _bdecode(data, idx)
+            d[k] = v
+        return d, idx + 1
+    raise ValueError(f"invalid bencode at {idx}: {c!r}")
+
+
+def _bencode(v) -> bytes:
+    if isinstance(v, bytes):
+        return f"{len(v)}:".encode() + v
+    if isinstance(v, int):
+        return f"i{v}e".encode()
+    if isinstance(v, list):
+        return b"l" + b"".join(_bencode(x) for x in v) + b"e"
+    if isinstance(v, dict):
+        out = b"d"
+        for k in sorted(v.keys()):
+            out += _bencode(k) + _bencode(v[k])
+        return out + b"e"
+    raise TypeError(type(v))
+
+
+def _normalize_announce_in_torrent(path: Path) -> bool:
+    """Strip ``//announce/`` -> ``/announce/`` in a .torrent file's tracker URLs.
+
+    Preserves the info dict bytes verbatim so the infohash stays stable.
+    Returns True iff the file was modified.
+    """
+    raw = path.read_bytes()
+    if not raw.startswith(b"d"):
+        return False
+    try:
+        decoded, end = _bdecode(raw, 0)
+    except (ValueError, IndexError):
+        return False
+    if end != len(raw) or not isinstance(decoded, dict):
+        return False
+
+    changed = False
+
+    if isinstance(decoded.get(b"announce"), bytes) and _BAD_ANNOUNCE in decoded[b"announce"]:
+        decoded[b"announce"] = decoded[b"announce"].replace(_BAD_ANNOUNCE, _GOOD_ANNOUNCE)
+        changed = True
+
+    if isinstance(decoded.get(b"announce-list"), list):
+        new_list = []
+        for tier in decoded[b"announce-list"]:
+            if isinstance(tier, list):
+                new_tier = []
+                for u in tier:
+                    if isinstance(u, bytes) and _BAD_ANNOUNCE in u:
+                        new_tier.append(u.replace(_BAD_ANNOUNCE, _GOOD_ANNOUNCE))
+                        changed = True
+                    else:
+                        new_tier.append(u)
+                new_list.append(new_tier)
+            else:
+                new_list.append(tier)
+        decoded[b"announce-list"] = new_list
+
+    if not changed:
+        return False
+
+    # Find the byte range of the original "info" value to copy it verbatim,
+    # avoiding any infohash drift from re-encoding nested structures.
+    info_value_bytes: bytes | None = None
+    idx = 1
+    while idx < len(raw) and raw[idx:idx+1] != b"e":
+        colon = raw.index(b":", idx)
+        klen = int(raw[idx:colon])
+        kstart = colon + 1
+        kend = kstart + klen
+        key = raw[kstart:kend]
+        _, vend = _bdecode(raw, kend)
+        if key == b"info":
+            info_value_bytes = raw[kend:vend]
+        idx = vend
+
+    out = bytearray(b"d")
+    for key in sorted(decoded.keys()):
+        out += _bencode(key)
+        if key == b"info" and info_value_bytes is not None:
+            out += info_value_bytes
+        else:
+            out += _bencode(decoded[key])
+    out += b"e"
+
+    path.write_bytes(bytes(out))
+    return True
+
+
 def _overall_pct(phase: str, sub_pct: float = 0.0) -> float:
     """Map (phase, 0..100 sub-progress) to overall 0..100 across all phases."""
     cumulative = 0.0
@@ -294,6 +428,29 @@ async def stream_webup(
                 yield {"type": "error", "data": f"/maketorrent reported failure: {msg.get('message')!r}"}
                 yield {"type": "done", "exit_code": 1}
                 return
+
+        # Workaround for upstream webup bug: announce URL has `//announce/`
+        # because pydantic HttpUrl appends a trailing slash before webup's
+        # f-string concatenation. Patch the .torrent on disk before /seed.
+        torrent_path_str = str(media.get("torrent_path") or "")
+        if torrent_path_str:
+            try:
+                tp = Path(torrent_path_str)
+                if tp.exists() and _normalize_announce_in_torrent(tp):
+                    yield {
+                        "type": "log",
+                        "data": f"webup: patched announce URL in {tp.name} "
+                                "(workaround pydantic HttpUrl trailing-slash bug)",
+                        "kind": "warn",
+                        "event": "torrent.announce_patch",
+                    }
+            except Exception as e:
+                yield {
+                    "type": "log",
+                    "data": f"webup: announce-URL patch failed (non-fatal): {e}",
+                    "kind": "warn",
+                }
+
         yield _progress_event("maketorrent", 100)
 
         # ---- Upload ----
