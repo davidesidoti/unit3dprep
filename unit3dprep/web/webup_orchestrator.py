@@ -136,11 +136,20 @@ def _bencode(v) -> bytes:
 def _candidate_torrent_paths(media: dict[str, Any], match_path: Path):
     """Yield possible on-disk paths for the .torrent webup just built.
 
-    Webup's media dict may or may not include `torrent_path`. As a fallback
-    we derive paths from `<TORRENT_ARCHIVE_PATH>/<TRACKER>/<filename>.torrent`
-    using webup's published archive root and the tracker shorthand
-    (`ITT`/`PTT`/`SIS`). We yield every plausible path so downstream callers
-    can patch all of them and let `Path.exists()` filter.
+    Webup's media dict ships several path-shaped fields with confusingly
+    similar names:
+
+    - ``torrent_file_path`` — the .torrent file webup just generated
+      (canonical for our use case).
+    - ``torrent_path``      — the *source* media file path (NOT a .torrent;
+      typically the multi-GiB .mkv inside the sandbox).
+    - ``file_name``         — same as ``torrent_path``.
+
+    We try ``torrent_file_path`` first, then fall back to deriving the path
+    from ``<TORRENT_ARCHIVE_PATH>/<TRACKER>/<filename>.torrent`` using
+    webup's published archive root and the tracker shorthand
+    (``ITT``/``PTT``/``SIS``). Caller filters by ``Path.exists()`` and the
+    bencode magic-byte check inside ``_normalize_announce_in_torrent``.
     """
     seen: set[str] = set()
 
@@ -150,13 +159,17 @@ def _candidate_torrent_paths(media: dict[str, Any], match_path: Path):
             seen.add(s)
             yield Path(p)
 
-    # 1. Direct field if present
-    tp = media.get("torrent_path")
-    if isinstance(tp, str) and tp:
-        yield from _emit(tp)
+    # 1. Canonical field for the .torrent file webup just wrote
+    tfp = media.get("torrent_file_path")
+    if isinstance(tfp, str) and tfp:
+        yield from _emit(tfp)
 
-    # 2. Derived from file name in match_path + tracker archive
-    base_name = match_path.name
+    # 2. Derived from torrent_name (or file name) + tracker archive root
+    base_name = (
+        media.get("torrent_name")
+        or media.get("file_name") and Path(str(media["file_name"])).name
+        or match_path.name
+    )
     archive = runtime_setting("WEBUP_TORRENT_ARCHIVE", "")
     if not archive:
         # Webup defaults to its working directory; on Ultra.cc HOME is the
@@ -170,13 +183,28 @@ def _candidate_torrent_paths(media: dict[str, Any], match_path: Path):
     yield from _emit(match_path.with_suffix(match_path.suffix + ".torrent"))
 
 
+_TORRENT_MAX_BYTES = 16 * 1024 * 1024  # 16 MiB; .torrent files are tiny
+
+
 def _normalize_announce_in_torrent(path: Path) -> bool:
     """Strip ``//announce/`` -> ``/announce/`` in a .torrent file's tracker URLs.
 
     Preserves the info dict bytes verbatim so the infohash stays stable.
-    Returns True iff the file was modified.
+    Returns True iff the file was modified. Fails fast on non-bencode files
+    (e.g. when a candidate path accidentally points at a multi-GiB media
+    source) by checking the magic byte and the file size before reading.
     """
-    raw = path.read_bytes()
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return False
+    if size == 0 or size > _TORRENT_MAX_BYTES:
+        return False
+    with path.open("rb") as f:
+        magic = f.read(1)
+        if magic != b"d":
+            return False
+        raw = magic + f.read()
     if not raw.startswith(b"d"):
         return False
     try:
