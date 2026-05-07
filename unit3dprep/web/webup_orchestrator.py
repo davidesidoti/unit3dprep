@@ -133,6 +133,43 @@ def _bencode(v) -> bytes:
     raise TypeError(type(v))
 
 
+def _candidate_torrent_paths(media: dict[str, Any], match_path: Path):
+    """Yield possible on-disk paths for the .torrent webup just built.
+
+    Webup's media dict may or may not include `torrent_path`. As a fallback
+    we derive paths from `<TORRENT_ARCHIVE_PATH>/<TRACKER>/<filename>.torrent`
+    using webup's published archive root and the tracker shorthand
+    (`ITT`/`PTT`/`SIS`). We yield every plausible path so downstream callers
+    can patch all of them and let `Path.exists()` filter.
+    """
+    seen: set[str] = set()
+
+    def _emit(p):
+        s = str(p)
+        if s and s not in seen:
+            seen.add(s)
+            yield Path(p)
+
+    # 1. Direct field if present
+    tp = media.get("torrent_path")
+    if isinstance(tp, str) and tp:
+        yield from _emit(tp)
+
+    # 2. Derived from file name in match_path + tracker archive
+    base_name = match_path.name
+    archive = runtime_setting("WEBUP_TORRENT_ARCHIVE", "")
+    if not archive:
+        # Webup defaults to its working directory; on Ultra.cc HOME is the
+        # canonical archive root since systemd unit doesn't override it.
+        archive = str(Path.home())
+    for tracker in ("ITT", "PTT", "SIS"):
+        yield from _emit(Path(archive) / tracker / f"{base_name}.torrent")
+
+    # 3. Inside the sandbox (webup occasionally writes alongside the source)
+    yield from _emit(match_path.parent / f"{base_name}.torrent")
+    yield from _emit(match_path.with_suffix(match_path.suffix + ".torrent"))
+
+
 def _normalize_announce_in_torrent(path: Path) -> bool:
     """Strip ``//announce/`` -> ``/announce/`` in a .torrent file's tracker URLs.
 
@@ -431,12 +468,14 @@ async def stream_webup(
 
         # Workaround for upstream webup bug: announce URL has `//announce/`
         # because pydantic HttpUrl appends a trailing slash before webup's
-        # f-string concatenation. Patch the .torrent on disk before /seed.
-        torrent_path_str = str(media.get("torrent_path") or "")
-        if torrent_path_str:
+        # f-string concatenation in api_data.py. Patch the .torrent on disk
+        # before /seed so qBittorrent and the tracker see a clean URL.
+        candidates = list(_candidate_torrent_paths(media, Path(match_path)))
+        patched_any = False
+        for tp in candidates:
             try:
-                tp = Path(torrent_path_str)
                 if tp.exists() and _normalize_announce_in_torrent(tp):
+                    patched_any = True
                     yield {
                         "type": "log",
                         "data": f"webup: patched announce URL in {tp.name} "
@@ -447,9 +486,11 @@ async def stream_webup(
             except Exception as e:
                 yield {
                     "type": "log",
-                    "data": f"webup: announce-URL patch failed (non-fatal): {e}",
+                    "data": f"webup: announce-URL patch failed for {tp}: {e}",
                     "kind": "warn",
                 }
+        if not patched_any and candidates:
+            _log.debug("announce patch: no candidate matched. tried=%s", [str(p) for p in candidates])
 
         yield _progress_event("maketorrent", 100)
 
