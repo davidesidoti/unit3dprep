@@ -156,7 +156,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "YOUTUBE_FAV_CHANNEL_ID": "",
     "WATCHER_INTERVAL": 60,
     "TORRENT_COMMENT": "",
-    "PREFERRED_LANG": "all",
+    # Webup `tags_service.mediainfo_audio` blocks upload (`can_upload=False`)
+    # when PREFERRED_LANG is not present among the audio tracks. The literal
+    # "all" doesn't match any ISO code, so webup silently rejects every media.
+    # ItaTorrents is an Italian tracker; "ita" is the right pre-flight default.
+    "PREFERRED_LANG": "ita",
     "RELEASER_SIGN": "",
 
     "PTSCREENS_KEY": "",
