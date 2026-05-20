@@ -6,6 +6,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- `/upload` al tracker: la risposta HTTP di webup (che incapsula la risposta dell'API del tracker) veniva scartata silenziosamente. Ora viene loggata nel flusso SSE (`webup: /upload tracker response → …`) e un eventuale status `!= 200` produce un evento `error` visibile in UI con il payload di rifiuto del tracker (es. errori di validazione).
+
 ### Documentation
 - **Riscritta documentazione completa** (`README.md`, `docs/*.md`, `docs/*.en.md`, mkdocs nav) per riflettere lo stato post-migrazione `api-migration`: bridge HTTP a Unit3DWebUp, `.env` condiviso (`ENVPATH`/`U3DP_ENV_PATH`), endpoint `/api/webup/*` e `/api/version/*`, auto-update SSE per app + Unit3DWebUp, install via PyPI `pip install Unit3DwebUp` (niente più `requirements.txt`), unit systemd separate `unit3dprep-web.service` + `unit3dwebup.service`, flag `U3DP_DRY_RUN_TRACKER` per dev/WSL.
 - **Nuova pagina `docs/integrazione-webup.md`** (+ mirror `.en.md`): architettura del bridge (singleton client, scan-lock asyncio, WebSocket demux per `job_id`), flusso completo `setenv → scan → maketorrent → upload → seed`, mappatura short ↔ canonical `WEBUP_KEY_MAP`, skip rules per valori vuoti, IMAGE_HOST_ORDER → priorità numeriche, health check, dry-run mode, limitazioni note (Redis hardcoded, ffmpeg richiesto, `DOCKER` truthy check).

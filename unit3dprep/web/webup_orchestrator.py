@@ -540,7 +540,7 @@ async def stream_webup(
             yield _progress_event("upload", 0)
             yield {"type": "log", "data": "webup: /upload…"}
             try:
-                await asyncio.wait_for(client.upload(job_id), timeout=PHASE_TIMEOUT)
+                upload_http_resp = await asyncio.wait_for(client.upload(job_id), timeout=PHASE_TIMEOUT)
             except asyncio.TimeoutError:
                 yield {"type": "error", "data": f"/upload timeout after {PHASE_TIMEOUT}s"}
                 yield {"type": "done", "exit_code": 1}
@@ -549,6 +549,30 @@ async def stream_webup(
                 yield {"type": "error", "data": f"/upload failed: {e}"}
                 yield {"type": "done", "exit_code": 1}
                 return
+
+            # Log the raw response from webup's /upload (which wraps the
+            # tracker API response) so tracker rejections are visible in the
+            # UI. Webup returns a list[dict] or a single dict; each item has
+            # {'status': '200'|'409'|'404', 'message': <tracker payload>}.
+            if upload_http_resp is not None:
+                yield {
+                    "type": "log",
+                    "data": f"webup: /upload tracker response → {upload_http_resp}",
+                    "kind": "info",
+                    "event": "upload.tracker_response",
+                }
+                items = upload_http_resp if isinstance(upload_http_resp, list) else [upload_http_resp]
+                for item in items:
+                    if isinstance(item, dict):
+                        resp_status = str(item.get("status", ""))
+                        resp_msg = item.get("message")
+                        if resp_status not in ("200", ""):
+                            yield {
+                                "type": "error",
+                                "data": f"tracker rejected upload (HTTP {resp_status}): {resp_msg}",
+                            }
+                            yield {"type": "done", "exit_code": 1}
+                            return
 
             upload_failed = False
             upload_succeeded = False
