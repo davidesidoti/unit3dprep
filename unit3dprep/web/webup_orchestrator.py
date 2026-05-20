@@ -391,6 +391,16 @@ async def stream_webup(
             yield {"type": "error", "data": f"setenv SCAN_PATH failed: {e}"}
             yield {"type": "done", "exit_code": 1}
             return
+
+        # Push PREFERRED_LANG before /scan so the language-gate check in
+        # tags_service.mediainfo_audio uses the correct value even when the
+        # Media object is reconstructed from a stale Redis cache entry
+        # (same job_id = same path → Redis hit with old can_upload=False).
+        preferred_lang = runtime_setting("PREFERRED_LANG", "ita")
+        try:
+            await client.setenv("PREFS__PREFERRED_LANG", preferred_lang)
+        except Exception as e:
+            yield {"type": "log", "data": f"webup: setenv PREFERRED_LANG failed (non-fatal): {e}", "kind": "warn"}
         yield _progress_event("setenv", 100)
 
         yield _progress_event("scan", 0)
