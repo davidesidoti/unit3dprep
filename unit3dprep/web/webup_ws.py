@@ -81,6 +81,12 @@ class WebupWSManager:
             queues: list[asyncio.Queue] = []
             for k in keys:
                 queues.extend(self._subs.get(k, []))
+        mtype = (msg.get("type") or "").lower()
+        if mtype == "posterlogmessage":
+            _log.info(
+                "webup ws dispatch posterLogMessage job_id=%s msg=%r queues=%d",
+                jid, str(msg.get("message") or "")[:80], len(queues),
+            )
         for q in queues:
             try:
                 q.put_nowait(msg)

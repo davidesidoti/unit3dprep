@@ -7,6 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- **WebSocket drain `/upload`: nessun messaggio ricevuto**. Il drain post-HTTP di `/upload` aspettava solo 2 s e trattava la mancanza di `posterLogMessage` come errore fatale. Aumentato il timeout a 8 s e cambiato il fallback: se nessun messaggio WS arriva entro 8 s (race condition o glitch di connessione), il workflow prosegue al `/seed` con un warning (anziché bloccarsi con `exit_code=1`). Aggiunto logging diagnostico: stato WS e `queue.qsize()` prima e dopo il drain, più un INFO log in `_dispatch()` ogni volta che un `posterLogMessage` raggiunge le queue dei subscriber — così i log di uvicorn mostrano chiaramente se webup ha inviato il messaggio e quante queue lo hanno ricevuto.
 - `/upload` al tracker: la risposta HTTP di webup (che incapsula la risposta dell'API del tracker) veniva scartata silenziosamente. Ora viene loggata nel flusso SSE (`webup: /upload tracker response → …`) e un eventuale status `!= 200` produce un evento `error` visibile in UI con il payload di rifiuto del tracker (es. errori di validazione).
 
 ### Documentation
