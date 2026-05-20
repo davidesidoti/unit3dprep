@@ -98,5 +98,10 @@ def is_terminal_failure(msg: dict[str, Any]) -> bool:
         return True
     if (msg.get("type") or "").lower() == "posterlogmessage":
         text = str(msg.get("message") or "")
+        # "None" (string) means tracker rejected with no 'data' field returned
+        # by itt_tracker_service (response.get('data', None) when Unit3D API
+        # returns {'message':..., 'errors':{...}} without a 'data' key).
+        if not text or text == "None":
+            return True
         return bool(_RX_UPLOAD_FAIL.search(text))
     return False

@@ -560,44 +560,11 @@ async def stream_webup(
                 yield {"type": "done", "exit_code": 1}
                 return
 
-            # Log the raw response from webup's /upload (which wraps the
-            # tracker API response) so tracker rejections are visible in the
-            # UI. Webup returns a list[dict] or a single dict; each item has
-            # {'status': '200'|'409'|'404', 'message': <tracker payload>}.
-            # An empty/None body means webup dispatched zero uploads
-            # (can_upload=False for all media — typically PREFERRED_LANG mismatch).
-            if upload_http_resp is None:
-                yield {
-                    "type": "error",
-                    "data": (
-                        "webup: /upload returned empty body — no media was uploaded. "
-                        "Likely cause: can_upload=False (check PREFS__PREFERRED_LANG in .env; "
-                        "must match the audio language of the file, e.g. 'ita')."
-                    ),
-                    "kind": "error",
-                    "event": "upload.tracker_response",
-                }
-                yield {"type": "done", "exit_code": 1}
-                return
-            if upload_http_resp is not None:
-                yield {
-                    "type": "log",
-                    "data": f"webup: /upload tracker response → {upload_http_resp}",
-                    "kind": "info",
-                    "event": "upload.tracker_response",
-                }
-                items = upload_http_resp if isinstance(upload_http_resp, list) else [upload_http_resp]
-                for item in items:
-                    if isinstance(item, dict):
-                        resp_status = str(item.get("status", ""))
-                        resp_msg = item.get("message")
-                        if resp_status not in ("200", ""):
-                            yield {
-                                "type": "error",
-                                "data": f"tracker rejected upload (HTTP {resp_status}): {resp_msg}",
-                            }
-                            yield {"type": "done", "exit_code": 1}
-                            return
+            # webup's /upload endpoint returns JSON null regardless of outcome
+            # (FastAPI default for endpoints with no explicit return value).
+            # The actual tracker result comes exclusively through WebSocket
+            # posterLogMessage events broadcast inside UploadUseCase.execute().
+            # Do NOT treat None here as an error — drain WS for the real status.
 
             upload_failed = False
             upload_succeeded = False
@@ -607,8 +574,27 @@ async def stream_webup(
                     upload_failed = True
                 elif is_terminal_success(msg):
                     upload_succeeded = True
-            if upload_failed and not upload_succeeded:
-                yield {"type": "error", "data": "/upload reported failure"}
+
+            if upload_succeeded:
+                pass  # WS confirmed success
+            elif upload_failed:
+                yield {"type": "error", "data": "/upload tracker rejected — see log above for details"}
+                yield {"type": "done", "exit_code": 1}
+                return
+            else:
+                # No posterLogMessage arrived: either can_upload=False for all
+                # media (language mismatch → empty task list → no WS events) or
+                # the tracker API returned an error without 'data'/'errors' field.
+                yield {
+                    "type": "error",
+                    "data": (
+                        "webup: /upload completed but tracker sent no status — upload likely skipped. "
+                        "Check: PREFS__PREFERRED_LANG matches file audio language, "
+                        "webup logs for API errors, and that the job still exists in Redis."
+                    ),
+                    "kind": "error",
+                    "event": "upload.tracker_response",
+                }
                 yield {"type": "done", "exit_code": 1}
                 return
             yield _progress_event("upload", 100)
