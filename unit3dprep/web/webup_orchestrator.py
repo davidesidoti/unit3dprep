@@ -554,6 +554,21 @@ async def stream_webup(
             # tracker API response) so tracker rejections are visible in the
             # UI. Webup returns a list[dict] or a single dict; each item has
             # {'status': '200'|'409'|'404', 'message': <tracker payload>}.
+            # An empty/None body means webup dispatched zero uploads
+            # (can_upload=False for all media — typically PREFERRED_LANG mismatch).
+            if upload_http_resp is None:
+                yield {
+                    "type": "error",
+                    "data": (
+                        "webup: /upload returned empty body — no media was uploaded. "
+                        "Likely cause: can_upload=False (check PREFS__PREFERRED_LANG in .env; "
+                        "must match the audio language of the file, e.g. 'ita')."
+                    ),
+                    "kind": "error",
+                    "event": "upload.tracker_response",
+                }
+                yield {"type": "done", "exit_code": 1}
+                return
             if upload_http_resp is not None:
                 yield {
                     "type": "log",
