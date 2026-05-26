@@ -6,6 +6,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-26
+
+Rilascio "1.0" che consolida la migrazione completa del backend di upload da `unit3dup` CLI (subprocess + parsing PTY) a `Unit3DwebUp` 0.0.25 (servizio FastAPI accoppiato via HTTP API + WebSocket). Architettura, configurazione, UI e documentazione sono state riscritte per riflettere questo nuovo modello. Vedi sotto per i dettagli e per i passaggi di migrazione consigliati.
+
 ### Added
 - **Duplicate check pre-upload sul tracker ITT**. Prima del passo `hardlink` il wizard interroga `GET /api/torrents/filter?tmdbId=<id>` su `ITT_URL` e confronta il `size` in byte di ogni risultato con la dimensione del file locale. Se trova match esatto, mostra un nuovo step "Possibile duplicato" con i dettagli del torrent già presente (nome, tipo, risoluzione, uploader, attività, link al tracker) e due bottoni: "Carica comunque" / "Annulla". Replica il comportamento del vecchio `unit3dup` CLI (Unit3DwebUp 0.0.25 non implementa duplicate detection — `DUPLICATE_ON`/`SKIP_DUPLICATE` sono `# Todo Not yet implemented` upstream). Controllato dal nuovo runtime setting `W_DUPLICATE_CHECK` (default ON), editabile da **Settings → Default wizard**. Si applica a `kind=movie` e `kind=episode`; i season pack saltano il check (size aggregato non corrisponde a nessun torrent ITT). Best-effort: se l'API ITT è irraggiungibile o ritorna errore, il check viene saltato silenziosamente.
 - **"Duplicato skippato" tracciato nella cronologia upload**. Quando l'utente clicca "Annulla" sul modal duplicato, il bridge registra una nuova entry nel DB con `duplicate_skipped=true` e `duplicate_info={…}` (snapshot dei dettagli del torrent esistente sul tracker), legata al `source_path` originale. Effetti:
