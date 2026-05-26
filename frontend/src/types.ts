@@ -100,6 +100,20 @@ export interface UploadedRecord {
   uploaded_at: string;
   unit3dup_exit_code: number | null;
   hardlink_only: boolean;
+  duplicate_skipped?: boolean;
+  duplicate_info?: {
+    id?: string | number;
+    name?: string;
+    size?: number;
+    type?: string;
+    resolution?: string;
+    uploader?: string;
+    seeders?: number;
+    leechers?: number;
+    created_at?: string;
+    details_link?: string;
+    tmdb_id?: number;
+  } | null;
 }
 
 export interface QueueTorrent {

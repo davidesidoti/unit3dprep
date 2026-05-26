@@ -519,6 +519,7 @@ function DuplicateStep({ token, duplicate, onContinue, onCancel }: {
 }) {
   const { t } = useTranslation();
   const [confirming, setConfirming] = useState(false);
+  const [skipping, setSkipping] = useState(false);
 
   const confirm = async () => {
     setConfirming(true);
@@ -529,6 +530,20 @@ function DuplicateStep({ token, duplicate, onContinue, onCancel }: {
       setConfirming(false);
     }
   };
+
+  const cancel = async () => {
+    setSkipping(true);
+    try {
+      await api.post(`/api/wizard/${token}/duplicate-skip`);
+    } catch {
+      // even if recording fails, close the wizard — user clearly doesn't want to upload
+    } finally {
+      setSkipping(false);
+      onCancel();
+    }
+  };
+
+  const busy = confirming || skipping;
 
   return (
     <div style={{ padding: '24px' }}>
@@ -581,25 +596,25 @@ function DuplicateStep({ token, duplicate, onContinue, onCancel }: {
         display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20,
       }}>
         <button
-          onClick={onCancel}
-          disabled={confirming}
+          onClick={cancel}
+          disabled={busy}
           style={{
             background: 'transparent', border: '1px solid var(--border)',
             color: 'var(--fg-2)', padding: '8px 18px', borderRadius: 6,
             fontSize: 12, fontWeight: 600,
-            cursor: confirming ? 'not-allowed' : 'pointer',
-            fontFamily: 'var(--font-display)', opacity: confirming ? 0.5 : 1,
+            cursor: busy ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-display)', opacity: busy ? 0.5 : 1,
           }}
-        >{t('wizard.duplicateCancel')}</button>
+        >{skipping ? '…' : t('wizard.duplicateCancel')}</button>
         <button
           onClick={confirm}
-          disabled={confirming}
+          disabled={busy}
           style={{
             background: 'var(--yellow)', border: 'none', color: '#0a0c12',
             padding: '8px 18px', borderRadius: 6, fontSize: 12,
             fontWeight: 700,
-            cursor: confirming ? 'not-allowed' : 'pointer',
-            fontFamily: 'var(--font-display)', opacity: confirming ? 0.6 : 1,
+            cursor: busy ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-display)', opacity: busy ? 0.6 : 1,
           }}
         >{confirming ? '…' : t('wizard.duplicateContinue')}</button>
       </div>

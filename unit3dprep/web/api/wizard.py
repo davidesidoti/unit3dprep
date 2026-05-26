@@ -347,6 +347,56 @@ async def wizard_duplicate_confirm(tok: str):
     return JSONResponse({"ok": True})
 
 
+@router.post("/wizard/{tok}/duplicate-skip")
+async def wizard_duplicate_skip(tok: str):
+    """User declined to upload after a duplicate was detected.
+
+    Records a "skipped" entry against the source path so the Library
+    hides the item (via the W_HIDE_UPLOADED filter that keys off
+    ``source_path``) and the Uploaded history shows a dedicated badge.
+    The hardlink is NOT created — the wizard ends here.
+    """
+    state = _get(tok)
+    duplicate = state.get("duplicate")
+    if not duplicate:
+        raise HTTPException(400, "no duplicate to skip")
+    path = Path(state["path"])
+    # Match the wizard_hardlink convention so the Library hide filter
+    # (which keys off uploaded_paths = {r.source_path}) picks it up:
+    # movie/series → state["path"] itself; episode → resolved video file.
+    if state["kind"] == "episode":
+        src = path if path.is_file() else next(iter(iter_video_files(path)), path)
+        source_path = str(src.resolve())
+        fallback_name = src.stem
+    else:
+        source_path = str(path.resolve())
+        fallback_name = path.name
+    final_name = next(iter(state.get("final_names", {}).values()), "") or fallback_name
+    await record_upload(
+        category=state["category"],
+        kind=state["kind"],
+        source_path=source_path,
+        seeding_path=source_path,  # no hardlink — reuse src so the row is unique
+        tmdb_id=state.get("tmdb_id", ""),
+        title=state.get("tmdb_title", ""),
+        year=state.get("tmdb_year", ""),
+        final_name=final_name,
+        exit_code=0,
+        hardlink_only=False,
+        duplicate_skipped=True,
+        duplicate_info=duplicate,
+    )
+    log_emit(
+        "warn",
+        f"Duplicate skipped → {duplicate.get('name') or duplicate.get('id')}",
+        "wizard",
+    )
+    state["upload_done"] = True
+    state["exit_code"] = 0
+    state["step"] = "done"
+    return JSONResponse({"ok": True})
+
+
 @router.post("/wizard/{tok}/hardlink")
 async def wizard_hardlink(request: Request, tok: str):
     lang = get_request_lang(request)
