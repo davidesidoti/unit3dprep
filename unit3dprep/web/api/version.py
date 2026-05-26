@@ -1,14 +1,14 @@
 """Versioning + auto-update endpoints.
 
-- /api/version/info          → cached {app, unit3dup} current/latest/newer
+- /api/version/info          → cached {app, webup} current/latest/newer
 - /api/version/refresh       → force-refresh cache
 - /api/version/changelog     → GitHub release body for a given app version
-- /api/version/update/unit3dup/stream   → SSE: pip install --upgrade unit3dup
+- /api/version/update/webup/stream      → SSE: git pull + pip install --upgrade Unit3DwebUp + systemctl restart unit3dwebup.service
 - /api/version/update/app/stream        → SSE: git pull + pip install -e . + systemctl restart
 
 Current app version: importlib.metadata (authoritative) with pyproject fallback.
-Remote: GitHub releases/latest + PyPI JSON. 10-min in-memory cache, errors
-swallowed (latest=None). Subprocess output streamed line-by-line.
+Remote: GitHub releases/latest. 10-min in-memory cache, errors swallowed
+(latest=None). Subprocess output streamed line-by-line.
 """
 from __future__ import annotations
 
@@ -39,12 +39,36 @@ except ImportError:
 router = APIRouter(prefix="/api", tags=["version"])
 
 GITHUB_REPO = _env("U3DP_GITHUB_REPO", "ITA_GITHUB_REPO", "davidesidoti/unit3dprep") or "davidesidoti/unit3dprep"
-PYPI_URL = "https://pypi.org/pypi/unit3dup/json"
+WEBUP_GITHUB_REPO = "31December99/Unit3DWebUp"
 
 
 def _systemd_unit() -> str:
-    """Runtime-resolved systemd unit name. Reads from env → Unit3Dbot.json → default."""
+    """Runtime-resolved systemd unit name. Reads from env → shared .env → default."""
     return runtime_setting("U3DP_SYSTEMD_UNIT", "unit3dprep-web.service")
+
+
+def _webup_systemd_unit() -> str:
+    return runtime_setting("WEBUP_SYSTEMD_UNIT", "unit3dwebup.service")
+
+
+def _webup_repo_path() -> Path:
+    return Path(runtime_setting("WEBUP_REPO_PATH", str(Path.home() / "dev" / "Unit3DWebUp"))).expanduser()
+
+
+def _webup_python() -> str:
+    """Resolve the python interpreter that has Unit3DwebUp installed.
+
+    Precedence: WEBUP_VENV_BIN → <WEBUP_REPO_PATH>/.venv/bin → sys.executable
+    (the running unit3dprep interpreter — works when both packages share a
+    single venv, which is the canonical PyPI install layout).
+    """
+    explicit = runtime_setting("WEBUP_VENV_BIN", "")
+    if explicit:
+        return str(Path(explicit).expanduser() / "python")
+    legacy = _webup_repo_path() / ".venv" / "bin" / "python"
+    if legacy.exists():
+        return str(legacy)
+    return sys.executable
 USER_AGENT = "unit3dprep/version-check"
 
 _CACHE_TTL = 600.0
@@ -81,10 +105,53 @@ def _current_app_version() -> str:
         return "0.0.0"
 
 
-def _current_unit3dup_version() -> str | None:
+async def _current_webup_version() -> str | None:
+    """Read VERSION from the running Unit3DWebUp instance via /setting."""
     try:
-        from importlib.metadata import version
-        return version("unit3dup")
+        from ..webup_client import get_client
+        h = await get_client().health(force=False)
+        if h.get("ok"):
+            return h.get("version") or None
+    except Exception:
+        pass
+    return None
+
+
+def _current_webup_repo_version() -> str | None:
+    """Best-effort: parse UNIT3DWEBUP__VERSION from .env(example) at the cloned repo."""
+    repo = _webup_repo_path()
+    for fname in (".env", ".env(example)"):
+        f = repo / fname
+        if not f.exists():
+            continue
+        try:
+            for line in f.read_text(encoding="utf-8", errors="replace").splitlines():
+                if line.startswith("UNIT3DWEBUP__VERSION="):
+                    return line.split("=", 1)[1].strip()
+        except Exception:
+            continue
+    return None
+
+
+def _current_webup_pip_version() -> str | None:
+    """Read installed Unit3DwebUp version from the webup venv's site-packages.
+
+    Webup 0.0.x is distributed via PyPI and no longer exposes a VERSION key in
+    /setting nor in .env(example), so importlib.metadata against the webup venv
+    is the canonical source.
+    """
+    py = _webup_python()
+    if not Path(py).exists():
+        return None
+    try:
+        r = subprocess.run(
+            [py, "-c", "import importlib.metadata as m; print(m.version('Unit3DwebUp'))"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if r.returncode != 0:
+            return None
+        v = (r.stdout or "").strip()
+        return v or None
     except Exception:
         return None
 
@@ -117,11 +184,29 @@ async def _fetch_github_latest(client: httpx.AsyncClient) -> dict | None:
         return None
 
 
-async def _fetch_pypi_latest(client: httpx.AsyncClient) -> str | None:
+async def _fetch_webup_latest(client: httpx.AsyncClient) -> str | None:
     try:
-        r = await client.get(PYPI_URL, headers={"User-Agent": USER_AGENT}, timeout=10.0)
+        r = await client.get(
+            f"https://api.github.com/repos/{WEBUP_GITHUB_REPO}/releases/latest",
+            headers={"Accept": "application/vnd.github+json", "User-Agent": USER_AGENT},
+            timeout=10.0,
+            follow_redirects=True,
+        )
+        if r.status_code == 404:
+            # No release published — fall back to default branch HEAD via tags
+            r2 = await client.get(
+                f"https://api.github.com/repos/{WEBUP_GITHUB_REPO}/tags",
+                headers={"Accept": "application/vnd.github+json", "User-Agent": USER_AGENT},
+                timeout=10.0,
+                follow_redirects=True,
+            )
+            r2.raise_for_status()
+            tags = r2.json() or []
+            if tags:
+                return (tags[0].get("name") or "").lstrip("v") or None
+            return None
         r.raise_for_status()
-        return r.json().get("info", {}).get("version")
+        return (r.json().get("tag_name") or "").lstrip("v") or None
     except Exception:
         return None
 
@@ -139,13 +224,17 @@ def _is_newer(current: str | None, latest: str | None) -> bool:
 
 async def _compute_info() -> dict:
     async with httpx.AsyncClient() as client:
-        release, pypi = await asyncio.gather(
+        release, webup_latest = await asyncio.gather(
             _fetch_github_latest(client),
-            _fetch_pypi_latest(client),
+            _fetch_webup_latest(client),
         )
     app_current = _current_app_version()
     app_latest = release["version"] if release else None
-    bot_current = _current_unit3dup_version()
+    webup_current = (
+        await _current_webup_version()
+        or _current_webup_pip_version()
+        or _current_webup_repo_version()
+    )
     return {
         "app": {
             "current": app_current,
@@ -153,14 +242,39 @@ async def _compute_info() -> dict:
             "newer": _is_newer(app_current, app_latest),
             "release": release,
         },
-        "unit3dup": {
-            "current": bot_current,
-            "latest": pypi,
-            "newer": _is_newer(bot_current, pypi),
-            "installed": bot_current is not None,
+        "webup": {
+            "current": webup_current,
+            "latest": webup_latest,
+            "newer": _is_newer(webup_current, webup_latest),
+            "installed": webup_current is not None,
+            "repo_path": str(_webup_repo_path()),
         },
         "can_update_app": _systemd_available(),
+        "can_update_webup": _webup_can_update(),
     }
+
+
+def _webup_can_update() -> bool:
+    """True iff we have a python interpreter able to `pip install --upgrade
+    Unit3DwebUp` AND a reachable systemd user unit for the webup service.
+
+    The legacy git-clone path (`<WEBUP_REPO_PATH>/.git`) is no longer required
+    — Unit3DwebUp 0.0.x is distributed via PyPI, so a pip install is the
+    canonical update path. If a checkout exists we'll still `git pull` it
+    before pip-installing, but its absence is not a failure.
+    """
+    if not Path(_webup_python()).exists():
+        return False
+    if not shutil.which("systemctl"):
+        return False
+    try:
+        r = subprocess.run(
+            ["systemctl", "--user", "cat", _webup_systemd_unit()],
+            capture_output=True, text=True, timeout=5,
+        )
+        return r.returncode == 0
+    except Exception:
+        return False
 
 
 def _systemd_available() -> bool:
@@ -285,31 +399,95 @@ async def _stream_subprocess(argv: list[str], cwd: Path | None = None) -> AsyncG
     yield _sse("exit", {"code": code})
 
 
-@router.get("/version/update/unit3dup/stream")
-async def update_unit3dup():
+@router.get("/version/update/webup/stream")
+async def update_webup():
+    """Update Unit3DWebUp: git pull → pip install → systemctl restart."""
     async def gen() -> AsyncGenerator[dict, None]:
-        before = _current_unit3dup_version()
-        yield _sse("start", {"target": "unit3dup", "current": before})
-        failed = False
-        async for ev in _stream_subprocess([sys.executable, "-m", "pip", "install", "--upgrade", "unit3dup"]):
-            if ev["event"] == "exit":
-                payload = json.loads(ev["data"])
-                if payload["code"] != 0:
-                    failed = True
-                    yield _sse("error", {"message": f"pip exited with code {payload['code']}"})
-                break
-            yield ev
-        if failed:
+        before = (
+            await _current_webup_version()
+            or _current_webup_pip_version()
+            or _current_webup_repo_version()
+        )
+        yield _sse("start", {"target": "webup", "current": before})
+
+        if not _webup_can_update():
+            py = _webup_python()
+            if not Path(py).exists():
+                yield _sse("error", {"message": f"webup python not found at {py} (set WEBUP_VENV_BIN)"})
+            else:
+                yield _sse("error", {"message": f"webup systemd unit '{_webup_systemd_unit()}' not available"})
             yield _sse("done", {"ok": False})
             return
-        after = _current_unit3dup_version()
-        # Invalidate cached /version/info so the next poll re-computes
-        # `newer` against the freshly installed version — otherwise the
-        # 10-min TTL keeps the old `{newer: true}` and the update button
-        # stays visible even though the install succeeded.
+
+        repo = _webup_repo_path()
+        # Optional: if a git checkout exists at WEBUP_REPO_PATH, refresh it first.
+        # PyPI install does not require this; we only do it for users who run
+        # webup from a local checkout (legacy / dev setups).
+        if (repo / ".git").exists():
+            for argv in (
+                ["git", "fetch", "--all"],
+                ["git", "pull", "--ff-only"],
+            ):
+                async for ev in _stream_subprocess(argv, cwd=repo):
+                    if ev["event"] == "exit":
+                        if json.loads(ev["data"])["code"] != 0:
+                            yield _sse("error", {"message": f"{argv[0]} {argv[1]} failed"})
+                            yield _sse("done", {"ok": False})
+                            return
+                        break
+                    yield ev
+
+        py = _webup_python()
+        pip_cwd = repo if repo.exists() else None
+        async for ev in _stream_subprocess(
+            [py, "-m", "pip", "install", "--upgrade", "Unit3DwebUp"], cwd=pip_cwd
+        ):
+            if ev["event"] == "exit":
+                if json.loads(ev["data"])["code"] != 0:
+                    yield _sse("error", {"message": "pip install failed"})
+                    yield _sse("done", {"ok": False})
+                    return
+                break
+            yield ev
+
+        # Restart webup service via systemd-run timer (fire-and-forget;
+        # outside our cgroup, won't be killed when this request finishes).
+        unit = _webup_systemd_unit()
+        if shutil.which("systemd-run"):
+            try:
+                subprocess.run(
+                    [
+                        "systemd-run", "--user", "--on-active=2s",
+                        "--unit", f"webup-restart-{int(time.time())}",
+                        "systemctl", "--user", "restart", unit,
+                    ],
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.PIPE,
+                    timeout=10,
+                    check=True,
+                )
+                yield _sse("log", f"restart scheduled for {unit} (2s)")
+            except Exception as exc:
+                yield _sse("log", f"systemd-run failed, fallback Popen: {exc}")
+                try:
+                    subprocess.Popen(
+                        ["systemctl", "--user", "restart", unit],
+                        stdin=subprocess.DEVNULL,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        start_new_session=True,
+                    )
+                except Exception as exc2:
+                    yield _sse("error", {"message": f"failed to spawn systemctl: {exc2}"})
+
+        # Invalidate cache so the next /version/info reflects the new version.
         _cache["data"] = None
         _cache["at"] = 0.0
-        yield _sse("done", {"ok": True, "target": "unit3dup", "from": before, "to": after})
+        # webup HTTP probably down right now (just restarted) — fall back to
+        # the pip-installed version, which is updated synchronously above.
+        after = _current_webup_pip_version() or _current_webup_repo_version()
+        yield _sse("done", {"ok": True, "target": "webup", "from": before, "to": after})
 
     return EventSourceResponse(gen())
 

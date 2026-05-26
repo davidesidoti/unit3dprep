@@ -7,7 +7,7 @@ from .core import VIDEO_EXTENSIONS
 
 
 def media_root() -> Path:
-    """Resolve media root at call time: env → Unit3Dbot.json → ~/media."""
+    """Resolve media root at call time: env → shared .env → ~/media."""
     from .web import config
     return Path(config.runtime_setting("U3DP_MEDIA_ROOT", default=str(Path.home() / "media")))
 

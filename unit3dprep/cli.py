@@ -10,18 +10,16 @@ except ImportError:
     _HAS_READLINE = False
 
 from .core import (
-    SEEDINGS_DIR,
     build_name,
     extract_specs,
     format_se,
-    hardlink_file,
-    hardlink_tree,
     has_italian_audio,
     iter_video_files,
     map_source,
     tmdb_fetch,
     tmdb_year,
 )
+from .upload import do_hardlink_movie, do_hardlink_series
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
@@ -47,18 +45,6 @@ def prompt_edit(msg: str, default: str) -> str:
     return new or default
 
 
-def prompt_choice(msg: str, choices: dict[str, str]) -> str:
-    options = " / ".join(f"[{k}]{v}" for k, v in choices.items())
-    while True:
-        try:
-            ans = input(f"{msg} {options}: ").strip().lower()
-        except (EOFError, KeyboardInterrupt):
-            print()
-            return ""
-        if ans in choices:
-            return ans
-
-
 def ask_tmdb_id(kind_label: str, default_title: str = "") -> tuple[str, dict]:
     kind = "tv" if kind_label == "tv" else "movie"
     hint = f" (guessit: '{default_title}')" if default_title else ""
@@ -77,25 +63,50 @@ def ask_tmdb_id(kind_label: str, default_title: str = "") -> tuple[str, dict]:
             print(f"Errore TMDB: {e}. Riprova.")
 
 
-def resolve_collision(target: Path) -> str:
-    if not target.exists():
-        return "overwrite"
-    print(f"Attenzione: '{target}' esiste già.")
-    choice = prompt_choice(
-        "Cosa fare?",
-        {"o": "sovrascrivi", "s": "salta", "c": "annulla"},
-    )
-    return {"o": "overwrite", "s": "skip", "c": "cancel"}.get(choice, "cancel")
+def run_webup_sync(seeding_path: str, kind: str, tmdb_id: str = "") -> int:
+    """Drive Unit3DWebUp pipeline synchronously, printing logs to stdout.
 
+    Returns the upload exit code (0 = success). Used as a sys.exit() value.
+    """
+    import asyncio
 
-def run_unit3dup(args: list[str]):
-    import subprocess
+    from .web.webup_client import WebupClient
+    from .web.webup_orchestrator import stream_webup
+    from .web.webup_ws import WebupWSManager
+
+    async def _drain() -> int:
+        client = WebupClient()
+        ws = WebupWSManager()
+        ws.start()
+        scan_lock = asyncio.Lock()
+        code = -1
+        try:
+            async for ev in stream_webup(
+                client=client,
+                ws=ws,
+                scan_lock=scan_lock,
+                seeding_path=seeding_path,
+                kind=kind,
+                tmdb_id=tmdb_id,
+            ):
+                et = ev["type"]
+                if et == "log":
+                    print(ev["data"])
+                elif et == "progress":
+                    print(f"[progress] {ev['data']}")
+                elif et == "error":
+                    print(f"[error] {ev['data']}", file=sys.stderr)
+                elif et == "done":
+                    code = ev.get("exit_code", -1)
+        finally:
+            await ws.stop()
+            await client.aclose()
+        return code
+
     try:
-        result = subprocess.run(["unit3dup", *args])
-        sys.exit(result.returncode)
-    except FileNotFoundError:
-        print("Errore: 'unit3dup' non trovato nel PATH.")
-        sys.exit(127)
+        return asyncio.run(_drain())
+    except KeyboardInterrupt:
+        return 130
 
 
 def handle_file(path: Path):
@@ -133,23 +144,14 @@ def handle_file(path: Path):
         print("Nome vuoto, annullato.")
         sys.exit(1)
 
-    SEEDINGS_DIR.mkdir(parents=True, exist_ok=True)
-    target = SEEDINGS_DIR / f"{final_name}{path.suffix.lower()}"
-    action = resolve_collision(target)
-    if action == "cancel":
-        print("Annullato.")
-        sys.exit(0)
-    if action == "skip" and target.exists():
-        print(f"File esistente, uso: {target}")
-    else:
-        hardlink_file(path, target, overwrite=True)
-        print(f"Hardlink creato: {target}")
+    target = do_hardlink_movie(path, final_name)
+    print(f"Hardlink creato: {target}")
 
-    if not prompt_confirm(f"Uploadare '{target.name}' tramite unit3dup? [y/n]:"):
+    if not prompt_confirm(f"Uploadare '{target.name}' tramite Unit3DWebUp? [y/n]:"):
         print("Annullato (hardlink rimane in ~/seedings).")
         sys.exit(0)
 
-    run_unit3dup(["-b", "-u", str(target.resolve())])
+    sys.exit(run_webup_sync(str(target.resolve()), kind="movie"))
 
 
 def handle_folder(folder: Path):
@@ -218,33 +220,22 @@ def handle_folder(folder: Path):
         print("Nome vuoto, annullato.")
         sys.exit(1)
 
-    import shutil as _shutil
-    SEEDINGS_DIR.mkdir(parents=True, exist_ok=True)
-    target_dir = SEEDINGS_DIR / folder_name
-    action = resolve_collision(target_dir)
-    if action == "cancel":
-        print("Annullato.")
-        sys.exit(0)
-    if action == "overwrite" and target_dir.exists():
-        _shutil.rmtree(target_dir)
+    target_dir = do_hardlink_series(folder, folder_name, episode_rename)
+    print(f"Hardlink creati in: {target_dir}")
+    for orig, new in episode_rename.items():
+        print(f"  {orig.name} -> {new}{orig.suffix.lower()}")
 
-    if action != "skip" or not target_dir.exists():
-        hardlink_tree(folder, target_dir, episode_rename)
-        print(f"Hardlink creati in: {target_dir}")
-        for orig, new in episode_rename.items():
-            print(f"  {orig.name} -> {new}{orig.suffix.lower()}")
-
-    if not prompt_confirm(f"Uploadare '{target_dir.name}' tramite unit3dup? [y/n]: "):
+    if not prompt_confirm(f"Uploadare '{target_dir.name}' tramite Unit3DWebUp? [y/n]: "):
         print("Annullato (hardlink rimane in ~/seedings).")
         sys.exit(0)
 
-    run_unit3dup(["-b", "-f", str(target_dir.resolve())])
+    sys.exit(run_webup_sync(str(target_dir.resolve()), kind="series"))
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description="Verifica lingua italiana, rinomina secondo nomenclatura ItaTorrents e carica tramite unit3dup."
+        description="Verifica lingua italiana, rinomina secondo nomenclatura ItaTorrents e carica tramite Unit3DWebUp."
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-u", "--upload", metavar="FILE", help="Singolo file video (film)")

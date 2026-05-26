@@ -2,6 +2,21 @@
 
 Guida per VPS Linux generico con privilegi `sudo`: Debian/Ubuntu/Arch/qualsiasi distro con `systemd`. Se sei su **Ultra.cc** vai invece alla [guida Ultra.cc](deploy-ultracc.md): niente sudo e nginx user-proxy.
 
+Architettura target: due servizi systemd separati che condividono lo stesso `.env`.
+
+```
+unit3dprep-web.service   ─┐                ┌─> tracker (HTTPS)
+                          │                │
+   (FastAPI + UI)         │  HTTP+WS       │
+                          ├──────────────> unit3dwebup.service ─┘
+                          │  (port 8000)   │
+                          │                ├─> qBittorrent (host:port)
+                          │                │
+                          │                └─> Redis 127.0.0.1:6379
+                          │
+                          └── shared .env in $ENVPATH/.env
+```
+
 Copriamo due scenari:
 
 1. **Nativo con systemd + nginx + Let's Encrypt** (consigliato — meno overhead, più controllo).
@@ -16,10 +31,13 @@ Debian/Ubuntu:
 ```bash
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip \
-                    libmediainfo0v5 \
+                    libmediainfo0v5 ffmpeg redis-server \
                     nginx git \
                     certbot python3-certbot-nginx
+sudo systemctl enable --now redis-server
 ```
+
+`ffmpeg` e `redis-server` sono richiesti da `Unit3DWebUp`. Redis deve restare su `127.0.0.1:6379` (webup hardcoded, le env `REDIS_HOST/PORT` non funzionano).
 
 Crea un utente dedicato (evita di far girare servizi come `root`):
 
@@ -32,7 +50,9 @@ Tutti i passi successivi come utente `unit3dprep` se non specificato altrimenti.
 
 ---
 
-## 2 — Installa l'applicazione
+## 2 — Installa unit3dprep + Unit3DWebUp
+
+Stesso venv (più semplice da mantenere — un solo `pip install --upgrade` aggiorna entrambi):
 
 ```bash
 cd ~
@@ -41,7 +61,14 @@ cd unit3dprep
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
-pip install unit3dup              # uploader richiesto nel PATH
+pip install Unit3DwebUp
+```
+
+In alternativa, due venv separati (utile se vuoi aggiornare i due pacchetti indipendentemente):
+
+```bash
+python3 -m venv ~/.venvs/unit3dprep && ~/.venvs/unit3dprep/bin/pip install -e ~/unit3dprep
+python3 -m venv ~/.venvs/unit3dwebup && ~/.venvs/unit3dwebup/bin/pip install Unit3DwebUp
 ```
 
 Genera hash password e secret:
@@ -50,36 +77,98 @@ Genera hash password e secret:
 python generate_hash.py
 ```
 
-Copia l'output in un file env che systemd leggerà (vedi step 3).
+Copia l'output in un file env che systemd leggerà (vedi step 4).
 
-Crea le cartelle:
+Crea le cartelle dei media:
 
 ```bash
-mkdir -p ~/media/{movies,series,anime} ~/seedings
+mkdir -p ~/media/{movies,series,anime} ~/seedings ~/.config/unit3dprep
 df ~/media ~/seedings   # verifica stesso filesystem
 ```
 
 ---
 
-## 3 — Systemd unit
+## 3 — `.env` condiviso iniziale
 
-Crea `/etc/systemd/system/unit3dprep.service`:
+Inizializza il `.env` condiviso con i secret minimi. Le credenziali tracker/qBit le aggiungerai dopo dalla Web UI:
+
+```bash
+cat > ~/.config/unit3dprep/.env <<'EOF'
+# Auth
+U3DP_PASSWORD_HASH='$2b$12$...'
+U3DP_SECRET=hex-secret
+TMDB_API_KEY=la-tua-chiave-tmdb
+
+# Web UI
+U3DP_HOST=127.0.0.1
+U3DP_PORT=8765
+U3DP_HTTPS_ONLY=1
+
+# Bridge webup (default — modifica solo se necessario)
+WEBUP_URL=http://127.0.0.1:8000
+EOF
+chmod 600 ~/.config/unit3dprep/.env
+```
+
+!!! danger "Apici singoli su `U3DP_PASSWORD_HASH`"
+    L'hash bcrypt contiene `$`. Senza apici singoli bash espande `$2b`/`$12` come variabili vuote → hash mutilato → login 401 silenzioso.
+
+---
+
+## 4 — Systemd unit (sistema)
+
+### `unit3dwebup.service`
+
+Crea `/etc/systemd/system/unit3dwebup.service`:
+
+```ini
+[Unit]
+Description=Unit3DWebUp FastAPI bot
+After=network-online.target redis.service
+Wants=network-online.target
+Requires=redis.service
+
+[Service]
+Type=simple
+User=unit3dprep
+Group=unit3dprep
+WorkingDirectory=/opt/unit3dprep/unit3dprep
+# DO NOT set DOCKER here — webup's settings.py uses bare-truthy check.
+Environment=PYTHONUNBUFFERED=1
+Environment=ENVPATH=/opt/unit3dprep/.config/unit3dprep
+ExecStart=/opt/unit3dprep/unit3dprep/.venv/bin/uvicorn unit3dwup.start:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### `unit3dprep-web.service`
+
+Crea `/etc/systemd/system/unit3dprep-web.service`:
 
 ```ini
 [Unit]
 Description=unit3dprep web UI
-After=network-online.target
+After=network-online.target unit3dwebup.service
 Wants=network-online.target
+Requires=unit3dwebup.service
 
 [Service]
 Type=exec
 User=unit3dprep
 Group=unit3dprep
 WorkingDirectory=/opt/unit3dprep/unit3dprep
-EnvironmentFile=/opt/unit3dprep/unit3dprep.env
+EnvironmentFile=/opt/unit3dprep/.config/unit3dprep/.env
+Environment=ENVPATH=/opt/unit3dprep/.config/unit3dprep
+Environment=U3DP_SYSTEMD_UNIT=unit3dprep-web.service
+Environment=WEBUP_SYSTEMD_UNIT=unit3dwebup.service
+Environment=WEBUP_VENV_BIN=/opt/unit3dprep/unit3dprep/.venv/bin
 ExecStart=/opt/unit3dprep/unit3dprep/.venv/bin/unit3dprep-web
 Restart=on-failure
 RestartSec=5
+
 # Hardening
 NoNewPrivileges=true
 PrivateTmp=true
@@ -91,34 +180,32 @@ ReadWritePaths=/opt/unit3dprep
 WantedBy=multi-user.target
 ```
 
-Crea `/opt/unit3dprep/unit3dprep.env` (modo 600):
+!!! warning "Mai impostare `DOCKER`"
+    Webup `config/settings.py` ha `env_file=ENV_FILE if not os.getenv("DOCKER") else None`. È un truthy check su stringa: `DOCKER=false` → `not "false"` → `False` → `env_file=None` → pydantic-settings ignora il `.env` → ogni campo `TRACKER__/PREFS__` riporta "Field required". Imposta `DOCKER=true` SOLO quando sei davvero in Docker; altrimenti omettilo.
 
-```bash
-U3DP_PASSWORD_HASH=$2b$12$...
-U3DP_SECRET=...
-TMDB_API_KEY=...
-U3DP_HOST=127.0.0.1
-U3DP_PORT=8765
-U3DP_HTTPS_ONLY=1
-```
-
-```bash
-sudo chown unit3dprep:unit3dprep /opt/unit3dprep/unit3dprep.env
-sudo chmod 600 /opt/unit3dprep/unit3dprep.env
-```
-
-Abilita e avvia:
+Abilita e avvia (l'ordine `Requires` garantisce che webup parta prima):
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now unit3dprep.service
-sudo systemctl status unit3dprep.service
-journalctl -u unit3dprep.service -f
+sudo systemctl enable --now unit3dwebup.service
+sudo systemctl enable --now unit3dprep-web.service
+sudo systemctl status unit3dwebup.service unit3dprep-web.service
+journalctl -u unit3dprep-web.service -f
 ```
+
+Smoke test del bot:
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/setting -H 'Content-Type: application/json' -d '{}' | head -c 200
+```
+
+Deve rispondere con `{"userPreferences": ...}`.
 
 ---
 
-## 4 — Nginx reverse proxy + HTTPS
+## 5 — Nginx reverse proxy + HTTPS
+
+Solo `unit3dprep-web` viene esposto pubblicamente. `unit3dwebup` resta in `127.0.0.1:8000`.
 
 `/etc/nginx/sites-available/unit3dprep.conf`:
 
@@ -127,7 +214,6 @@ server {
     listen 80;
     server_name unit3dprep.example.com;
 
-    # Certbot temporanea — lascia che certbot gestisca
     location / {
         return 301 https://$host$request_uri;
     }
@@ -156,7 +242,7 @@ server {
         proxy_set_header   X-Forwarded-Proto https;
         proxy_set_header   X-Real-IP         $remote_addr;
         proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   Connection        "";    # needed for SSE / keep-alive
+        proxy_set_header   Connection        "";    # SSE / keep-alive
     }
 }
 ```
@@ -175,7 +261,7 @@ sudo certbot --nginx -d unit3dprep.example.com
 
 ---
 
-## 5 — Firewall
+## 6 — Firewall
 
 ```bash
 sudo ufw allow 22/tcp
@@ -184,20 +270,32 @@ sudo ufw allow 443/tcp
 sudo ufw enable
 ```
 
-Lascia chiusa la porta `8765`: il servizio ascolta solo su `127.0.0.1`.
+Lascia chiuse le porte `8765` e `8000`: i servizi ascoltano solo su `127.0.0.1`.
 
 ---
 
-## 6 — Backup
+## 7 — Configurazione iniziale via Web UI
 
-File da backuppare periodicamente (solo l'utente `unit3dprep` vi accede):
+1. Apri `https://unit3dprep.example.com`, login.
+2. Vai in **Settings → Tracker** e inserisci URL/API key/PID per ITT (e PTT/SIS se li usi).
+3. **Torrent client** → host/port/credenziali qBittorrent (o Transmission/rTorrent).
+4. **Image host** → almeno una chiave (PTSCREENS, IMGBB, IMGFI, ecc.) e ordina la lista in `IMAGE_HOST_ORDER`.
+5. **Metadata** → conferma `TMDB_APIKEY`, opzionalmente TVDB.
+6. Save → ogni chiave viene scritta in `$ENVPATH/.env` con nomenclatura canonica e propagata a `unit3dwebup` via `POST /setenv` (no restart).
+
+Verifica la card **Unit3DWebUp** in Settings: deve essere verde con versione e latenza ms.
+
+---
+
+## 8 — Backup
+
+File da backuppare periodicamente:
 
 ```
-/opt/unit3dprep/unit3dprep.env               # secret
-~/Unit3Dup_config/Unit3Dbot.json               # config tracker + client
-~/.unit3dprep_db.json                         # storico upload
-~/.unit3dprep_tmdb_cache.json                 # rigenerabile
-~/.unit3dprep_lang_cache.json                 # rigenerabile
+~/.config/unit3dprep/.env       # secret + tutta la config
+~/.unit3dprep_db.json           # storico upload
+~/.unit3dprep_tmdb_cache.json   # rigenerabile
+~/.unit3dprep_lang_cache.json   # rigenerabile
 ```
 
 Esempio con `rsync` + cron:
@@ -208,7 +306,13 @@ Esempio con `rsync` + cron:
 
 ---
 
-## 7 — Aggiornamenti
+## 9 — Aggiornamenti
+
+### Via Web UI (consigliato)
+
+In **Settings → Versione** premi **Installa aggiornamento** sulla card App o sulla card Unit3DWebUp. Vedi [Uso › Web UI](uso-web.md#versione-e-auto-update).
+
+### Manuale
 
 ```bash
 sudo -u unit3dprep -i
@@ -216,11 +320,13 @@ cd ~/unit3dprep
 git pull
 source .venv/bin/activate
 pip install -e .
+pip install --upgrade Unit3DwebUp
 exit
-sudo systemctl restart unit3dprep.service
+sudo systemctl restart unit3dwebup.service
+sudo systemctl restart unit3dprep-web.service
 ```
 
-Se hai toccato il frontend devi ricompilarlo (richiede Node):
+Se hai toccato il frontend, ricompilalo (richiede Node):
 
 ```bash
 cd frontend
@@ -232,33 +338,64 @@ npm run build
 
 ## Variante Docker
 
-Esempio minimo `Dockerfile` (non incluso nel repo — aggiungilo se ti serve):
+Esempio minimo `Dockerfile` (multi-stage non incluso nel repo — aggiungilo se ti serve):
 
 ```dockerfile
 FROM python:3.11-slim
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libmediainfo0v5 git \
+ && apt-get install -y --no-install-recommends \
+        libmediainfo0v5 ffmpeg redis-server git \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . .
-RUN pip install --no-cache-dir -e . unit3dup
+RUN pip install --no-cache-dir -e . Unit3DwebUp
 
 ENV U3DP_HOST=0.0.0.0 \
-    U3DP_PORT=8765
+    U3DP_PORT=8765 \
+    WEBUP_URL=http://127.0.0.1:8000 \
+    ENVPATH=/data
 
 EXPOSE 8765
-CMD ["unit3dprep-web"]
+
+# IMPORTANT: do NOT set DOCKER=false. webup uses a bare truthy check.
+# If you really need to mark Docker mode, set DOCKER=true and provide all
+# TRACKER__/PREFS__/TORRENT__ values via env.
+
+# Avvia redis + webup + app insieme (per dev/POC; in prod usa container separati)
+CMD ["sh","-c","redis-server --daemonize yes && uvicorn unit3dwup.start:app --host 127.0.0.1 --port 8000 & exec unit3dprep-web"]
 ```
 
 `docker-compose.yml`:
 
 ```yaml
 services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  unit3dwebup:
+    image: python:3.11-slim
+    restart: unless-stopped
+    depends_on: [redis]
+    working_dir: /app
+    environment:
+      ENVPATH: /data
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./data:/data
+      - ./media:/root/media:ro
+      - ./seedings:/root/seedings
+    command: >
+      sh -c "apt-get update && apt-get install -y libmediainfo0v5 ffmpeg
+      && pip install Unit3DwebUp
+      && uvicorn unit3dwup.start:app --host 0.0.0.0 --port 8000"
+
   unit3dprep:
     build: .
     restart: unless-stopped
+    depends_on: [unit3dwebup]
     ports:
       - "127.0.0.1:8765:8765"
     environment:
@@ -266,18 +403,16 @@ services:
       U3DP_SECRET: ${U3DP_SECRET}
       TMDB_API_KEY: ${TMDB_API_KEY}
       U3DP_HTTPS_ONLY: "1"
+      ENVPATH: /data
+      WEBUP_URL: http://unit3dwebup:8000
     volumes:
+      - ./data:/data
       - ./media:/root/media:ro
       - ./seedings:/root/seedings
-      - ./unit3dup-config:/root/Unit3Dup_config
-      - unit3dprep-data:/root
-
-volumes:
-  unit3dprep-data:
 ```
 
 !!! danger "Hardlink e Docker"
-    Gli hardlink funzionano solo **nello stesso volume**. Se monti `media` e `seedings` come bind mount separati, l'hardlink fallisce. Usa **un singolo volume** che contiene entrambe le sottocartelle, oppure monta la stessa cartella host che contiene `media/` e `seedings/`.
+    Gli hardlink funzionano solo **nello stesso volume**. Se monti `media` e `seedings` come bind mount separati, l'hardlink fallisce. Usa **un singolo volume** che contiene entrambe le sottocartelle, oppure monta la stessa cartella host che le contiene.
 
 Proxy davanti a Docker: gestisci TLS con Caddy / Traefik / nginx esterno che puntano a `127.0.0.1:8765`.
 
@@ -285,10 +420,13 @@ Proxy davanti a Docker: gestisci TLS con Caddy / Traefik / nginx esterno che pun
 
 ## Checklist post-deploy
 
-- [ ] `systemctl status unit3dprep.service` → `active (running)`
+- [ ] `systemctl status unit3dwebup.service` → `active (running)`
+- [ ] `systemctl status unit3dprep-web.service` → `active (running)`
+- [ ] `curl -X POST http://127.0.0.1:8000/setting -d '{}' -H 'Content-Type: application/json'` → JSON con `userPreferences`
 - [ ] `https://unit3dprep.example.com` risponde, login funziona
-- [ ] `journalctl -u unit3dprep-web -f` → nessun errore
+- [ ] `journalctl -u unit3dprep-web -u unit3dwebup -f` → nessun errore
+- [ ] Settings → card Unit3DWebUp **verde** (online)
 - [ ] `GET /api/settings/fs-check` → `same_fs: true`
-- [ ] Un upload di test completa end-to-end
+- [ ] Un upload di test completa end-to-end (oppure `U3DP_DRY_RUN_TRACKER=1` per dry-run)
 - [ ] Backup automatico configurato
 - [ ] `certbot renew --dry-run` → successo

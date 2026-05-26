@@ -80,6 +80,7 @@ plugins:
             Deploy: Deploy
             VPS (sudo/Docker): VPS (sudo/Docker)
             Ultra.cc: Ultra.cc
+            Integrazione Unit3DWebUp: Integrazione Unit3DWebUp
             Nomenclatura: Nomenclatura
             Troubleshooting: Troubleshooting
         - locale: en
@@ -96,6 +97,7 @@ plugins:
             Deploy: Deploy
             VPS (sudo/Docker): VPS (sudo/Docker)
             Ultra.cc: Ultra.cc
+            Integrazione Unit3DWebUp: Unit3DWebUp integration
             Nomenclatura: Naming convention
             Troubleshooting: Troubleshooting
 
@@ -103,6 +105,7 @@ nav:
   - Home: index.md
   - Installazione: installazione.md
   - Configurazione: configurazione.md
+  - Integrazione Unit3DWebUp: integrazione-webup.md
   - Uso:
       - CLI: uso-cli.md
       - Web UI: uso-web.md

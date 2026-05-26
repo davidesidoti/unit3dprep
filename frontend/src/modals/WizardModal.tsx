@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { api, openSSE } from '../api';
 import type { WizardCtx } from '../types';
 
-type StepId = 'audio' | 'tmdb' | 'names' | 'hardlink' | 'upload';
+type StepId = 'audio' | 'tmdb' | 'names' | 'duplicate' | 'hardlink' | 'upload';
 
 const STEPS: { id: StepId; labelKey: string; icon: string }[] = [
   { id: 'audio',    labelKey: 'wizard.stepAudio',    icon: '🎧' },
@@ -13,11 +13,27 @@ const STEPS: { id: StepId; labelKey: string; icon: string }[] = [
   { id: 'upload',   labelKey: 'wizard.stepUpload',   icon: '⬆' },
 ];
 
+type DuplicateInfo = {
+  id?: string | number;
+  name?: string;
+  size?: number;
+  type?: string;
+  resolution?: string;
+  category?: string;
+  uploader?: string;
+  seeders?: number;
+  leechers?: number;
+  created_at?: string;
+  details_link?: string;
+  tmdb_id?: number;
+};
+
 export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => void }) {
   const { t } = useTranslation();
   const [token, setToken] = useState<string | null>(null);
   const [step, setStep] = useState<StepId>('audio');
   const [startError, setStartError] = useState('');
+  const [duplicate, setDuplicate] = useState<DuplicateInfo | null>(null);
 
   useEffect(() => {
     api.post<{ token: string }>('/api/wizard/start', {
@@ -38,7 +54,10 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => v
     series:  ctx.season ? t('wizard.kindBulkSeason') : t('wizard.kindSeries'),
   }[ctx.kind];
 
-  const idx = STEPS.findIndex((s) => s.id === step);
+  // 'duplicate' is a transient sub-step of 'names' — keep the stepper showing
+  // names as active when we're presenting the duplicate-found panel.
+  const stepperStep: StepId = step === 'duplicate' ? 'names' : step;
+  const idx = STEPS.findIndex((s) => s.id === stepperStep);
 
   return (
     <div style={{
@@ -125,7 +144,33 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => v
             <TmdbStep token={token} ctx={ctx} onNext={() => setStep('names')} />
           )}
           {token && step === 'names' && (
-            <NamesStep token={token} onNext={() => setStep('hardlink')} />
+            <NamesStep
+              token={token}
+              onNext={async () => {
+                try {
+                  const r = await api.post<{ enabled: boolean; duplicate: DuplicateInfo | null }>(
+                    `/api/wizard/${token}/duplicate-check`,
+                  );
+                  if (r.duplicate) {
+                    setDuplicate(r.duplicate);
+                    setStep('duplicate');
+                  } else {
+                    setStep('hardlink');
+                  }
+                } catch {
+                  // On API failure proceed: dup check is best-effort.
+                  setStep('hardlink');
+                }
+              }}
+            />
+          )}
+          {token && step === 'duplicate' && duplicate && (
+            <DuplicateStep
+              token={token}
+              duplicate={duplicate}
+              onContinue={() => setStep('hardlink')}
+              onCancel={onClose}
+            />
           )}
           {token && step === 'hardlink' && (
             <HardlinkStep
@@ -458,6 +503,144 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
   );
 }
 
+function formatBytes(n: number | undefined | null): string {
+  if (!n || n <= 0) return '—';
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  let i = 0, v = n;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v < 10 && i > 0 ? 2 : 1)} ${units[i]}`;
+}
+
+function DuplicateStep({ token, duplicate, onContinue, onCancel }: {
+  token: string;
+  duplicate: DuplicateInfo;
+  onContinue: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  const [confirming, setConfirming] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+
+  const confirm = async () => {
+    setConfirming(true);
+    try {
+      await api.post(`/api/wizard/${token}/duplicate-confirm`);
+      onContinue();
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  const cancel = async () => {
+    setSkipping(true);
+    try {
+      await api.post(`/api/wizard/${token}/duplicate-skip`);
+    } catch {
+      // even if recording fails, close the wizard — user clearly doesn't want to upload
+    } finally {
+      setSkipping(false);
+      onCancel();
+    }
+  };
+
+  const busy = confirming || skipping;
+
+  return (
+    <div style={{ padding: '24px' }}>
+      <div style={{
+        background: 'rgba(234, 179, 8, 0.08)',
+        border: '1px solid rgba(234, 179, 8, 0.35)',
+        borderRadius: 8, padding: '14px 16px', marginBottom: 16,
+      }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: 'var(--tracking-wider)', color: 'var(--yellow)',
+          fontFamily: 'var(--font-display)', marginBottom: 6,
+        }}>{t('wizard.duplicateTitle')}</div>
+        <div style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55 }}>
+          {t('wizard.duplicateDesc')}
+        </div>
+      </div>
+
+      <div style={{
+        background: 'var(--bg-base)', border: '1px solid var(--border-subtle)',
+        borderRadius: 8, padding: 16, fontFamily: 'var(--font-mono)', fontSize: 11,
+      }}>
+        <DupRow label={t('wizard.duplicateName')} value={duplicate.name || '—'} mono />
+        <DupRow label={t('wizard.duplicateSize')} value={formatBytes(duplicate.size)} />
+        <DupRow label={t('wizard.duplicateType')} value={
+          [duplicate.type, duplicate.resolution].filter(Boolean).join(' · ') || '—'
+        } />
+        {duplicate.uploader && <DupRow label={t('wizard.duplicateUploader')} value={duplicate.uploader} />}
+        <DupRow label={t('wizard.duplicateSeeders')} value={
+          `${duplicate.seeders ?? 0} S · ${duplicate.leechers ?? 0} L`
+        } />
+        {duplicate.created_at && (
+          <DupRow label={t('wizard.duplicateCreated')} value={
+            new Date(duplicate.created_at).toLocaleString()
+          } />
+        )}
+        {duplicate.details_link && (
+          <div style={{ marginTop: 10 }}>
+            <a
+              href={duplicate.details_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--blue)', fontSize: 11, textDecoration: 'none' }}
+            >{t('wizard.duplicateOpenLink')} ↗</a>
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20,
+      }}>
+        <button
+          onClick={cancel}
+          disabled={busy}
+          style={{
+            background: 'transparent', border: '1px solid var(--border)',
+            color: 'var(--fg-2)', padding: '8px 18px', borderRadius: 6,
+            fontSize: 12, fontWeight: 600,
+            cursor: busy ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-display)', opacity: busy ? 0.5 : 1,
+          }}
+        >{skipping ? '…' : t('wizard.duplicateCancel')}</button>
+        <button
+          onClick={confirm}
+          disabled={busy}
+          style={{
+            background: 'var(--yellow)', border: 'none', color: '#0a0c12',
+            padding: '8px 18px', borderRadius: 6, fontSize: 12,
+            fontWeight: 700,
+            cursor: busy ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-display)', opacity: busy ? 0.6 : 1,
+          }}
+        >{confirming ? '…' : t('wizard.duplicateContinue')}</button>
+      </div>
+    </div>
+  );
+}
+
+function DupRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', gap: 12, padding: '4px 0',
+      borderBottom: '1px solid var(--border-subtle)',
+    }}>
+      <span style={{
+        color: 'var(--fg-4)', fontSize: 10, textTransform: 'uppercase',
+        letterSpacing: 'var(--tracking-wider)', minWidth: 90,
+        fontFamily: 'var(--font-display)',
+      }}>{label}</span>
+      <span style={{
+        color: 'var(--fg-1)', flex: 1, wordBreak: 'break-all',
+        fontFamily: mono ? 'var(--font-mono)' : 'inherit',
+      }}>{value}</span>
+    </div>
+  );
+}
+
 function HardlinkStep({ token, onNext, onFinishOnly }: {
   token: string; onNext: () => void; onFinishOnly: () => void;
 }) {
@@ -581,28 +764,98 @@ function HardlinkStep({ token, onNext, onFinishOnly }: {
   );
 }
 
+interface ProgressInfo { phase?: string; label?: string; pct: number; sub_pct?: number; }
+
+const PHASES: { id: string; short: string }[] = [
+  { id: 'setenv',      short: 'Setup' },
+  { id: 'scan',        short: 'Scan' },
+  { id: 'maketorrent', short: 'Torrent' },
+  { id: 'upload',      short: 'Upload' },
+  { id: 'seed',        short: 'Seed' },
+];
+
+function ProgressBar({ progress, done, success }: {
+  progress: ProgressInfo | null; done: boolean; success: boolean;
+}) {
+  const pct = done ? 100 : Math.max(0, Math.min(100, progress?.pct ?? 0));
+  const phaseIdx = progress?.phase ? PHASES.findIndex((p) => p.id === progress.phase) : -1;
+  const barColor = done
+    ? (success ? 'var(--green)' : 'var(--red)')
+    : 'var(--blue-bright)';
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 600,
+        marginBottom: 6, color: 'var(--fg-3)',
+        letterSpacing: 'var(--tracking-wide)', textTransform: 'uppercase',
+      }}>
+        <span>
+          {progress?.label || (done ? (success ? 'Completato' : 'Errore') : 'In avvio…')}
+          {progress?.sub_pct !== undefined && progress.sub_pct > 0 && progress.sub_pct < 100 && !done && (
+            <span style={{
+              marginLeft: 8, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)',
+            }}>{progress.sub_pct.toFixed(0)}%</span>
+          )}
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-2)' }}>
+          {pct.toFixed(0)}%
+        </span>
+      </div>
+      <div style={{
+        height: 6, background: 'var(--bg-base)', borderRadius: 3,
+        overflow: 'hidden', position: 'relative',
+        border: '1px solid var(--border-subtle)',
+      }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: barColor,
+          transition: 'width 250ms ease-out',
+          borderRadius: 3,
+        }} />
+      </div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', marginTop: 4,
+        fontSize: 9, fontFamily: 'var(--font-display)', color: 'var(--fg-4)',
+        letterSpacing: 'var(--tracking-wide)',
+      }}>
+        {PHASES.map((p, i) => {
+          const reached = phaseIdx >= 0 && i <= phaseIdx;
+          const current = phaseIdx === i && !done;
+          return (
+            <span key={p.id} style={{
+              color: done && success ? 'var(--green)' : current ? 'var(--blue-bright)' : reached ? 'var(--fg-2)' : 'var(--fg-4)',
+              fontWeight: current ? 700 : 500,
+            }}>{p.short}</span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function UploadStep({ token, onClose }: { token: string; onClose: () => void; }) {
   const { t } = useTranslation();
   type Line = { t: string; msg: string };
   const [lines, setLines] = useState<Line[]>([]);
-  const [progress, setProgress] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState<{ kind: string; text: string } | null>(null);
+  const [progress, setProgress] = useState<ProgressInfo | null>(null);
   const [done, setDone] = useState(false);
   const [exitCode, setExitCode] = useState<number | null>(null);
-  const [manual, setManual] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const close = openSSE(`/api/wizard/${token}/upload`, {
       onEvent: (name, data) => {
         if (name === 'log') setLines((l) => [...l, { t: 'info', msg: data }]);
-        else if (name === 'progress') setProgress(data);
+        else if (name === 'progress') {
+          try { setProgress(JSON.parse(data) as ProgressInfo); } catch { /* */ }
+        }
         else if (name === 'error') setLines((l) => [...l, { t: 'error', msg: data }]);
-        else if (name === 'input_needed') {
-          try { setPrompt(JSON.parse(data)); } catch {/* */}
-        } else if (name === 'done') {
+        else if (name === 'done') {
           try { setExitCode(JSON.parse(data).exit_code); } catch {/* */}
-          setDone(true); setProgress(null); close();
+          setDone(true);
+          setProgress((p) => p ? { ...p, pct: 100 } : null);
+          close();
         }
       },
     });
@@ -611,13 +864,7 @@ function UploadStep({ token, onClose }: { token: string; onClose: () => void; })
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [lines, progress]);
-
-  const respond = async (value: string) => {
-    setLines((l) => [...l, { t: 'info', msg: `[User] → ${value}` }]);
-    setPrompt(null);
-    try { await api.post(`/api/wizard/${token}/stdin`, { value }); } catch {/* */}
-  };
+  }, [lines]);
 
   const colors: Record<string, string> = {
     info: 'var(--fg-2)', error: 'var(--red)',
@@ -636,12 +883,16 @@ function UploadStep({ token, onClose }: { token: string; onClose: () => void; })
         }} />
         {t('wizard.uploadStreaming')}
       </div>
+
+      <ProgressBar progress={progress} done={done} success={exitCode === 0} />
+
       <div
         ref={logRef}
         style={{
           background: 'var(--bg-base)', border: '1px solid var(--border-subtle)',
-          borderRadius: 6, padding: 12, height: 340, overflowY: 'auto',
+          borderRadius: 6, padding: 12, height: 300, overflowY: 'auto',
           fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.7,
+          marginTop: 10,
         }}
       >
         {lines.map((l, i) => (
@@ -652,72 +903,7 @@ function UploadStep({ token, onClose }: { token: string; onClose: () => void; })
             {l.msg}
           </div>
         ))}
-        {progress && (
-          <div style={{ color: 'var(--blue-bright)' }}>
-            <span style={{ color: 'var(--fg-4)', marginRight: 8 }}>
-              {String(lines.length + 1).padStart(3, '0')}
-            </span>
-            {progress}
-          </div>
-        )}
       </div>
-
-      {prompt && (
-        <div style={{
-          marginTop: 12, padding: 12, background: 'rgba(245,166,35,0.08)',
-          border: '1px solid var(--yellow)', borderRadius: 6,
-        }}>
-          <div style={{
-            fontSize: 12, color: 'var(--yellow)',
-            fontFamily: 'var(--font-mono)', marginBottom: 8,
-          }}>⚠ {prompt.text}</div>
-          {prompt.kind === 'duplicate' ? (
-            <div style={{ display: 'flex', gap: 6 }}>
-              {([
-                ['c', t('wizard.uploadContinue'), 'var(--blue)',     '#fff'],
-                ['s', t('wizard.uploadSkip'),     'var(--bg-card)', 'var(--fg-1)'],
-                ['q', t('wizard.uploadQuit'),     'var(--red-dim)', 'var(--red)'],
-              ] as [string, string, string, string][]).map(([v, label, bg, fg]) => (
-                <button
-                  key={v}
-                  onClick={() => respond(v)}
-                  style={{
-                    background: bg, border: '1px solid var(--border)',
-                    color: fg, padding: '6px 14px', borderRadius: 4,
-                    fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'var(--font-display)',
-                  }}
-                >({v.toUpperCase()}) {label}</button>
-              ))}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: 6 }}>
-              <input
-                autoFocus
-                value={manual}
-                onChange={(e) => setManual(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') respond(manual || '0'); }}
-                placeholder="TMDB ID"
-                style={{
-                  flex: 1, background: 'var(--bg-base)',
-                  border: '1px solid var(--border)', borderRadius: 4,
-                  padding: '6px 10px', fontSize: 11, color: 'var(--fg-1)',
-                  fontFamily: 'var(--font-mono)',
-                }}
-              />
-              <button
-                onClick={() => respond(manual || '0')}
-                style={{
-                  background: 'var(--yellow)', border: 'none',
-                  color: 'var(--bg-base)', padding: '6px 14px', borderRadius: 4,
-                  fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                  fontFamily: 'var(--font-display)',
-                }}
-              >{t('wizard.uploadSend')}</button>
-            </div>
-          )}
-        </div>
-      )}
 
       {done && (
         <div style={{

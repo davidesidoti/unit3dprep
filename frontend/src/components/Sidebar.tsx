@@ -24,7 +24,7 @@ interface Props {
   drawerOpen?: boolean;
   onCloseDrawer?: () => void;
   versionInfo?: VersionInfo | null;
-  onUpdateCompleted?: (target: 'app' | 'unit3dup', from: string, to: string) => void;
+  onUpdateCompleted?: (target: 'app' | 'webup', from: string, to: string) => void;
 }
 
 export function Sidebar({
@@ -93,7 +93,7 @@ export function Sidebar({
             fontFamily: 'var(--font-display)', fontSize: 18, fontWeight: 700,
             color: 'var(--fg-1)', letterSpacing: 'var(--tracking-tight)',
           }}>
-            Unit3<span style={{ color: 'var(--blue)' }}>Dup</span>
+            Unit3D<span style={{ color: 'var(--blue)' }}>Prep</span>
           </div>
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: 10,

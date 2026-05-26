@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { X, File as FileIcon, FolderOpen, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, File as FileIcon, FolderOpen, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api, openSSE } from '../api';
 import { FileBrowser } from '../components/FileBrowser';
@@ -20,11 +20,9 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
   });
   const [job, setJob] = useState<string | null>(null);
   const [logs, setLogs] = useState<Log[]>([]);
-  const [progress, setProgress] = useState<string | null>(null);
-  const [prompt, setPrompt] = useState<{ kind: string; text: string } | null>(null);
+  const [progress, setProgress] = useState<ProgressInfo | null>(null);
   const [done, setDone] = useState(false);
   const [exitCode, setExitCode] = useState<number | null>(null);
-  const [manualTmdb, setManualTmdb] = useState('');
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
@@ -60,25 +58,28 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
     const close = openSSE(`/api/upload/${jobId}/stream`, {
       onEvent: (name, data) => {
         if (name === 'log') setLogs((l) => [...l, { t: 'log', msg: data }]);
-        else if (name === 'progress') setProgress(data);
+        else if (name === 'progress') {
+          try { setProgress(JSON.parse(data) as ProgressInfo); } catch { /* */ }
+        }
         else if (name === 'error') setLogs((l) => [...l, { t: 'err', msg: data }]);
-        else if (name === 'input_needed') {
-          try { setPrompt(JSON.parse(data)); } catch {/* */}
+        else if (name === 'job_done') {
+          try {
+            const j = JSON.parse(data);
+            setLogs((l) => [...l, {
+              t: j.exit_code === 0 ? 'ok' : 'err',
+              msg: `[${j.exit_code === 0 ? '✓' : '✗'}] ${j.path || j.job_id}`,
+            }]);
+          } catch { /* */ }
         } else if (name === 'done') {
           try { setExitCode(JSON.parse(data).exit_code); } catch {/* */}
-          setDone(true); setProgress(null); close();
+          setDone(true);
+          setProgress((p) => p ? { ...p, pct: 100 } : null);
+          close();
         }
       },
       onError: () => { setLogs((l) => [...l, { t: 'err', msg: 'SSE connection lost' }]); close(); },
     });
     closeSSE.current = close;
-  };
-
-  const respondPrompt = async (value: string) => {
-    if (!job || !prompt) return;
-    setLogs((l) => [...l, { t: 'log', msg: `→ ${value}` }]);
-    setPrompt(null);
-    try { await api.post(`/api/upload/${job}/stdin`, { value }); } catch { /* */ }
   };
 
   const steps = [t('upload.stepPath'), t('upload.stepOptions'), t('upload.stepUpload')];
@@ -88,9 +89,9 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
   };
 
   const modes = [
-    { id: 'u' as Mode, icon: FileIcon, label: '-u  file', desc: t('upload.modeFile') },
-    { id: 'f' as Mode, icon: FolderOpen, label: '-f  folder', desc: t('upload.modeFolder') },
-    { id: 'scan' as Mode, icon: RefreshCw, label: '-scan auto', desc: t('upload.modeRecursive') },
+    { id: 'u' as Mode, icon: FileIcon, label: t('upload.modeFileLabel'), desc: t('upload.modeFile') },
+    { id: 'f' as Mode, icon: FolderOpen, label: t('upload.modeFolderLabel'), desc: t('upload.modeFolder') },
+    { id: 'scan' as Mode, icon: RefreshCw, label: t('upload.modeRecursiveLabel'), desc: t('upload.modeRecursive') },
   ];
 
   const uploadOpts: [keyof typeof opts, string, string][] = [
@@ -264,6 +265,7 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
                   fontFamily: 'var(--font-mono)', fontSize: 12,
                 }}>{error}</div>
               )}
+              <UploadProgressBar progress={progress} done={done} success={exitCode === 0} />
               <div
                 ref={logRef}
                 style={{
@@ -271,80 +273,14 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
                   border: '1px solid var(--border)',
                   borderRadius: 6, padding: '10px 12px',
                   fontFamily: 'var(--font-mono)', fontSize: 11,
-                  lineHeight: 1.85, maxHeight: 260, overflowY: 'auto',
-                  marginBottom: 10,
+                  lineHeight: 1.85, maxHeight: 240, overflowY: 'auto',
+                  marginBottom: 10, marginTop: 10,
                 }}
               >
                 {logs.map((l, i) => (
                   <div key={i} style={{ color: logColors[l.t] }}>{l.msg}</div>
                 ))}
-                {progress && (
-                  <div style={{ color: 'var(--blue-bright)' }}>{progress}</div>
-                )}
               </div>
-
-              {prompt && (
-                <div style={{
-                  background: 'rgba(245,166,35,0.05)',
-                  border: '1px solid var(--yellow)', borderRadius: 6,
-                  padding: '12px 14px', marginBottom: 10,
-                }}>
-                  <div style={{
-                    fontFamily: 'var(--font-display)', fontSize: 12, fontWeight: 600,
-                    color: 'var(--yellow)', marginBottom: 8,
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}>
-                    <AlertCircle size={13} /> {prompt.text || t('upload.inputRequired')}
-                  </div>
-                  {prompt.kind === 'duplicate' ? (
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {([
-                        ['c', t('upload.promptContinue'), 'var(--blue)'],
-                        ['s', t('upload.promptSkip'), 'var(--bg-card)'],
-                        ['q', t('upload.promptQuit'), 'var(--red-dim)'],
-                      ] as [string, string, string][]).map(([v, l, bg]) => (
-                        <button
-                          key={v}
-                          onClick={() => respondPrompt(v)}
-                          style={{
-                            background: bg,
-                            border: '1px solid var(--border)',
-                            color: v === 'q' ? 'var(--red)' : '#fff',
-                            padding: '6px 14px', borderRadius: 4,
-                            fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                            fontFamily: 'var(--font-display)',
-                          }}
-                        >({v.toUpperCase()}) {l}</button>
-                      ))}
-                    </div>
-                  ) : (
-                    <>
-                      <input
-                        autoFocus
-                        value={manualTmdb}
-                        onChange={(e) => setManualTmdb(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') respondPrompt(manualTmdb || '0');
-                        }}
-                        placeholder="TMDB ID"
-                        style={{
-                          ...inputStyle, marginBottom: 8,
-                          borderColor: 'var(--yellow-dim)',
-                        }}
-                      />
-                      <button
-                        onClick={() => respondPrompt(manualTmdb || '0')}
-                        style={{
-                          background: 'var(--yellow)', border: 'none', borderRadius: 6,
-                          padding: '5px 12px', fontSize: 11, fontWeight: 600,
-                          cursor: 'pointer', color: 'var(--bg-surface)',
-                          fontFamily: 'var(--font-display)',
-                        }}
-                      >Submit &amp; Continue →</button>
-                    </>
-                  )}
-                </div>
-              )}
 
               {done && (
                 <div style={{
@@ -395,6 +331,76 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
                 : t('upload.next')}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface ProgressInfo { phase?: string; label?: string; pct: number; sub_pct?: number; }
+
+const PROGRESS_PHASES: { id: string; short: string }[] = [
+  { id: 'setenv',      short: 'Setup' },
+  { id: 'scan',        short: 'Scan' },
+  { id: 'maketorrent', short: 'Torrent' },
+  { id: 'upload',      short: 'Upload' },
+  { id: 'seed',        short: 'Seed' },
+];
+
+function UploadProgressBar({ progress, done, success }: {
+  progress: ProgressInfo | null; done: boolean; success: boolean;
+}) {
+  const pct = done ? 100 : Math.max(0, Math.min(100, progress?.pct ?? 0));
+  const phaseIdx = progress?.phase ? PROGRESS_PHASES.findIndex((p) => p.id === progress.phase) : -1;
+  const barColor = done
+    ? (success ? 'var(--green)' : 'var(--red)')
+    : 'var(--blue-bright)';
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontSize: 10, fontFamily: 'var(--font-display)', fontWeight: 600,
+        marginBottom: 6, color: 'var(--fg-3)',
+        letterSpacing: 'var(--tracking-wide)', textTransform: 'uppercase',
+      }}>
+        <span>
+          {progress?.label || (done ? (success ? 'Completato' : 'Errore') : 'In avvio…')}
+          {progress?.sub_pct !== undefined && progress.sub_pct > 0 && progress.sub_pct < 100 && !done && (
+            <span style={{
+              marginLeft: 8, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)',
+            }}>{progress.sub_pct.toFixed(0)}%</span>
+          )}
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--fg-2)' }}>
+          {pct.toFixed(0)}%
+        </span>
+      </div>
+      <div style={{
+        height: 6, background: 'var(--bg-base)', borderRadius: 3,
+        overflow: 'hidden', position: 'relative',
+        border: '1px solid var(--border-subtle)',
+      }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: barColor,
+          transition: 'width 250ms ease-out',
+          borderRadius: 3,
+        }} />
+      </div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', marginTop: 4,
+        fontSize: 9, fontFamily: 'var(--font-display)', color: 'var(--fg-4)',
+        letterSpacing: 'var(--tracking-wide)',
+      }}>
+        {PROGRESS_PHASES.map((p, i) => {
+          const reached = phaseIdx >= 0 && i <= phaseIdx;
+          const current = phaseIdx === i && !done;
+          return (
+            <span key={p.id} style={{
+              color: done && success ? 'var(--green)' : current ? 'var(--blue-bright)' : reached ? 'var(--fg-2)' : 'var(--fg-4)',
+              fontWeight: current ? 700 : 500,
+            }}>{p.short}</span>
+          );
+        })}
       </div>
     </div>
   );

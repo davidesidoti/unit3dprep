@@ -17,7 +17,7 @@ except ImportError:
     guessit = None  # type: ignore
 
 def seedings_dir() -> Path:
-    """Configured hardlink target; env → Unit3Dbot.json → ~/seedings."""
+    """Configured hardlink target; env → shared .env → ~/seedings."""
     default = str(Path.home() / "seedings")
     try:
         from .web import config
@@ -34,7 +34,7 @@ ITA_TAGS = {"it", "ita", "italian", "italiano"}
 TMDB_BASE = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
 def tmdb_default_lang() -> str:
-    """Re-evaluate every call so Unit3Dbot.json edits take effect without restart."""
+    """Re-evaluate every call so .env edits take effect without restart."""
     try:
         from .web import config
         return config.runtime_setting("U3DP_TMDB_LANG", default="it-IT")

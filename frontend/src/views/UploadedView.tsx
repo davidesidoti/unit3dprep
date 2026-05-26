@@ -30,9 +30,10 @@ export function UploadedView() {
 
   const stats = {
     total: records.length,
-    success: records.filter((r) => r.unit3dup_exit_code === 0 && !r.hardlink_only).length,
-    failed: records.filter((r) => r.unit3dup_exit_code !== null && r.unit3dup_exit_code !== 0).length,
-    manual: records.filter((r) => r.hardlink_only).length,
+    success: records.filter((r) => r.unit3dup_exit_code === 0 && !r.hardlink_only && !r.duplicate_skipped).length,
+    failed: records.filter((r) => !r.duplicate_skipped && r.unit3dup_exit_code !== null && r.unit3dup_exit_code !== 0).length,
+    manual: records.filter((r) => r.hardlink_only && !r.duplicate_skipped).length,
+    skipped: records.filter((r) => r.duplicate_skipped).length,
   };
 
   const del = async (id: number) => {
@@ -70,6 +71,7 @@ export function UploadedView() {
         <StatCard value={stats.success} label={t('uploaded.successLabel')} color="var(--green)" />
         <StatCard value={stats.failed} label={t('uploaded.failedLabel')} color="var(--red)" />
         <StatCard value={stats.manual} label={t('uploaded.manualLabel')} color="var(--yellow)" />
+        <StatCard value={stats.skipped} label={t('uploaded.skippedLabel')} color="var(--yellow)" />
       </div>
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -164,7 +166,9 @@ export function UploadedView() {
                   }}>{r.uploaded_at}</span>
                 </div>
                 <div style={td}>
-                  {r.hardlink_only
+                  {r.duplicate_skipped
+                    ? <span style={{ color: 'var(--yellow)', fontWeight: 600 }}>⏭ {t('uploaded.statusDuplicateSkipped')}</span>
+                    : r.hardlink_only
                     ? <span style={{ color: 'var(--yellow)', fontWeight: 600 }}>{t('uploaded.statusManual')}</span>
                     : r.unit3dup_exit_code === 0
                       ? <span style={{ color: 'var(--green)', fontWeight: 600 }}>✓ exit 0</span>

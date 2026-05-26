@@ -1,0 +1,28 @@
+[Unit]
+Description=Unit3DWebUp FastAPI bot
+Documentation=https://31december99.github.io/Unit3DWebUp/
+After=network-online.target redis.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h
+# DO NOT set DOCKER here. Webup's settings.py does:
+#   env_file=ENV_FILE if not os.getenv("DOCKER") else None
+# That's a bare truthy check — DOCKER=false (string) makes env_file=None,
+# pydantic-settings then ignores .env and every TRACKER__/PREFS__ field
+# reports "Field required". Only set DOCKER=true when actually in Docker.
+Environment=PYTHONUNBUFFERED=1
+Environment=ENVPATH=%h/.config/unit3dprep
+# Webup hardcodes Redis at localhost:6379 — REDIS_HOST/PORT are ignored.
+# Run Redis on the default port instead.
+#
+# ExecStart points to whichever venv has Unit3DwebUp installed. Canonical
+# layout: same venv as unit3dprep (~/.venvs/unit3dprep). Legacy layout
+# (~/dev/Unit3DWebUp/.venv) also works — point ExecStart at it instead.
+ExecStart=%h/.venvs/unit3dprep/bin/uvicorn unit3dwup.start:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

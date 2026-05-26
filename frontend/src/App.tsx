@@ -34,7 +34,7 @@ export function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [pendingChangelog, setPendingChangelog] = useState<
-    { target: 'app' | 'unit3dup'; from: string; to: string } | null
+    { target: 'app' | 'webup'; from: string; to: string } | null
   >(null);
 
   useEffect(() => {

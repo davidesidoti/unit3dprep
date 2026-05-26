@@ -171,14 +171,14 @@ function VersionSection() {
   const { t } = useTranslation();
   const [info, setInfo] = useState<VersionInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [checking, setChecking] = useState<'app' | 'unit3dup' | null>(null);
+  const [checking, setChecking] = useState<'app' | 'webup' | null>(null);
   const [appCLOpen, setAppCLOpen] = useState(false);
   const [botCLOpen, setBotCLOpen] = useState(false);
   const [appRelease, setAppRelease] = useState<{
     body: string; html_url?: string; name?: string;
   } | null>(null);
   const [appCLLoading, setAppCLLoading] = useState(false);
-  const [updating, setUpdating] = useState<'app' | 'unit3dup' | null>(null);
+  const [updating, setUpdating] = useState<'app' | 'webup' | null>(null);
 
   useEffect(() => {
     api.get<VersionInfo>('/api/version/info')
@@ -187,7 +187,7 @@ function VersionSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  const check = async (target: 'app' | 'unit3dup') => {
+  const check = async (target: 'app' | 'webup') => {
     setChecking(target);
     try {
       const fresh = await api.post<VersionInfo>('/api/version/refresh');
@@ -232,7 +232,7 @@ function VersionSection() {
     }}>{v ?? '–'}</span>
   );
 
-  const refreshBtn = (target: 'app' | 'unit3dup') => (
+  const refreshBtn = (target: 'app' | 'webup') => (
     <button
       onClick={() => check(target)}
       disabled={!!checking}
@@ -279,6 +279,8 @@ function VersionSection() {
 
   return (
     <>
+      <WebupHealthCard />
+
       <div style={{ ...GROUP_LABEL, marginTop: 0 }}>{t('settings.versionAppGroup')}</div>
 
       <div style={card}>
@@ -387,68 +389,84 @@ function VersionSection() {
             <div style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-display)', marginBottom: 4 }}>
               {t('settings.versionCurrent')}
             </div>
-            {pill(info?.unit3dup?.current)}
+            {pill(info?.webup?.current)}
           </div>
           <div>
             <div style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-display)', marginBottom: 4 }}>
               {t('settings.versionLatest')}
             </div>
-            {pill(info?.unit3dup?.latest, info?.unit3dup?.newer)}
+            {pill(info?.webup?.latest, info?.webup?.newer)}
           </div>
-          {info?.unit3dup && (
-            info.unit3dup.installed
-              ? statusBadge(info.unit3dup.newer)
+          {info?.webup && (
+            info.webup.installed
+              ? statusBadge(info.webup.newer)
               : <span style={{ fontSize: 11, fontFamily: 'var(--font-display)', color: 'var(--fg-4)' }}>
                   {t('settings.versionNotInstalled')}
                 </span>
           )}
-          <div style={{ marginLeft: 'auto' }}>{refreshBtn('unit3dup')}</div>
+          <div style={{ marginLeft: 'auto' }}>{refreshBtn('webup')}</div>
         </div>
 
-        {(info?.unit3dup?.newer || (!info?.unit3dup?.installed && !!info?.unit3dup?.latest)) && (
+        {info?.webup?.repo_path && (
+          <div style={{
+            padding: '0 14px 8px', fontSize: 11, color: 'var(--fg-4)',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            {info.webup.repo_path}
+          </div>
+        )}
+
+        {(info?.webup?.newer || (!info?.webup?.installed && !!info?.webup?.latest)) && (
           <div style={{ padding: '0 14px 12px' }}>
             <button
-              onClick={() => setUpdating('unit3dup')}
+              onClick={() => info?.can_update_webup && setUpdating('webup')}
+              disabled={!info?.can_update_webup}
+              title={!info?.can_update_webup ? t('settings.versionWebupNoSystemd') : undefined}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'var(--blue-muted)',
-                border: '1px solid rgba(59,130,246,0.35)',
+                background: info?.can_update_webup ? 'var(--blue-muted)' : 'transparent',
+                border: `1px solid ${info?.can_update_webup ? 'rgba(59,130,246,0.35)' : 'var(--border)'}`,
                 borderRadius: 6, padding: '6px 14px',
-                color: 'var(--blue-bright)',
+                color: info?.can_update_webup ? 'var(--blue-bright)' : 'var(--fg-4)',
                 fontFamily: 'var(--font-display)', fontSize: 11, fontWeight: 600,
-                cursor: 'pointer',
+                cursor: info?.can_update_webup ? 'pointer' : 'not-allowed',
               }}
             >
               <Package size={12} />
               {t('settings.versionInstall')}
-              {info?.unit3dup?.latest && (
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>→ {info.unit3dup.latest}</span>
+              {info?.webup?.latest && (
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>→ {info.webup.latest}</span>
               )}
             </button>
+            {!info?.can_update_webup && (
+              <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-display)' }}>
+                {t('settings.versionWebupNoSystemd')}
+              </div>
+            )}
           </div>
         )}
 
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
-          {clTrigger(botCLOpen, () => setBotCLOpen((v) => !v), info?.unit3dup?.current ?? info?.unit3dup?.latest)}
+          {clTrigger(botCLOpen, () => setBotCLOpen((v) => !v), info?.webup?.current ?? info?.webup?.latest)}
           {botCLOpen && (
             <div style={{
               padding: '10px 14px 14px', borderTop: '1px solid var(--border-subtle)',
               fontSize: 11, fontFamily: 'var(--font-display)', color: 'var(--fg-3)', lineHeight: 1.6,
             }}>
-              {info?.unit3dup?.installed && info?.unit3dup?.current && (
-                <>{t('changelog.unit3dupUpdatedTo')}{' '}
-                <b style={{ fontFamily: 'var(--font-mono)' }}>{info.unit3dup.current}</b>.{' '}</>
+              {info?.webup?.installed && info?.webup?.current && (
+                <>{t('changelog.webupUpdatedTo')}{' '}
+                <b style={{ fontFamily: 'var(--font-mono)' }}>{info.webup.current}</b>.{' '}</>
               )}
-              {t('changelog.seePyPI')}.{' '}
+              {t('changelog.seeWebupRepo')}.{' '}
               <a
-                href="https://pypi.org/project/unit3dup/"
+                href="https://github.com/31December99/Unit3DWebUp/releases"
                 target="_blank" rel="noreferrer"
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   color: 'var(--blue-bright)', textDecoration: 'none',
                 }}
               >
-                <ExternalLink size={11} /> PyPI
+                <ExternalLink size={11} /> GitHub
               </a>
             </div>
           )}
@@ -462,6 +480,129 @@ function VersionSection() {
           onCompleted={() => setUpdating(null)}
         />
       )}
+    </>
+  );
+}
+
+function WebupHealthCard() {
+  const { t } = useTranslation();
+  const [health, setHealth] = useState<any | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [pushed, setPushed] = useState<number | null>(null);
+
+  const refresh = async () => {
+    try {
+      const h = await api.get<any>('/api/webup/health');
+      setHealth(h);
+    } catch {
+      setHealth({ ok: false, error: 'unreachable' });
+    }
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const sync = async () => {
+    setSyncing(true);
+    setPushed(null);
+    try {
+      const r = await api.post<{ pushed: Record<string, string>; count: number }>('/api/webup/sync');
+      setPushed(r.count);
+      await refresh();
+    } catch {
+      setPushed(-1);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const dot = (ok: boolean) => (
+    <span style={{
+      width: 8, height: 8, borderRadius: 9999,
+      background: ok ? 'var(--green)' : 'var(--red)',
+      display: 'inline-block',
+    }} />
+  );
+
+  return (
+    <>
+      <div style={{ ...GROUP_LABEL, marginTop: 0 }}>{t('settings.webupGroup')}</div>
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: 8, marginBottom: 20, padding: '12px 14px',
+        display: 'flex', flexDirection: 'column', gap: 8,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {dot(!!health?.ok)}
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 13, color: 'var(--fg-1)' }}>
+            {health?.ok ? t('settings.webupOnline') : t('settings.webupOffline')}
+          </span>
+          {health?.base_url && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>
+              {health.base_url}
+            </span>
+          )}
+          {health?.version && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>
+              v{health.version}
+            </span>
+          )}
+          {typeof health?.latency_ms === 'number' && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-4)' }}>
+              {health.latency_ms} ms
+            </span>
+          )}
+          <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+            <button
+              onClick={refresh}
+              style={{
+                background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                borderRadius: 6, padding: '5px 10px', fontSize: 11,
+                color: 'var(--fg-3)', fontFamily: 'var(--font-display)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+              }}
+            >
+              <RefreshCw size={11} /> {t('settings.webupRefresh')}
+            </button>
+            <button
+              onClick={sync}
+              disabled={syncing || !health?.ok}
+              style={{
+                background: syncing || !health?.ok ? 'var(--border)' : 'var(--blue-muted)',
+                border: '1px solid rgba(59,130,246,0.35)',
+                borderRadius: 6, padding: '5px 10px', fontSize: 11,
+                color: 'var(--blue-bright)', fontFamily: 'var(--font-display)',
+                cursor: syncing || !health?.ok ? 'not-allowed' : 'pointer',
+              }}
+            >{syncing ? '…' : t('settings.webupPushConfig')}</button>
+          </span>
+        </div>
+
+        {health?.ws_connected !== undefined && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--fg-3)' }}>
+            {dot(!!health.ws_connected)}
+            <span style={{ fontFamily: 'var(--font-display)' }}>
+              {health.ws_connected ? t('settings.webupWsConnected') : t('settings.webupWsDisconnected')}
+            </span>
+          </div>
+        )}
+
+        {pushed !== null && (
+          <div style={{
+            fontSize: 11, color: pushed >= 0 ? 'var(--green)' : 'var(--red)',
+            fontFamily: 'var(--font-mono)',
+          }}>
+            {pushed >= 0
+              ? t('settings.webupPushDone', { count: pushed })
+              : t('settings.webupPushFailed')}
+          </div>
+        )}
+
+        {health?.error && (
+          <div style={{ fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font-mono)' }}>
+            {health.error}
+          </div>
+        )}
+      </div>
     </>
   );
 }
@@ -1073,6 +1214,9 @@ function SeedingSection({
       <ToggleRow cfg={cfg} set={set} k="W_CONFIRM_NAMES"
         label={t('settings.seedingWizardConfirmNames')}
         sub={t('settings.seedingWizardConfirmNamesSub')} />
+      <ToggleRow cfg={cfg} set={set} k="W_DUPLICATE_CHECK"
+        label={t('settings.seedingWizardDuplicateCheck')}
+        sub={t('settings.seedingWizardDuplicateCheckSub')} />
     </>
   );
 }

@@ -1,6 +1,6 @@
-"""Quick upload (UploadModal flow) — wraps unit3dup without the full wizard.
+"""Quick upload (UploadModal flow) — wraps Unit3DWebUp without the full wizard.
 
-Takes a path + mode (u|f|scan), invokes unit3dup directly, streams logs via SSE.
+Takes a path + mode (u|f|scan), drives the webup HTTP API, streams logs via SSE.
 No audio check, no hardlink: for power users who already staged files in
 their seeding path. DB record is created on start; exit code updated on done.
 """
@@ -19,10 +19,9 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from ...i18n import get_request_lang, t
-from ...upload import stream_unit3dup
-from ..db import record_upload, update_exit_code
+from ..db import update_exit_code
 from ..logbuf import emit as log_emit
-from ..logclass import classify as classify_unit3dup
+from ..webup_orchestrator import stream_webup, stream_webup_batch
 
 router = APIRouter(prefix="/api", tags=["quickupload"])
 
@@ -58,12 +57,13 @@ async def create(request: Request, body: QuickBody):
         raise HTTPException(404, t("err.path_not_found", lang))
     if body.mode not in {"u", "f", "scan"}:
         raise HTTPException(400, t("err.invalid_mode", lang))
-    args = ["-b"]
-    flag = {"u": "-u", "f": "-f", "scan": "-scan"}[body.mode]
-    args += [flag, str(p)]
     _cleanup()
     job_id = secrets.token_urlsafe(16)
-    _jobs[job_id] = {"args": args, "path": str(p), "tmdb_id": body.tmdb_id}
+    _jobs[job_id] = {
+        "path": str(p),
+        "mode": body.mode,
+        "tmdb_id": body.tmdb_id,
+    }
     _created[job_id] = time.time()
     return JSONResponse({"job": job_id})
 
@@ -73,54 +73,81 @@ async def stream(request: Request, job: str):
     state = _jobs.get(job)
     if state is None:
         raise HTTPException(404, t("err.job_not_found", get_request_lang(request)))
-    args: list[str] = state["args"]
+    path: str = state["path"]
+    mode: str = state["mode"]
     tmdb_id: str = state.get("tmdb_id", "")
-    q: asyncio.Queue = asyncio.Queue()
-    state["stdin_queue"] = q
+    app = request.app
 
     async def gen() -> AsyncGenerator[dict, None]:
-        async for ev in stream_unit3dup(args, input_queue=q, tmdb_id=tmdb_id):
+        if mode == "scan":
+            async for ev in stream_webup_batch(
+                client=app.state.webup,
+                ws=app.state.webup_ws,
+                scan_lock=app.state.webup_scan_lock,
+                folder=path,
+            ):
+                et = ev["type"]
+                if et == "log":
+                    ev_kind = ev.get("kind", "info")
+                    event_slug = ev.get("event")
+                    log_emit(ev_kind, ev["data"], "webup", source="webup", event=event_slug)
+                    yield {"event": "log", "data": ev["data"]}
+                elif et == "job_done":
+                    job_path = ev.get("path") or ""
+                    if job_path:
+                        await update_exit_code(job_path, ev.get("exit_code", -1))
+                    yield {"event": "job_done", "data": json.dumps(ev)}
+                elif et == "error":
+                    log_emit("error", ev["data"], "webup", source="webup")
+                    yield {"event": "error", "data": ev["data"]}
+                elif et == "done":
+                    code = ev.get("exit_code", -1)
+                    state["exit_code"] = code
+                    log_emit(
+                        "ok" if code == 0 else "error",
+                        f"webup batch exit {code} (ok={ev.get('ok',0)} fail={ev.get('fail',0)})",
+                        "quickupload",
+                    )
+                    yield {"event": "done", "data": json.dumps({
+                        "exit_code": code,
+                        "ok": ev.get("ok", 0),
+                        "fail": ev.get("fail", 0),
+                    })}
+            return
+
+        kind = "series" if mode == "f" else "movie"
+        async for ev in stream_webup(
+            client=app.state.webup,
+            ws=app.state.webup_ws,
+            scan_lock=app.state.webup_scan_lock,
+            seeding_path=path,
+            kind=kind,
+            tmdb_id=tmdb_id,
+        ):
             et = ev["type"]
             if et == "log":
-                kind, event = classify_unit3dup(ev["data"])
-                log_emit(kind, ev["data"], "unit3dup", source="unit3dup", event=event)
+                ev_kind = ev.get("kind", "info")
+                event_slug = ev.get("event")
+                log_emit(ev_kind, ev["data"], "webup", source="webup", event=event_slug)
                 yield {"event": "log", "data": ev["data"]}
             elif et == "progress":
-                yield {"event": "progress", "data": ev["data"]}
-            elif et == "input_needed":
-                yield {
-                    "event": "input_needed",
-                    "data": json.dumps({"text": ev["data"], "kind": ev.get("kind", "tmdb")}),
-                }
+                yield {"event": "progress", "data": json.dumps({
+                    "phase": ev.get("phase"),
+                    "label": ev.get("label"),
+                    "pct": ev.get("pct", 0),
+                    "sub_pct": ev.get("sub_pct", 0),
+                })}
             elif et == "error":
-                log_emit("error", ev["data"], "unit3dup")
+                log_emit("error", ev["data"], "webup", source="webup")
                 yield {"event": "error", "data": ev["data"]}
             elif et == "done":
                 code = ev.get("exit_code", -1)
                 state["exit_code"] = code
-                state.pop("stdin_queue", None)
                 await update_exit_code(state["path"], code)
                 log_emit(
                     "ok" if code == 0 else "error",
-                    f"unit3dup exit {code}", "quickupload",
+                    f"webup exit {code}", "quickupload",
                 )
                 yield {"event": "done", "data": json.dumps({"exit_code": code})}
 
     return EventSourceResponse(gen())
-
-
-class StdinBody(BaseModel):
-    value: str = "0"
-
-
-@router.post("/upload/{job}/stdin")
-async def stdin(request: Request, job: str, body: StdinBody):
-    lang = get_request_lang(request)
-    state = _jobs.get(job)
-    if state is None:
-        raise HTTPException(404, t("err.job_not_found", lang))
-    q: asyncio.Queue | None = state.get("stdin_queue")
-    if q is None:
-        raise HTTPException(400, t("err.no_active_process", lang))
-    await q.put((body.value or "0").strip() or "0")
-    return JSONResponse({"ok": True})

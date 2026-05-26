@@ -131,8 +131,13 @@ async def _enrich_items(items: list[MediaItem]) -> tuple[set[str], dict, dict]:
                         try:
                             st = vf.stat()
                             if st.st_ino and (st.st_dev, st.st_ino) in seeding_inodes:
+                                # Only mark the single episode as uploaded.
+                                # `season.already_uploaded` and `all_seasons_uploaded`
+                                # propagate via direct season-path / series-root
+                                # records (mark-uploaded at season/series level)
+                                # or via `all_episodes_uploaded` once *every*
+                                # episode has been uploaded individually.
                                 uploaded_paths.add(str(vf.resolve()))
-                                uploaded_paths.add(str(season.path.resolve()))
                         except OSError:
                             pass
     all_paths: list[str] = []

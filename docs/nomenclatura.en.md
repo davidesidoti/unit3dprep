@@ -3,7 +3,7 @@
 Official ItaTorrents naming conventions. `unit3dprep` builds filenames according to these rules from `guessit` + `pymediainfo` + TMDB.
 
 !!! note "Source"
-    Content derived from `itatorrents-nomenclatura.md` in the repo. Authoritative updates from [ItaTorrents](https://itatorrents.xyz).
+    Authoritative updates from [ItaTorrents](https://itatorrents.xyz). The name builder lives in `unit3dprep/core.py::build_name` and uses `extract_specs` (`pymediainfo`) + `guessit` + TMDB data.
 
 ---
 

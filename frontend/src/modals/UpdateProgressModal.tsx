@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { openSSE } from '../api';
 
 interface Props {
-  target: 'app' | 'unit3dup';
+  target: 'app' | 'webup';
   onClose: () => void;
-  onCompleted: (target: 'app' | 'unit3dup', from: string, to: string) => void;
+  onCompleted: (target: 'app' | 'webup', from: string, to: string) => void;
 }
 
 type Phase = 'running' | 'error' | 'done' | 'countdown';
@@ -29,7 +29,7 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
   useEffect(() => {
     const path = target === 'app'
       ? '/api/version/update/app/stream'
-      : '/api/version/update/unit3dup/stream';
+      : '/api/version/update/webup/stream';
     const push = (s: string) => setLines((l) => [...l, s]);
 
     closeSSE.current = openSSE(path, {
@@ -111,7 +111,7 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
     return () => window.clearInterval(iv);
   }, [phase, target, from, to]);
 
-  const title = target === 'app' ? t('update.appTitle') : t('update.unit3dupTitle');
+  const title = target === 'app' ? t('update.appTitle') : t('update.webupTitle');
 
   return (
     <div
@@ -183,7 +183,7 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
             color: 'var(--green)',
           }}>
             <div style={{ fontSize: 13, marginBottom: 4 }}>
-              {target === 'app' ? `app ${from} → ${to}` : `unit3dup ${from} → ${to}`}
+              {target === 'app' ? `app ${from} → ${to}` : `webup ${from} → ${to}`}
             </div>
             <div style={{ fontSize: 20, fontWeight: 700 }}>
               {t('update.autoRefreshIn')} {count}…

@@ -18,11 +18,11 @@ const kindPrefixes: Record<string, string> = {
   debug: '[dbg]',
 };
 
-type SourceKey = 'app' | 'http' | 'unit3dup' | 'wizard' | 'client' | 'tracker' | 'system' | 'upload';
+type SourceKey = 'app' | 'http' | 'webup' | 'wizard' | 'client' | 'tracker' | 'system' | 'upload';
 const SOURCES: { key: SourceKey; label: string }[] = [
   { key: 'app', label: 'App' },
   { key: 'wizard', label: 'Wizard' },
-  { key: 'unit3dup', label: 'Unit3Dup' },
+  { key: 'webup', label: 'WebUp' },
   { key: 'upload', label: 'Upload' },
   { key: 'client', label: 'Client' },
   { key: 'tracker', label: 'Tracker' },
@@ -37,7 +37,7 @@ const sourceBadge: Record<string, string> = {
   client: 'var(--purple, #a78bfa)',
   tracker: 'var(--teal, #5eead4)',
   wizard: 'var(--accent)',
-  unit3dup: 'var(--yellow)',
+  webup: 'var(--green, #34d399)',
   system: 'var(--fg-3)',
 };
 

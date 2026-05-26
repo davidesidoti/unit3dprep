@@ -1,4 +1,4 @@
-"""Unit3Dbot.json read/write + runtime U3DP_* env view + filesystem checks."""
+"""Shared .env read/write + runtime U3DP_* env view + filesystem checks."""
 from __future__ import annotations
 
 import os
@@ -16,10 +16,13 @@ router = APIRouter(prefix="/api", tags=["settings"])
 @router.get("/settings")
 async def get_settings():
     cfg = config.load()
+    env_path = config.config_path()
     return JSONResponse({
         "config": config.mask_secrets(cfg),
         "env": config.env_runtime(),
-        "config_path": str(config.config_path()),
+        "config_path": str(env_path),
+        "env_path": str(env_path),
+        "webup_envpath_dir": str(config.webup_envpath_dir()),
     })
 
 

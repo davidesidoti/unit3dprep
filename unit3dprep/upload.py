@@ -1,22 +1,22 @@
-"""Upload orchestration. Yields progress events as dicts."""
-import asyncio
-import os
-import re
+"""Pre-flight helpers used by the wizard + CLI.
+
+Holds audio-check results, name-build helpers, and hardlink utilities. The
+actual upload step is handled by `unit3dprep.web.webup_orchestrator` (HTTP
+calls to Unit3DWebUp) — there is no longer any unit3dup CLI subprocess.
+
+Hardlink layout: every upload lives in its own per-job sandbox directory
+under `<seedings>/.unit3dprep/<jobid>/...`. This isolates each upload from
+the rest of the seedings tree so Unit3DWebUp's `/scan` (which always
+processes the entire SCAN_PATH) never re-scans unrelated files. The
+sandbox path is deterministic from the final name, so re-uploading the
+same item overwrites its sandbox cleanly.
+"""
+from __future__ import annotations
+
+import hashlib
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncGenerator, Optional
-
-# pty is Linux-only; graceful fallback to pipe mode on Windows (dev)
-try:
-    import pty
-    import fcntl
-    _HAS_PTY = True
-except ImportError:
-    _HAS_PTY = False
-
-# Strip ANSI/VT escape sequences (colours, cursor moves, etc.) from text
-_ANSI_RE = re.compile(r'\x1b(?:[@-Z\\-_]|\[[0-9;]*[a-zA-Z]|\][^\x07]*\x07)')
 
 from guessit import guessit
 
@@ -29,9 +29,24 @@ from .core import (
     hardlink_tree,
     has_italian_audio,
     map_source,
-    tmdb_fetch,
-    tmdb_year,
 )
+
+
+_SANDBOX_PARENT = ".unit3dprep"
+
+
+def _sandbox_id(key: str) -> str:
+    """Stable 8-char id derived from `key` (the final name).
+
+    Same final_name → same sandbox dir → re-uploads overwrite cleanly.
+    """
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
+
+
+def _sandbox_dir(key: str) -> Path:
+    """Resolve the per-job sandbox directory inside the configured seedings root."""
+    seed = seedings_dir()
+    return seed / _SANDBOX_PARENT / _sandbox_id(key)
 
 
 @dataclass
@@ -98,9 +113,15 @@ def build_movie_name_from_file(
 
 
 def do_hardlink_movie(src: Path, final_name: str) -> Path:
-    seed = seedings_dir()
-    seed.mkdir(parents=True, exist_ok=True)
-    target = seed / f"{final_name}{src.suffix.lower()}"
+    """Hardlink a single movie file into its dedicated sandbox.
+
+    Layout: `<seedings>/.unit3dprep/<jobid>/<final_name>.<ext>`.
+    SCAN_PATH for webup will be the sandbox dir; webup sees one file → one
+    Media → no concurrent scan of unrelated seedings entries.
+    """
+    sandbox = _sandbox_dir(final_name)
+    sandbox.mkdir(parents=True, exist_ok=True)
+    target = sandbox / f"{final_name}{src.suffix.lower()}"
     hardlink_file(src, target, overwrite=True)
     return target
 
@@ -110,266 +131,16 @@ def do_hardlink_series(
     folder_name: str,
     episode_rename: dict[Path, str],
 ) -> Path:
-    seed = seedings_dir()
-    seed.mkdir(parents=True, exist_ok=True)
-    target_dir = seed / folder_name
+    """Hardlink an entire series/season pack into its dedicated sandbox.
+
+    Layout: `<seedings>/.unit3dprep/<jobid>/<folder_name>/<episodes>`.
+    SCAN_PATH for webup will be the sandbox dir; webup sees one subfolder
+    → one Media (recognized as a pack).
+    """
+    sandbox = _sandbox_dir(folder_name)
+    sandbox.mkdir(parents=True, exist_ok=True)
+    target_dir = sandbox / folder_name
     if target_dir.exists():
         shutil.rmtree(target_dir)
     hardlink_tree(src_dir, target_dir, episode_rename)
     return target_dir
-
-
-# Patterns that indicate unit3dup is waiting for user input on stdin.
-# These prompts don't end with \n so readline() would block forever.
-_TMDB_PROMPT_PATTERNS = [
-    "Please digit a valid TMDB ID",
-    "Please digit a valid",
-    "digit a valid",
-    "insert a valid",
-]
-
-# Patterns that indicate the duplicate-check interactive prompt (C/S/Q)
-_DUPLICATE_PROMPT_PATTERNS = [
-    "press (c) to continue",
-    "(s) to skip",
-    "(q) quit",
-]
-
-_ALL_PROMPT_PATTERNS = _TMDB_PROMPT_PATTERNS + _DUPLICATE_PROMPT_PATTERNS
-
-
-def _is_prompt(text: str) -> bool:
-    t = text.strip().lower()
-    return any(p.lower() in t for p in _ALL_PROMPT_PATTERNS)
-
-
-def _prompt_kind(text: str) -> str:
-    """Return 'duplicate' if text is the C/S/Q duplicate prompt, else 'tmdb'."""
-    t = text.strip().lower()
-    if any(p in t for p in _DUPLICATE_PROMPT_PATTERNS):
-        return "duplicate"
-    return "tmdb"
-
-
-async def stream_unit3dup(
-    args: list[str],
-    input_queue: Optional[asyncio.Queue] = None,
-    tmdb_id: str = "",
-) -> AsyncGenerator[dict, None]:
-    """Async generator yielding event dicts:
-      {'type': 'log',         'data': str}
-      {'type': 'progress',    'data': str}   — in-place overwrite line (\\r-terminated)
-      {'type': 'input_needed','kind': 'tmdb'|'duplicate', 'data': str}
-      {'type': 'error',       'data': str}
-      {'type': 'done',        'data': '', 'exit_code': int}
-
-    On Linux uses a pty so rich/tqdm see a TTY and emit live progress.
-    Falls back to pipe mode on Windows (dev only).
-    ANSI escape sequences are stripped before yielding.
-    """
-    # Systemd user services have a minimal PATH; augment with common user bin dirs
-    # so unit3dup installed via pyenv/pip/~/.local is found even from the service.
-    home = str(Path.home())
-    extra_dirs = [
-        os.path.join(home, ".local", "bin"),
-        os.path.join(home, ".pyenv", "shims"),
-        os.path.join(home, ".pyenv", "bin"),
-        os.path.join(home, "bin"),
-    ]
-    env = os.environ.copy()
-    current_path = env.get("PATH", "")
-    env["PATH"] = os.pathsep.join(extra_dirs) + os.pathsep + current_path
-
-    # Ensure user-compiled libsqlite3 (in ~/.local/lib) is loaded at runtime.
-    local_lib = os.path.join(home, ".local", "lib")
-    current_ldpath = env.get("LD_LIBRARY_PATH", "")
-    env["LD_LIBRARY_PATH"] = local_lib + (os.pathsep + current_ldpath if current_ldpath else "")
-
-    # Force unbuffered output so prompts (no trailing \n) arrive immediately.
-    env["PYTHONUNBUFFERED"] = "1"
-
-    # Resolve absolute path if possible (avoids relying on PATH at exec time)
-    unit3dup_bin = shutil.which("unit3dup", path=env["PATH"]) or "unit3dup"
-
-    master_fd: Optional[int] = None
-
-    # ------------------------------------------------------------------ pty --
-    if _HAS_PTY:
-        # Open a pty so unit3dup/rich thinks it's writing to a real terminal →
-        # live progress-bar updates instead of a single flush at exit.
-        master_fd, slave_fd = pty.openpty()
-        try:
-            import struct
-            import termios
-            winsize = struct.pack("HHHH", 40, 120, 0, 0)
-            fcntl.ioctl(slave_fd, termios.TIOCSWINSZ, winsize)
-        except Exception:
-            pass
-        env.update({"COLUMNS": "120", "LINES": "40",
-                     "TERM": "xterm-256color", "FORCE_COLOR": "1"})
-
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                unit3dup_bin, *args,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=slave_fd,
-                stderr=slave_fd,
-                env=env,
-            )
-        except FileNotFoundError:
-            os.close(master_fd)
-            os.close(slave_fd)
-            yield {"type": "error", "data": f"'unit3dup' not found in PATH.\nSearched: {env['PATH']}"}
-            return
-
-        os.close(slave_fd)  # parent only needs master end
-
-        # Set master fd non-blocking so loop.add_reader works correctly
-        flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
-        fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)
-
-        loop = asyncio.get_running_loop()
-        _pty_q: asyncio.Queue = asyncio.Queue()
-
-        def _on_readable() -> None:
-            try:
-                data = os.read(master_fd, 4096)
-                if data:
-                    _pty_q.put_nowait(data)
-            except BlockingIOError:
-                pass
-            except OSError:
-                # EIO: child closed the slave (process exited)
-                _pty_q.put_nowait(b"")
-                loop.remove_reader(master_fd)
-
-        loop.add_reader(master_fd, _on_readable)
-
-        async def _read_chunk() -> bytes:
-            return await asyncio.wait_for(_pty_q.get(), timeout=0.3)
-
-    # --------------------------------------------------------------- pipe ---
-    else:
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                unit3dup_bin, *args,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.STDOUT,
-                env=env,
-            )
-        except FileNotFoundError:
-            yield {"type": "error", "data": f"'unit3dup' not found in PATH.\nSearched: {env['PATH']}"}
-            return
-
-        assert proc.stdout is not None
-
-        async def _read_chunk() -> bytes:
-            return await asyncio.wait_for(proc.stdout.read(512), timeout=0.3)
-
-    assert proc.stdin is not None
-
-    # ------------------------------------------------- emit helper ----------
-    async def _handle_prompt(raw: str) -> None:
-        """Detect prompt kind, yield event, read user answer, forward to stdin."""
-        kind = _prompt_kind(raw)
-        yield_data = _ANSI_RE.sub("", raw).strip()
-        # We can't yield from a nested function, so we push to a side-channel.
-        # Caller drains _prompt_events after each chunk loop iteration.
-        _prompt_events.append({"type": "input_needed", "kind": kind, "data": yield_data})
-        if kind == "tmdb":
-            _default = tmdb_id if tmdb_id else "0"
-            answer = (await input_queue.get()) if input_queue is not None else _default
-        else:
-            # duplicate: always wait — no auto-skip
-            answer = (await input_queue.get()) if input_queue is not None else "s"
-        proc.stdin.write((answer + "\n").encode())
-        await proc.stdin.drain()
-
-    # Side-channel list for events produced inside the chunk-processing loop
-    _prompt_events: list[dict] = []
-
-    # ------------------------------------------------- main read loop -------
-    buf = ""
-    while True:
-        # --- read chunk ---
-        try:
-            chunk = await _read_chunk()
-        except asyncio.TimeoutError:
-            if buf and _is_prompt(buf):
-                kind = _prompt_kind(buf)
-                prompt_text = _ANSI_RE.sub("", buf).strip()
-                yield {"type": "input_needed", "kind": kind, "data": prompt_text}
-                if kind == "tmdb":
-                    _default = tmdb_id if tmdb_id else "0"
-                    answer = (await input_queue.get()) if input_queue is not None else _default
-                else:
-                    answer = (await input_queue.get()) if input_queue is not None else "s"
-                proc.stdin.write((answer + "\n").encode())
-                await proc.stdin.drain()
-                buf = ""
-            continue
-
-        if not chunk:
-            # EOF — flush remainder
-            if buf.strip():
-                clean = _ANSI_RE.sub("", buf).rstrip()
-                if clean:
-                    yield {"type": "log", "data": clean}
-            break
-
-        # Strip ANSI, accumulate
-        buf += _ANSI_RE.sub("", chunk.decode("utf-8", errors="replace"))
-
-        # Split buf on \r\n / \n (log lines) and bare \r (progress overwrites)
-        while True:
-            rn = buf.find("\r\n")
-            nl = buf.find("\n")
-            cr = buf.find("\r")
-
-            # Find earliest terminator; \r\n beats bare \r at same position
-            candidates = [(p, t) for p, t in ((rn, "rn"), (nl, "nl"), (cr, "cr")) if p != -1]
-            if not candidates:
-                break
-            earliest_pos, earliest_type = min(candidates, key=lambda x: x[0])
-
-            if earliest_type == "rn":
-                line, buf = buf[:rn], buf[rn + 2:]
-                if line.strip():
-                    yield {"type": "log", "data": line}
-            elif earliest_type == "nl":
-                line, buf = buf[:nl], buf[nl + 1:]
-                if line.strip():
-                    yield {"type": "log", "data": line}
-            else:  # bare \r → progress overwrite
-                line, buf = buf[:cr], buf[cr + 1:]
-                if line.strip():
-                    yield {"type": "progress", "data": line}
-
-        # Partial line: check if it's already a prompt
-        if buf and _is_prompt(buf):
-            kind = _prompt_kind(buf)
-            prompt_text = _ANSI_RE.sub("", buf).strip()
-            yield {"type": "input_needed", "kind": kind, "data": prompt_text}
-            if kind == "tmdb":
-                _default = tmdb_id if tmdb_id else "0"
-                answer = (await input_queue.get()) if input_queue is not None else _default
-            else:
-                answer = (await input_queue.get()) if input_queue is not None else "s"
-            proc.stdin.write((answer + "\n").encode())
-            await proc.stdin.drain()
-            buf = ""
-
-    # Cleanup pty fds
-    if master_fd is not None:
-        try:
-            loop.remove_reader(master_fd)
-        except Exception:
-            pass
-        try:
-            os.close(master_fd)
-        except Exception:
-            pass
-
-    exit_code = await proc.wait()
-    yield {"type": "done", "data": "", "exit_code": exit_code}

@@ -160,7 +160,7 @@ class _StubTracker(Tracker):
 
 
 def build_trackers(cfg: dict[str, Any]) -> dict[str, Tracker]:
-    """Instantiate all three trackers from Unit3Dbot.json config."""
+    """Instantiate all three trackers from the shared .env config."""
     return {
         "ITT": Unit3DTracker(
             "ITT", "ITA Torrents",

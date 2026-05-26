@@ -5,21 +5,22 @@ import type { VersionInfo } from '../types';
 
 interface Props {
   info: VersionInfo | null;
-  onCompleted: (target: 'app' | 'unit3dup', from: string, to: string) => void;
+  onCompleted: (target: 'app' | 'webup', from: string, to: string) => void;
 }
 
 export function UpdateBanner({ info, onCompleted }: Props) {
-  const [target, setTarget] = useState<'app' | 'unit3dup' | null>(null);
+  const [target, setTarget] = useState<'app' | 'webup' | null>(null);
 
   if (!info) return null;
   const appAvail = info.app?.newer && !!info.app?.latest;
-  const botAvail = info.unit3dup?.newer && !!info.unit3dup?.latest;
+  const botAvail = info.webup?.newer && !!info.webup?.latest;
   if (!appAvail && !botAvail) return null;
 
   const appDisabled = !info.can_update_app;
+  const botDisabled = !info.can_update_webup;
 
   const btn = (
-    key: 'app' | 'unit3dup', label: string, from: string, to: string,
+    key: 'app' | 'webup', label: string, from: string, to: string,
     Icon: typeof Download, disabled = false, tip?: string,
   ) => (
     <button
@@ -66,9 +67,10 @@ export function UpdateBanner({ info, onCompleted }: Props) {
           'app', 'App', info.app.current || '–', info.app.latest, Box,
           appDisabled, 'systemd unit not available in this environment',
         )}
-        {botAvail && info.unit3dup.latest && btn(
-          'unit3dup', 'unit3dup', info.unit3dup.current || '–',
-          info.unit3dup.latest, Package,
+        {botAvail && info.webup.latest && btn(
+          'webup', 'Unit3DWebUp', info.webup.current || '–',
+          info.webup.latest, Package, botDisabled,
+          'unit3dwebup.service or WEBUP_REPO_PATH not configured',
         )}
       </div>
       {target && (

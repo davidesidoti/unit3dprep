@@ -14,6 +14,8 @@ from ._env import env as _env, migrate_dotfiles
 from .auth import SECRET_KEY
 from .db import init_db
 from . import logbuf
+from .webup_client import get_client as get_webup_client, shutdown_client as shutdown_webup_client
+from .webup_ws import WebupWSManager
 from .api import (
     auth as auth_api,
     fs as fs_api,
@@ -27,6 +29,7 @@ from .api import (
     trackers as trackers_api,
     uploaded as uploaded_api,
     version as version_api,
+    webup as webup_api,
     wizard as wizard_api,
 )
 
@@ -81,6 +84,36 @@ async def _startup():
     logbuf.install(asyncio.get_event_loop())
     logging.getLogger("unit3dprep").info("unit3dprep-web started")
 
+    # Webup orchestration state.
+    app.state.webup = get_webup_client()
+    app.state.webup_ws = WebupWSManager()
+    app.state.webup_ws.start()
+    app.state.webup_scan_lock = asyncio.Lock()
+
+    # Best-effort runtime bridge: push the shared .env content to webup's
+    # in-memory settings via /setenv on startup, so config changes saved while
+    # webup was offline take effect without restarting it.
+    # Non-blocking; ignore failures (webup may not be running yet).
+    try:
+        from .config import bootstrap_webup_env
+        asyncio.create_task(bootstrap_webup_env(app.state.webup), name="webup-bootstrap-env")
+    except Exception:
+        logging.getLogger("unit3dprep").exception("webup bootstrap scheduling failed")
+
+
+@app.on_event("shutdown")
+async def _shutdown():
+    ws_mgr = getattr(app.state, "webup_ws", None)
+    if ws_mgr is not None:
+        try:
+            await ws_mgr.stop()
+        except Exception:
+            pass
+    try:
+        await shutdown_webup_client()
+    except Exception:
+        pass
+
 
 # Mount all JSON routers under ROOT_PATH (routers themselves already declare
 # /api/... so the final path is /{ROOT_PATH}/api/...).
@@ -97,6 +130,7 @@ for r in (
     trackers_api.router,
     uploaded_api.router,
     version_api.router,
+    webup_api.router,
     wizard_api.router,
 ):
     app.include_router(r, prefix=ROOT_PATH)

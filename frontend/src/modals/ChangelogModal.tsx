@@ -12,7 +12,7 @@ interface Release {
 }
 
 interface Props {
-  target: 'app' | 'unit3dup';
+  target: 'app' | 'webup';
   from: string;
   to: string;
   onClose: () => void;
@@ -32,7 +32,7 @@ export function ChangelogModal({ target, from, to, onClose }: Props) {
       .finally(() => setLoading(false));
   }, [target, to, t]);
 
-  const title = target === 'app' ? t('changelog.appUpdated') : t('changelog.unit3dupUpdated');
+  const title = target === 'app' ? t('changelog.appUpdated') : t('changelog.webupUpdated');
 
   return (
     <div
@@ -95,7 +95,7 @@ export function ChangelogModal({ target, from, to, onClose }: Props) {
           {loading && <div style={{ color: 'var(--fg-4)' }}>{t('changelog.loading')}</div>}
           {!loading && target !== 'app' && (
             <div style={{ color: 'var(--fg-3)' }}>
-              {t('changelog.unit3dupUpdatedTo')} <b>{to}</b>. {t('changelog.seePyPI')}.
+              {t('changelog.webupUpdatedTo')} <b>{to}</b>. {t('changelog.seeWebupRepo')}.
             </div>
           )}
           {!loading && target === 'app' && error && (
