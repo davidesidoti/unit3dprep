@@ -157,10 +157,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "WATCHER_INTERVAL": 60,
     "TORRENT_COMMENT": "",
     # Webup `tags_service.mediainfo_audio` blocks upload (`can_upload=False`)
-    # when PREFERRED_LANG is not present among the audio tracks. The literal
-    # "all" doesn't match any ISO code, so webup silently rejects every media.
-    # ItaTorrents is an Italian tracker; "ita" is the right pre-flight default.
-    "PREFERRED_LANG": "ita",
+    # when PREFERRED_LANG is not present among the audio tracks. Webup 0.0.25
+    # expects ISO 639-1 codes ("it"), not ISO 639-2 ("ita"); mediainfo's
+    # `language` field on each audio track is the 2-letter code, so anything
+    # else silently fails the match and the upload is dropped without logging.
+    # ItaTorrents is an Italian tracker; "it" is the right pre-flight default.
+    "PREFERRED_LANG": "it",
     "RELEASER_SIGN": "",
 
     "PTSCREENS_KEY": "",
@@ -598,7 +600,7 @@ def _short_to_canonical(cfg: dict[str, Any]) -> dict[str, str]:
         if short in WEBUP_KEY_MAP:
             sv = _stringify_value(val)
             if sv is None and short in _WEBUP_REQUIRED_PATH_KEYS:
-                sv = "."
+                sv = str(Path.home())
             if sv is not None:
                 out[WEBUP_KEY_MAP[short]] = sv
         else:
