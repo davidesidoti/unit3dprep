@@ -402,7 +402,7 @@ async def _stream_subprocess(argv: list[str], cwd: Path | None = None) -> AsyncG
 @router.get("/version/update/webup/stream")
 async def update_webup():
     """Update Unit3DWebUp: git pull → pip install → systemctl restart."""
-    async def gen() -> AsyncGenerator[dict, None]:
+    async def gen_inner() -> AsyncGenerator[dict, None]:
         before = (
             await _current_webup_version()
             or _current_webup_pip_version()
@@ -489,15 +489,30 @@ async def update_webup():
         after = _current_webup_pip_version() or _current_webup_repo_version()
         yield _sse("done", {"ok": True, "target": "webup", "from": before, "to": after})
 
+    async def gen() -> AsyncGenerator[dict, None]:
+        try:
+            async for ev in gen_inner():
+                yield ev
+        except Exception as exc:
+            import traceback
+            tb = traceback.format_exc()
+            yield _sse("error", {"message": f"unexpected error: {exc!r}", "traceback": tb})
+            yield _sse("done", {"ok": False})
+
     return EventSourceResponse(gen())
 
 
 async def _git(argv: list[str], cwd: Path) -> tuple[int, str]:
-    proc = await asyncio.create_subprocess_exec(
-        "git", *argv,
-        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
-        cwd=str(cwd),
-    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "git", *argv,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+            cwd=str(cwd),
+        )
+    except FileNotFoundError:
+        return 127, "git executable not found in PATH"
+    except Exception as exc:
+        return 1, f"failed to spawn git: {exc!r}"
     out, _ = await proc.communicate()
     return proc.returncode or 0, out.decode("utf-8", errors="replace").strip()
 
@@ -512,37 +527,47 @@ def _repo_root() -> Path | None:
 @router.get("/version/update/app/stream")
 async def update_app():
     async def gen() -> AsyncGenerator[dict, None]:
-        before = _current_app_version()
-        mode = _install_mode()
-        yield _sse("start", {"target": "app", "current": before, "mode": mode})
+        try:
+            before = _current_app_version()
+            mode = _install_mode()
+            yield _sse("start", {"target": "app", "current": before, "mode": mode})
 
-        if not _systemd_available():
-            yield _sse("error", {"message": f"systemd unit '{_systemd_unit()}' not available"})
+            if not _systemd_available():
+                yield _sse("error", {"message": f"systemd unit '{_systemd_unit()}' not available"})
+                yield _sse("done", {"ok": False})
+                return
+
+            if mode == "git":
+                async for ev in _update_app_from_git():
+                    yield ev
+                    data = ev.get("data") or ""
+                    if ev["event"] == "done":
+                        try:
+                            if not json.loads(data).get("ok"):
+                                return
+                        except Exception:
+                            return
+                        break
+            else:
+                async for ev in _update_app_from_pip():
+                    yield ev
+                    data = ev.get("data") or ""
+                    if ev["event"] == "done":
+                        try:
+                            if not json.loads(data).get("ok"):
+                                return
+                        except Exception:
+                            return
+                        break
+        except Exception as exc:
+            # Surface unexpected errors as proper SSE events instead of an
+            # abrupt stream close, which the frontend would render as
+            # "(stream closed)" with no actionable diagnostic.
+            import traceback
+            tb = traceback.format_exc()
+            yield _sse("error", {"message": f"unexpected error: {exc!r}", "traceback": tb})
             yield _sse("done", {"ok": False})
             return
-
-        if mode == "git":
-            async for ev in _update_app_from_git():
-                yield ev
-                data = ev.get("data") or ""
-                if ev["event"] == "done":
-                    try:
-                        if not json.loads(data).get("ok"):
-                            return
-                    except Exception:
-                        return
-                    break
-        else:
-            async for ev in _update_app_from_pip():
-                yield ev
-                data = ev.get("data") or ""
-                if ev["event"] == "done":
-                    try:
-                        if not json.loads(data).get("ok"):
-                            return
-                    except Exception:
-                        return
-                    break
 
         await asyncio.sleep(1.5)
 

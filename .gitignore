@@ -196,3 +196,7 @@ frontend/dist/
 
 # Unit3DUp
 http_cache/
+
+# Runtime artifacts that may land in the repo root on VPS deployments
+dump.rdb
+.python-version
