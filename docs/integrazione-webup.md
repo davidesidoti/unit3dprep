@@ -222,7 +222,7 @@ Anche il batch upload (`stream_webup_batch`) rispetta il flag: in dry-run esegue
 
 | Limitazione | Causa | Workaround |
 |---|---|---|
-| `DUPLICATE_ON` / `SKIP_DUPLICATE` non funzionano | Webup ha `# Todo Not yet implemented` in `config/settings.py` | Il bridge li scrive comunque nel `.env` (per future versioni); attualmente il bot li ignora. |
+| `DUPLICATE_ON` / `SKIP_DUPLICATE` non funzionano | Webup ha `# Todo Not yet implemented` in `config/settings.py` | Il bridge li scrive comunque nel `.env` (per future versioni); attualmente il bot li ignora. unit3dprep esegue un proprio duplicate check client-side: vedi [Uso › Wizard › Controllo duplicati](uso-web.md#controllo-duplicati-pre-upload). |
 | Redis non spostabile da `127.0.0.1:6379` | Webup hardcoded | Run Redis sulla porta default. `REDIS_HOST/PORT` ignorate. |
 | ffmpeg fallisce silenziosamente | Webup screenshot generation | Verifica `which ffmpeg` prima del primo upload. Se manca, `/scan` ritorna `[]`. |
 | `DOCKER` env truthy check rotto | Webup `config/settings.py`: `if not os.getenv("DOCKER")` | Mai impostare `DOCKER` a meno di non essere in Docker (e in quel caso, `DOCKER=true`). |

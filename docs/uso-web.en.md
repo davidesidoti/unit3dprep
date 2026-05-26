@@ -58,9 +58,23 @@ Typical steps:
 2. **Audio check** — if `W_AUDIO_CHECK`, scans the tracks.
 3. **TMDB** — search or ID entry. If `W_AUTO_TMDB`, auto-fetch from an existing ID.
 4. **Name preview** — editable; if `W_CONFIRM_NAMES` is OFF, skips the confirmation.
-5. **Hardlink** — into `U3DP_SEEDINGS_DIR/.unit3dprep/<jobid>/...` (per-upload sandbox, see [Unit3DWebUp integration](integrazione-webup.md#scan_path-semantics-per-upload-sandbox)). If `W_HARDLINK_ONLY`, stops here and records exit code `0`.
-6. **Upload** — the HTTP bridge runs `setenv → scan → maketorrent → upload → seed` against Unit3DWebUp and streams logs + progress to the frontend over SSE (`GET /wizard/{token}/stream`). Phase weights shown in the bar: setenv 3% / scan 27% / maketorrent 45% / upload 15% / seed 10%.
-7. **History write** — `update_exit_code(seeding_path, code)` persists into `U3DP_DB_PATH` (also from `wizard_finish` when `W_HARDLINK_ONLY=1`, exit code 0).
+5. **Duplicate check** — if `W_DUPLICATE_CHECK` (default ON), query the ITT API before hardlinking. If a torrent with the same exact byte size already exists, a yellow panel pops up (see below). Skipped for season packs.
+6. **Hardlink** — into `U3DP_SEEDINGS_DIR/.unit3dprep/<jobid>/...` (per-upload sandbox, see [Unit3DWebUp integration](integrazione-webup.md#scan_path-semantics-per-upload-sandbox)). If `W_HARDLINK_ONLY`, stops here and records exit code `0`.
+7. **Upload** — the HTTP bridge runs `setenv → scan → maketorrent → upload → seed` against Unit3DWebUp and streams logs + progress to the frontend over SSE (`GET /wizard/{token}/stream`). Phase weights shown in the bar: setenv 3% / scan 27% / maketorrent 45% / upload 15% / seed 10%.
+8. **History write** — `update_exit_code(seeding_path, code)` persists into `U3DP_DB_PATH` (also from `wizard_finish` when `W_HARDLINK_ONLY=1`, exit code 0).
+
+### Pre-upload duplicate check
+
+Replicates the legacy `unit3dup` CLI behavior: before building the `.torrent`, the bridge calls `GET <ITT_URL>/api/torrents/filter?tmdbId=<id>&api_token=<key>` and compares `data[].attributes.size` byte-by-byte against the local file size. Exact match → yellow panel with:
+
+- **Name**, **size**, **type/resolution**, **uploader**, **seeders/leechers**, **created at**;
+- **"Open on tracker"** link to the details page;
+- **"Upload anyway"** → proceeds with hardlink + upload (useful for legitimate re-releases or alternate sources);
+- **"Cancel"** → writes a history entry with status `⏭ duplicate skipped`, hides the item from the Media Library (`source_path` lands in `uploaded_paths`), and ends the wizard without creating any hardlink.
+
+Webup 0.0.25 does NOT implement duplicate detection (`DUPLICATE_ON`/`SKIP_DUPLICATE` are `# Todo Not yet implemented` upstream): the check is performed by the unit3dprep bridge and only runs for `kind=movie` and `kind=episode`. Season packs are skipped because the pack's total byte size doesn't correspond to any single torrent on the tracker.
+
+Best-effort: if the ITT API is unreachable or returns an error, the check is skipped silently and the upload proceeds normally. Disabled globally from **Settings → Wizard defaults → Tracker duplicate check**.
 
 ### Quick upload
 
@@ -91,11 +105,18 @@ Endpoint: `GET /api/queue`. Client credentials read from the `QBIT_*` / `TRASM_*
 Table of completed uploads (`GET /api/uploaded`). Fields:
 
 - Local path in `~/seedings/`.
-- Webup-bridge exit code (0 = ok, ≠0 = error, `pending` = never finished).
+- Record status:
+    - `✓ exit 0` — upload completed normally.
+    - `✗ exit N` — failed with the given code.
+    - `pending` — exit code never written (see note below).
+    - `manual` — `W_HARDLINK_ONLY=1` (hardlink only, no upload).
+    - `⏭ duplicate skipped` — the user cancelled after the [duplicate check](#pre-upload-duplicate-check) found a torrent with the same exact byte size. `duplicate_info` (id, name, tracker link, etc.) is persisted in the DB for audit.
 - Destination tracker.
 - Timestamp.
 - Size.
 - Search and filter.
+
+Stat cards on top: **Total**, **Success**, **Failed**, **Hardlink only**, **Duplicate skipped**.
 
 On mobile the table uses `overflow-x:auto` with `min-width:820px` to stay readable on narrow screens.
 

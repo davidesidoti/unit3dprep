@@ -58,9 +58,23 @@ Step tipici:
 2. **Check audio** — se `W_AUDIO_CHECK`, scansiona le tracce.
 3. **TMDB** — ricerca o inserimento ID. Se `W_AUTO_TMDB`, auto-fetch da ID esistente.
 4. **Preview nome** — editabile; se `W_CONFIRM_NAMES` è OFF, salta la conferma.
-5. **Hardlink** — in `U3DP_SEEDINGS_DIR/.unit3dprep/<jobid>/...` (sandbox per-upload, vedi [Integrazione Unit3DWebUp](integrazione-webup.md#semantica-scan_path-sandbox-per-upload)). Se `W_HARDLINK_ONLY`, termina qui e registra exit code `0`.
-6. **Upload** — il bridge HTTP esegue `setenv → scan → maketorrent → upload → seed` su Unit3DWebUp e stream-a log + progress al frontend via SSE (`GET /wizard/{token}/stream`). Phase weights mostrati in barra: setenv 3% / scan 27% / maketorrent 45% / upload 15% / seed 10%.
-7. **Registrazione storico** — `update_exit_code(seeding_path, code)` scrive in `U3DP_DB_PATH` (anche su `wizard_finish` quando `W_HARDLINK_ONLY=1`, exit code 0).
+5. **Controllo duplicati** — se `W_DUPLICATE_CHECK` (default ON), interroga l'API ITT prima dell'hardlink. Se trova un torrent con la stessa dimensione esatta, mostra un pannello giallo (vedi sotto). Saltato per i season pack.
+6. **Hardlink** — in `U3DP_SEEDINGS_DIR/.unit3dprep/<jobid>/...` (sandbox per-upload, vedi [Integrazione Unit3DWebUp](integrazione-webup.md#semantica-scan_path-sandbox-per-upload)). Se `W_HARDLINK_ONLY`, termina qui e registra exit code `0`.
+7. **Upload** — il bridge HTTP esegue `setenv → scan → maketorrent → upload → seed` su Unit3DWebUp e stream-a log + progress al frontend via SSE (`GET /wizard/{token}/stream`). Phase weights mostrati in barra: setenv 3% / scan 27% / maketorrent 45% / upload 15% / seed 10%.
+8. **Registrazione storico** — `update_exit_code(seeding_path, code)` scrive in `U3DP_DB_PATH` (anche su `wizard_finish` quando `W_HARDLINK_ONLY=1`, exit code 0).
+
+### Controllo duplicati pre-upload
+
+Replica il comportamento del vecchio `unit3dup` CLI: prima di creare il `.torrent`, il bridge chiama `GET <ITT_URL>/api/torrents/filter?tmdbId=<id>&api_token=<key>` e confronta `data[].attributes.size` byte-per-byte con la dimensione del file locale. Match esatto → pannello giallo con:
+
+- **Nome**, **dimensione**, **tipo/risoluzione**, **uploader**, **seeders/leechers**, **data creazione**;
+- **Link "Apri sul tracker"** alla pagina dei dettagli;
+- **"Carica comunque"** → procede con hardlink + upload (utile se si tratta di una re-release legittima o di un'altra fonte);
+- **"Annulla"** → registra una entry nello storico con status `⏭ duplicato skippato`, nasconde l'item dalla Media Library (`source_path` finisce in `uploaded_paths`), e termina il wizard senza creare l'hardlink.
+
+Webup 0.0.25 NON implementa duplicate detection (`DUPLICATE_ON`/`SKIP_DUPLICATE` sono `# Todo Not yet implemented` upstream): il check è eseguito dal bridge unit3dprep e funziona solo su `kind=movie` e `kind=episode`. Per i season pack la somma totale dei byte non corrisponde a nessun singolo torrent sul tracker, quindi il check viene saltato.
+
+Best-effort: se l'API ITT è irraggiungibile o ritorna un errore, il check viene saltato silenziosamente e l'upload prosegue normalmente. Disabilitabile globalmente da **Settings → Default wizard → Controllo duplicati sul tracker**.
 
 ### Quick upload
 
@@ -91,11 +105,18 @@ Endpoint: `GET /api/queue`. Credenziali client lette dalle chiavi `QBIT_*` / `TR
 Tabella degli upload completati (`GET /api/uploaded`). Campi:
 
 - Path locale in `~/seedings/`.
-- Exit code del bridge webup (0 = ok, ≠0 = errore, `pending` = mai finito).
+- Stato del record:
+    - `✓ exit 0` — upload completato regolarmente.
+    - `✗ exit N` — fallito col codice indicato.
+    - `pending` — exit code mai registrato (vedi nota qui sotto).
+    - `manual` — `W_HARDLINK_ONLY=1` (solo hardlink, niente upload).
+    - `⏭ duplicato skippato` — l'utente ha annullato dopo che il [controllo duplicati](#controllo-duplicati-pre-upload) ha trovato un torrent con la stessa dimensione esatta. Il `duplicate_info` (id, nome, link tracker, ecc.) è persistito nel DB per audit.
 - Tracker di destinazione.
 - Timestamp.
 - Dimensione.
 - Ricerca e filtro.
+
+Stat card in cima: **Totale**, **Completati**, **Falliti**, **Hardlink only**, **Duplicati skippati**.
 
 Su mobile la tabella ha `overflow-x:auto` con `min-width:820px` per garantire leggibilità su schermi stretti.
 

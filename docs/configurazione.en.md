@@ -75,6 +75,7 @@ Control default state of upload wizard toggles. Stored in the shared `.env`, edi
 | `W_HIDE_NO_ITALIAN` | `false` | Hide already-scanned items without Italian audio from the Library. |
 | `W_HARDLINK_ONLY` | `false` | End the wizard after the hardlink, without invoking the Unit3DWebUp upload. |
 | `W_CONFIRM_NAMES` | `true` | Require confirmation of the final name before hardlinking. |
+| `W_DUPLICATE_CHECK` | `true` | Before hardlinking, query the ITT API (`/api/torrents/filter?tmdbId=<id>`) and prompt for confirmation if a torrent with the exact same byte size already exists. See [Usage › Wizard › Duplicate check](uso-web.md#pre-upload-duplicate-check). |
 
 ---
 

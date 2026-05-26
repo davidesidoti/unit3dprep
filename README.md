@@ -16,6 +16,8 @@ Configurazione unificata: un singolo file `.env` condiviso tra `unit3dprep` e `U
 Auto-update integrato per **app** (GitHub Releases) e **Unit3DWebUp** (PyPI): pulsante "Aggiorna" in Settings → Versione, log `pip`/`git` live-streamed via SSE, restart systemd e reload del browser con popup changelog.
 La Web UI è disponibile in **italiano e inglese** (selettore nella TopBar).
 
+**Controllo duplicati pre-upload**: prima di costruire il `.torrent` il bridge interroga l'API ITT per `tmdbId` e match esatto sulla dimensione in byte. Se trova un duplicato mostra un pannello con i dettagli + "Carica comunque / Annulla"; l'annullamento traccia "duplicato skippato" nello storico e nasconde l'item dalla Media Library. Replica il vecchio `unit3dup` CLI (Unit3DWebUp 0.0.25 non implementa duplicate detection). Disabilitabile con `W_DUPLICATE_CHECK=false`.
+
 ![Media Library](docs/assets/screenshots/media_library.png)
 
 **Documentazione completa → <https://davidesidoti.github.io/unit3dprep/>**
