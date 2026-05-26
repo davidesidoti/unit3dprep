@@ -1214,6 +1214,9 @@ function SeedingSection({
       <ToggleRow cfg={cfg} set={set} k="W_CONFIRM_NAMES"
         label={t('settings.seedingWizardConfirmNames')}
         sub={t('settings.seedingWizardConfirmNamesSub')} />
+      <ToggleRow cfg={cfg} set={set} k="W_DUPLICATE_CHECK"
+        label={t('settings.seedingWizardDuplicateCheck')}
+        sub={t('settings.seedingWizardDuplicateCheckSub')} />
     </>
   );
 }

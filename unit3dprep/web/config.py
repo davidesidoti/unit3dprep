@@ -231,6 +231,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "W_HIDE_NO_ITALIAN": False,
     "W_HARDLINK_ONLY": False,
     "W_CONFIRM_NAMES": True,
+    "W_DUPLICATE_CHECK": True,
 }
 
 MASKED_KEYS = {
@@ -529,6 +530,7 @@ _GROUPS: list[tuple[str, list[str]]] = [
     ("Wizard defaults (unit3dprep)", [
         "W_AUDIO_CHECK", "W_AUTO_TMDB", "W_HIDE_UPLOADED",
         "W_HIDE_NO_ITALIAN", "W_HARDLINK_ONLY", "W_CONFIRM_NAMES",
+        "W_DUPLICATE_CHECK",
     ]),
 ]
 

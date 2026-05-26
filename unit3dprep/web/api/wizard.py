@@ -31,7 +31,9 @@ from ...upload import (
     do_hardlink_series,
 )
 from ...i18n import get_request_lang, t as _i18n_t
+from .. import config as web_config
 from ..db import record_upload, update_exit_code
+from ..duplicate_check import find_duplicate
 from ..logbuf import emit as log_emit
 from ..webup_orchestrator import stream_webup
 
@@ -133,6 +135,8 @@ async def wizard_start(request: Request, body: StartBody):
         "upload_done": False,
         "exit_code": None,
         "hardlink_only": body.hardlink_only,
+        "duplicate": None,
+        "duplicate_confirmed": False,
     }
     tok = _create(state)
     return JSONResponse({"token": tok, "state": state})
@@ -291,6 +295,54 @@ async def wizard_names(tok: str, body: NamesBody):
     state["final_names"] = {k: v.strip() for k, v in body.final_names.items()}
     if body.folder_name:
         state["folder_name"] = body.folder_name.strip()
+    state["step"] = "duplicate_check"
+    return JSONResponse({"ok": True})
+
+
+def _primary_source_size(state: dict[str, Any]) -> int | None:
+    """Bytes of the file we're about to upload (None for season packs)."""
+    if state["kind"] not in {"movie", "episode"}:
+        return None
+    path = Path(state["path"])
+    src = path if path.is_file() else next(iter(iter_video_files(path)), None)
+    if src is None:
+        return None
+    try:
+        return src.stat().st_size
+    except OSError:
+        return None
+
+
+@router.post("/wizard/{tok}/duplicate-check")
+async def wizard_duplicate_check(tok: str):
+    state = _get(tok)
+    cfg = web_config.load()
+    enabled = bool(cfg.get("W_DUPLICATE_CHECK", True))
+    state["duplicate"] = None
+    if not enabled or state["kind"] not in {"movie", "episode"}:
+        state["step"] = "hardlink"
+        return JSONResponse({"enabled": enabled, "duplicate": None})
+    size = _primary_source_size(state)
+    tmdb_id = state.get("tmdb_id", "")
+    tracker_url = (cfg.get("ITT_URL") or "").strip()
+    api_token = (cfg.get("ITT_APIKEY") or "").strip()
+    match = await find_duplicate(
+        tracker_url=tracker_url,
+        api_token=api_token,
+        tmdb_id=tmdb_id,
+        size_bytes=size,
+    )
+    if match is None:
+        state["step"] = "hardlink"
+        return JSONResponse({"enabled": True, "duplicate": None})
+    state["duplicate"] = match
+    return JSONResponse({"enabled": True, "duplicate": match})
+
+
+@router.post("/wizard/{tok}/duplicate-confirm")
+async def wizard_duplicate_confirm(tok: str):
+    state = _get(tok)
+    state["duplicate_confirmed"] = True
     state["step"] = "hardlink"
     return JSONResponse({"ok": True})
 

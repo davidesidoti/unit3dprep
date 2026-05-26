@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { api, openSSE } from '../api';
 import type { WizardCtx } from '../types';
 
-type StepId = 'audio' | 'tmdb' | 'names' | 'hardlink' | 'upload';
+type StepId = 'audio' | 'tmdb' | 'names' | 'duplicate' | 'hardlink' | 'upload';
 
 const STEPS: { id: StepId; labelKey: string; icon: string }[] = [
   { id: 'audio',    labelKey: 'wizard.stepAudio',    icon: '🎧' },
@@ -13,11 +13,27 @@ const STEPS: { id: StepId; labelKey: string; icon: string }[] = [
   { id: 'upload',   labelKey: 'wizard.stepUpload',   icon: '⬆' },
 ];
 
+type DuplicateInfo = {
+  id?: string | number;
+  name?: string;
+  size?: number;
+  type?: string;
+  resolution?: string;
+  category?: string;
+  uploader?: string;
+  seeders?: number;
+  leechers?: number;
+  created_at?: string;
+  details_link?: string;
+  tmdb_id?: number;
+};
+
 export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => void }) {
   const { t } = useTranslation();
   const [token, setToken] = useState<string | null>(null);
   const [step, setStep] = useState<StepId>('audio');
   const [startError, setStartError] = useState('');
+  const [duplicate, setDuplicate] = useState<DuplicateInfo | null>(null);
 
   useEffect(() => {
     api.post<{ token: string }>('/api/wizard/start', {
@@ -38,7 +54,10 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => v
     series:  ctx.season ? t('wizard.kindBulkSeason') : t('wizard.kindSeries'),
   }[ctx.kind];
 
-  const idx = STEPS.findIndex((s) => s.id === step);
+  // 'duplicate' is a transient sub-step of 'names' — keep the stepper showing
+  // names as active when we're presenting the duplicate-found panel.
+  const stepperStep: StepId = step === 'duplicate' ? 'names' : step;
+  const idx = STEPS.findIndex((s) => s.id === stepperStep);
 
   return (
     <div style={{
@@ -125,7 +144,33 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => v
             <TmdbStep token={token} ctx={ctx} onNext={() => setStep('names')} />
           )}
           {token && step === 'names' && (
-            <NamesStep token={token} onNext={() => setStep('hardlink')} />
+            <NamesStep
+              token={token}
+              onNext={async () => {
+                try {
+                  const r = await api.post<{ enabled: boolean; duplicate: DuplicateInfo | null }>(
+                    `/api/wizard/${token}/duplicate-check`,
+                  );
+                  if (r.duplicate) {
+                    setDuplicate(r.duplicate);
+                    setStep('duplicate');
+                  } else {
+                    setStep('hardlink');
+                  }
+                } catch {
+                  // On API failure proceed: dup check is best-effort.
+                  setStep('hardlink');
+                }
+              }}
+            />
+          )}
+          {token && step === 'duplicate' && duplicate && (
+            <DuplicateStep
+              token={token}
+              duplicate={duplicate}
+              onContinue={() => setStep('hardlink')}
+              onCancel={onClose}
+            />
           )}
           {token && step === 'hardlink' && (
             <HardlinkStep
@@ -454,6 +499,129 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
           }}
         >{t('wizard.namesNext')}</button>
       </div>
+    </div>
+  );
+}
+
+function formatBytes(n: number | undefined | null): string {
+  if (!n || n <= 0) return '—';
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  let i = 0, v = n;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v.toFixed(v < 10 && i > 0 ? 2 : 1)} ${units[i]}`;
+}
+
+function DuplicateStep({ token, duplicate, onContinue, onCancel }: {
+  token: string;
+  duplicate: DuplicateInfo;
+  onContinue: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+  const [confirming, setConfirming] = useState(false);
+
+  const confirm = async () => {
+    setConfirming(true);
+    try {
+      await api.post(`/api/wizard/${token}/duplicate-confirm`);
+      onContinue();
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <div style={{ padding: '24px' }}>
+      <div style={{
+        background: 'rgba(234, 179, 8, 0.08)',
+        border: '1px solid rgba(234, 179, 8, 0.35)',
+        borderRadius: 8, padding: '14px 16px', marginBottom: 16,
+      }}>
+        <div style={{
+          fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: 'var(--tracking-wider)', color: 'var(--yellow)',
+          fontFamily: 'var(--font-display)', marginBottom: 6,
+        }}>{t('wizard.duplicateTitle')}</div>
+        <div style={{ fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.55 }}>
+          {t('wizard.duplicateDesc')}
+        </div>
+      </div>
+
+      <div style={{
+        background: 'var(--bg-base)', border: '1px solid var(--border-subtle)',
+        borderRadius: 8, padding: 16, fontFamily: 'var(--font-mono)', fontSize: 11,
+      }}>
+        <DupRow label={t('wizard.duplicateName')} value={duplicate.name || '—'} mono />
+        <DupRow label={t('wizard.duplicateSize')} value={formatBytes(duplicate.size)} />
+        <DupRow label={t('wizard.duplicateType')} value={
+          [duplicate.type, duplicate.resolution].filter(Boolean).join(' · ') || '—'
+        } />
+        {duplicate.uploader && <DupRow label={t('wizard.duplicateUploader')} value={duplicate.uploader} />}
+        <DupRow label={t('wizard.duplicateSeeders')} value={
+          `${duplicate.seeders ?? 0} S · ${duplicate.leechers ?? 0} L`
+        } />
+        {duplicate.created_at && (
+          <DupRow label={t('wizard.duplicateCreated')} value={
+            new Date(duplicate.created_at).toLocaleString()
+          } />
+        )}
+        {duplicate.details_link && (
+          <div style={{ marginTop: 10 }}>
+            <a
+              href={duplicate.details_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: 'var(--blue)', fontSize: 11, textDecoration: 'none' }}
+            >{t('wizard.duplicateOpenLink')} ↗</a>
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20,
+      }}>
+        <button
+          onClick={onCancel}
+          disabled={confirming}
+          style={{
+            background: 'transparent', border: '1px solid var(--border)',
+            color: 'var(--fg-2)', padding: '8px 18px', borderRadius: 6,
+            fontSize: 12, fontWeight: 600,
+            cursor: confirming ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-display)', opacity: confirming ? 0.5 : 1,
+          }}
+        >{t('wizard.duplicateCancel')}</button>
+        <button
+          onClick={confirm}
+          disabled={confirming}
+          style={{
+            background: 'var(--yellow)', border: 'none', color: '#0a0c12',
+            padding: '8px 18px', borderRadius: 6, fontSize: 12,
+            fontWeight: 700,
+            cursor: confirming ? 'not-allowed' : 'pointer',
+            fontFamily: 'var(--font-display)', opacity: confirming ? 0.6 : 1,
+          }}
+        >{confirming ? '…' : t('wizard.duplicateContinue')}</button>
+      </div>
+    </div>
+  );
+}
+
+function DupRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div style={{
+      display: 'flex', gap: 12, padding: '4px 0',
+      borderBottom: '1px solid var(--border-subtle)',
+    }}>
+      <span style={{
+        color: 'var(--fg-4)', fontSize: 10, textTransform: 'uppercase',
+        letterSpacing: 'var(--tracking-wider)', minWidth: 90,
+        fontFamily: 'var(--font-display)',
+      }}>{label}</span>
+      <span style={{
+        color: 'var(--fg-1)', flex: 1, wordBreak: 'break-all',
+        fontFamily: mono ? 'var(--font-mono)' : 'inherit',
+      }}>{value}</span>
     </div>
   );
 }
