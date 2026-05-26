@@ -108,6 +108,12 @@ ENVPATH=~/.config/unit3dprep uvicorn unit3dwup.start:app
 
 The full list lives in `unit3dprep/web/config.py` (`WEBUP_KEY_MAP`).
 
+### `PREFERRED_LANG` — ISO 639-1 format
+
+`PREFS__PREFERRED_LANG` (short name `PREFERRED_LANG`) must be a 2-letter **ISO 639-1** code: `"it"`, `"en"`, `"fr"`, `"es"`, etc. Webup 0.0.25 compares this value against each audio track's `language` field in the mediainfo, which mediainfo emits as the 2-letter code. Using ISO 639-2 (`"ita"`, `"eng"`) the match silently fails, `media.can_upload` becomes `False`, and `UploadUseCase.execute()` skips the tracker submission without emitting any WebSocket log — qBit seeds locally but the tracker responds "InfoHash not found" on announce.
+
+Default in `DEFAULT_CONFIG`: `"it"` (since v0.6.4+). Editable from **Settings → Behavior → Preferred language**. See [Troubleshooting › silent /upload](troubleshooting.md#upload-returns-200-but-the-torrent-never-appears-on-the-tracker-qbit-says-infohash-not-found).
+
 ### Skip rules
 
 `_to_webup_env_payload` skips empty values (`""`, `None`) and the placeholders `no_key` / `no_pass` / `no_path` / `no_comment` from the push to Unit3DWebUp: the bot keeps its own defaults and its pydantic validator (`empty_to_none`) does not hit `None`-to-`str` conversion errors that would `SystemExit(1)` on the next `setenv`.

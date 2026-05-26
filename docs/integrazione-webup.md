@@ -228,6 +228,7 @@ Anche il batch upload (`stream_webup_batch`) rispetta il flag: in dry-run esegue
 | `DOCKER` env truthy check rotto | Webup `config/settings.py`: `if not os.getenv("DOCKER")` | Mai impostare `DOCKER` a meno di non essere in Docker (e in quel caso, `DOCKER=true`). |
 | Liste in `setenv` come JSON | Pydantic-settings v2 fa `json.loads()` | Il bridge serializza già JSON. Edit manuali al `.env` con CSV rompono il bot al primo `setenv`. |
 | Empty values su `str` rompono webup | `empty_to_none` validator | Il bridge skippa già; per `.env` editati a mano, rimuovi le righe `KEY=` vuote. |
+| `PREFERRED_LANG` deve essere ISO 639-1 | Webup confronta con `language` (2-lettere) di mediainfo | Usa `"it"`, non `"ita"`. Da v0.6.4+ il default è già corretto. Vedi [Troubleshooting › /upload silenzioso](troubleshooting.md#upload-ritorna-200-ma-il-torrent-non-appare-sul-tracker-qbit-dice-infohash-not-found). |
 
 ---
 

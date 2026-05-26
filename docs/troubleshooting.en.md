@@ -79,6 +79,24 @@ Webup expects lists as **JSON arrays** (not CSV). pydantic-settings v2 runs `jso
 
 The unit3dprep bridge serializes correctly: if the issue persists, check there are no manual edits to the `.env` with CSV (`itt,ptt`).
 
+### `/upload` returns 200 but the torrent never appears on the tracker — qBit says "InfoHash not found"
+
+Symptom: qBit seeds locally, `/upload` HTTP returns 200 OK within milliseconds, `/seed` succeeds, but the tracker doesn't see the upload and qBit's announce status reads **"InfoHash not found"**. No webup log lines between `POST /upload 200 OK` and `POST /seed`, no upload `posterLogMessage` in the Web UI.
+
+**Cause**: `PREFS__PREFERRED_LANG` is an ISO **639-2** code (`"ita"`, `"eng"`, `"fre"`) instead of **639-1** (`"it"`, `"en"`, `"fr"`). Webup 0.0.25 in `tags_service.mediainfo_audio` compares `PREFERRED_LANG` against each audio track's `language` field (mediainfo emits the 2-letter code). Mismatch → `media.can_upload = False` → `UploadUseCase.execute()` filters the media out (`tasks = [... if media.can_upload]`) → returns 200 OK with `tasks=[]` → no tracker submission, no WS message.
+
+**Fix**:
+
+```bash
+sed -i 's/^PREFS__PREFERRED_LANG=.*/PREFS__PREFERRED_LANG=it/' ~/.config/unit3dprep/.env
+systemctl --user restart unit3dwebup
+# Remove the stale .torrent from the archive (otherwise webup reuses it and skips maketorrent):
+rm -f "$(grep ^PREFS__TORRENT_ARCHIVE_PATH ~/.config/unit3dprep/.env | cut -d= -f2-)/ITT/<file>.mkv.torrent"
+# Remove the torrent from qBit (UI or CLI) to avoid an infohash conflict, then retry from the Web UI.
+```
+
+Since v0.6.4+ the `DEFAULT_CONFIG` default is `"it"`; this only affects existing installs whose `.env` was migrated from v0.6.3.
+
 ### Webup `/upload` hangs / no progress
 
 Webup emits `posterLogMessage` like `[New torrent] FILE - N%` during maketorrent, **not** "torrent created/exists". The unit3dprep orchestrator uses `HTTP 200 = phase complete` + ~1.5–2s buffered log drain. If you see hangs:

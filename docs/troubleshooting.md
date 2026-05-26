@@ -79,6 +79,24 @@ Webup richiede liste come **JSON arrays** (non CSV). Pydantic-settings v2 esegue
 
 Il bridge unit3dprep serializza già correttamente: se il problema persiste, controlla che non ci siano edit manuali al `.env` con CSV (`itt,ptt`).
 
+### `/upload` ritorna 200 ma il torrent non appare sul tracker — qBit dice "InfoHash not found"
+
+Il sintomo: qBit seedando localmente, `/upload` HTTP risponde 200 OK in pochi ms, `/seed` riesce, ma il tracker non vede l'upload e lo status announce di qBit dice **"InfoHash not found"**. Nessuna riga di log webup tra `POST /upload 200 OK` e `POST /seed`, nessun `posterLogMessage` di upload nella Web UI.
+
+**Causa**: `PREFS__PREFERRED_LANG` è un codice ISO **639-2** (`"ita"`, `"eng"`, `"fre"`) invece di **639-1** (`"it"`, `"en"`, `"fr"`). Webup 0.0.25 in `tags_service.mediainfo_audio` confronta `PREFERRED_LANG` con il campo `language` di ogni traccia audio del mediainfo, che è emesso come codice 2-lettere. Mismatch → `media.can_upload = False` → `UploadUseCase.execute()` filtra fuori il media (`tasks = [... if media.can_upload]`) → ritorna 200 OK con `tasks=[]` → nessuna submission al tracker, nessun WS message.
+
+**Fix**:
+
+```bash
+sed -i 's/^PREFS__PREFERRED_LANG=.*/PREFS__PREFERRED_LANG=it/' ~/.config/unit3dprep/.env
+systemctl --user restart unit3dwebup
+# Rimuovi il .torrent stantio dall'archive (altrimenti webup riusa quello e salta maketorrent):
+rm -f "$(grep ^PREFS__TORRENT_ARCHIVE_PATH ~/.config/unit3dprep/.env | cut -d= -f2-)/ITT/<file>.mkv.torrent"
+# Rimuovi il torrent da qBit (UI o CLI) per evitare conflitto infohash, poi retry dalla Web UI.
+```
+
+Da v0.6.4+ il default in `DEFAULT_CONFIG` è già `"it"`; il problema riguarda solo installazioni esistenti con `.env` migrato dalla v0.6.3.
+
 ### Webup `/upload` blocca / nessun progress
 
 Webup emette `posterLogMessage` come `[New torrent] FILE - N%` durante maketorrent, **non** "torrent created/exists". L'orchestrator unit3dprep usa `HTTP 200 = phase complete` + drenaggio log buffered ~1.5–2s. Se vedi blocchi:
