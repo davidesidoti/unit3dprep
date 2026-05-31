@@ -22,6 +22,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
   correggendolo, non avrebbe funzionato (Redis come servizio separato irraggiungibile da webup,
   `media`/`seedings` su bind mount separati → hardlink falliti, `U3DP_HOST` su loopback,
   `U3DP_HTTPS_ONLY=1` su HTTP puro → login 401). Sostituita con l'immagine all-in-one funzionante.
+
+## [1.0.1] - 2026-05-31
+
+Release patch dedicata a un bug di Unit3DwebUp 0.0.25 che impediva l'upload di tutti i media il cui *primo* audio track non è nella lingua preferita. Nessuna altra modifica funzionale rispetto a 1.0.0.
+
+### Fixed
 - **Upload silenzioso "InfoHash not found" su file con audio italiano NON come prima traccia**.
   Bug upstream in Unit3DwebUp 0.0.25 ([`services/tags_service.py:281`](https://github.com/31December99/Unit3DWebUp/blob/master/services/tags_service.py)):
   l'audio-language gate viene rivalutato a ogni iterazione del loop sulle tracce ma
@@ -33,6 +39,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
   audio (tutti i codici ISO 639-1/2 + i nomi text-form di mediainfo), e in tal caso forza
   `can_upload=True` riscrivendo il job. Best-effort: errori Redis o JSON malformati non
   bloccano l'upload, vengono solo loggati come warning.
+
+### Added
+- Nuova dipendenza `redis>=5.0` (già installata transitivamente via `Unit3DwebUp`; ora dichiarata esplicitamente perché il fix sopra usa direttamente il client Redis async).
 
 ## [1.0.0] - 2026-05-26
 
