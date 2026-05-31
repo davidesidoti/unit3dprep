@@ -6,6 +6,34 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Setup Docker all-in-one ufficiale**: `Dockerfile`, `docker-compose.yml`, `config.env.example`
+  e `.dockerignore` nel repo. Un singolo container avvia Redis + Unit3DWebUp + unit3dprep
+  (entrypoint dedicato), con un solo volume `/data` che tiene config, media e seedings sullo
+  stesso filesystem (hardlink funzionanti). `git clone && docker compose up -d` e l'interfaccia
+  è raggiungibile su `http://127.0.0.1:8765`.
+- **Nuova pagina di documentazione [Deploy › Docker](docs/docker.md)** (+ mirror inglese):
+  guida passo-passo (clone, generazione hash, avvio), qBittorrent esterno con allineamento dei
+  path, reverse proxy TLS e troubleshooting.
+
+### Fixed
+- **La "Variante Docker" documentata non era avviabile**: faceva riferimento a un `Dockerfile`
+  mai incluso nel repo (`build: .` → errore `lstat Dockerfile: no such file`) e, anche
+  correggendolo, non avrebbe funzionato (Redis come servizio separato irraggiungibile da webup,
+  `media`/`seedings` su bind mount separati → hardlink falliti, `U3DP_HOST` su loopback,
+  `U3DP_HTTPS_ONLY=1` su HTTP puro → login 401). Sostituita con l'immagine all-in-one funzionante.
+- **Upload silenzioso "InfoHash not found" su file con audio italiano NON come prima traccia**.
+  Bug upstream in Unit3DwebUp 0.0.25 ([`services/tags_service.py:281`](https://github.com/31December99/Unit3DWebUp/blob/master/services/tags_service.py)):
+  l'audio-language gate viene rivalutato a ogni iterazione del loop sulle tracce ma
+  `media.can_upload` viene SOLO impostato a False, mai a True. Risultato: un file con
+  audio `[eng, ita]` e `PREFERRED_LANG=it` veniva silenziosamente rifiutato perché alla
+  prima iterazione (eng) il check fallisce. Il bridge ora applica una patch post-`/scan`
+  via `unit3dprep/web/webup_job_fix.py::maybe_force_can_upload`: legge il record Media da
+  Redis, verifica che la lingua preferita sia effettivamente presente in *qualche* traccia
+  audio (tutti i codici ISO 639-1/2 + i nomi text-form di mediainfo), e in tal caso forza
+  `can_upload=True` riscrivendo il job. Best-effort: errori Redis o JSON malformati non
+  bloccano l'upload, vengono solo loggati come warning.
+
 ## [1.0.0] - 2026-05-26
 
 Rilascio "1.0" che consolida la migrazione completa del backend di upload da `unit3dup` CLI (subprocess + parsing PTY) a `Unit3DwebUp` 0.0.25 (servizio FastAPI accoppiato via HTTP API + WebSocket). Architettura, configurazione, UI e documentazione sono state riscritte per riflettere questo nuovo modello. Vedi sotto per i dettagli e per i passaggi di migrazione consigliati.

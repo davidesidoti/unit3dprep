@@ -32,6 +32,7 @@ from typing import Any, AsyncGenerator
 
 from .config import runtime_setting
 from .webup_client import WebupClient, compute_job_id
+from .webup_job_fix import maybe_force_can_upload
 from .webup_logclass import classify_msg, is_terminal_failure, is_terminal_success
 from .webup_ws import WILDCARD, WebupWSManager
 
@@ -447,6 +448,25 @@ async def stream_webup(
                 yield {"type": "log", "data": f"webup: settmdbid failed (continuing): {e}"}
 
         yield {"type": "log", "data": f"webup: job_id={job_id} title={media.get('title')!r}"}
+
+        # Webup 0.0.25 bug workaround: `tags_service.mediainfo_audio` only
+        # ever flips can_upload to False — never back to True — so a file
+        # whose FIRST audio track isn't in PREFERRED_LANG is silently
+        # rejected even when a later track matches. Re-check ourselves and
+        # patch the Redis-backed Media record before /maketorrent.
+        try:
+            fix = await maybe_force_can_upload(job_id, preferred_lang)
+            if fix.get("patched"):
+                yield {
+                    "type": "log", "kind": "ok",
+                    "data": f"webup: {fix['reason']}",
+                }
+        except Exception as exc:
+            yield {
+                "type": "log", "kind": "warn",
+                "data": f"webup: can_upload patch skipped ({exc!r})",
+            }
+
         yield _progress_event("scan", 100)
 
         # ---- Maketorrent ----

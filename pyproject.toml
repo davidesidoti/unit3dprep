@@ -18,6 +18,7 @@ dependencies = [
     "httpx>=0.26",
     "pydantic>=2.0",
     "packaging>=23",
+    "redis>=5.0",
 ]
 
 [project.scripts]
