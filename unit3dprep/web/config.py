@@ -112,7 +112,12 @@ def _ensure_season_in_serie(data: dict[str, Any]) -> dict[str, Any]:
     order = data.get("TAG_ORDER_SERIE")
     if isinstance(order, list) and "season" not in order:
         healed = list(order)
-        idx = healed.index("year") + 1 if "year" in healed else 0
+        if "year" in healed:
+            idx = healed.index("year") + 1
+        elif "title" in healed:
+            idx = healed.index("title") + 1
+        else:
+            idx = 0
         healed.insert(idx, "season")
         data["TAG_ORDER_SERIE"] = healed
     return data
