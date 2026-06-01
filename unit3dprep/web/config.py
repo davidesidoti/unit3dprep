@@ -95,6 +95,26 @@ def _upgrade_legacy_keys(data: dict[str, Any]) -> dict[str, Any]:
             data[new] = data.pop(old)
         elif old in data:
             data.pop(old)
+    return _ensure_season_in_serie(data)
+
+
+def _ensure_season_in_serie(data: dict[str, Any]) -> dict[str, Any]:
+    """Guarantee ``"season"`` is present in TAG_ORDER_SERIE.
+
+    Webup stores the ``S<NN>(E<NN>)`` label under the ``season`` tag key and,
+    when building the tracker name, only emits tag keys that appear in
+    ``PREFS__TAG_POSITION_SERIE``. A series tag order missing ``season`` thus
+    silently drops the season/episode number from the uploaded name even
+    though guessit parsed it correctly. Heal configs written before
+    ``season`` was added to the default so existing installs recover on the
+    next load/save (and the corrected order is then pushed to webup).
+    """
+    order = data.get("TAG_ORDER_SERIE")
+    if isinstance(order, list) and "season" not in order:
+        healed = list(order)
+        idx = healed.index("year") + 1 if "year" in healed else 0
+        healed.insert(idx, "season")
+        data["TAG_ORDER_SERIE"] = healed
     return data
 
 
@@ -195,7 +215,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "flag", "subtitle", "hdr", "vcodec", "video_encoder",
     ],
     "TAG_ORDER_SERIE": [
-        "title", "year", "part", "version", "resolution", "uhd",
+        "title", "year", "season", "part", "version", "resolution", "uhd",
         "platform", "source", "remux", "multi", "acodec", "channels",
         "flag", "subtitle", "hdr", "vcodec", "video_encoder",
     ],
