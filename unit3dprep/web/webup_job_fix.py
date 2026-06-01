@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 import redis.asyncio as aioredis
@@ -29,6 +30,21 @@ log = logging.getLogger("unit3dprep.webup_job_fix")
 
 # Webup hardcodes Redis on localhost:6379 — see CLAUDE.md.
 _REDIS_URL = "redis://127.0.0.1:6379/0"
+
+# Season/episode token as written by the bridge's `build_name`: S01, S01E01,
+# S01E01-E12, S01E01-12, S01E01E12.
+_SEASON_TOKEN = re.compile(r"S\d{2}(?:E\d{2}(?:-?E?\d{2})?)?", re.IGNORECASE)
+
+
+def _season_label(*sources: str | None) -> str:
+    """First S##(E##) token from any bridge-built name, upper-cased."""
+    for src in sources:
+        if not src:
+            continue
+        m = _SEASON_TOKEN.search(src)
+        if m:
+            return m.group(0).upper()
+    return ""
 
 
 def _languages_for_track(track: dict[str, Any]) -> set[str]:
@@ -135,6 +151,78 @@ async def maybe_force_can_upload(job_id: str, preferred_lang: str) -> dict[str, 
         result["reason"] = (
             f"forced can_upload=true (preferred '{pref}' present in audio tracks {langs})"
         )
+        return result
+    finally:
+        try:
+            await client.aclose()
+        except Exception:
+            pass
+
+
+async def maybe_inject_season(job_id: str) -> dict[str, Any]:
+    """Ensure webup's tracker ``display_name`` carries the season label.
+
+    Webup builds ``display_name`` from ``PREFS__TAG_POSITION_SERIE`` but reads
+    that setting from a module-global ``settings`` captured at import time
+    (``media.py`` / ``tags_service.py``), so a corrected tag order in the
+    ``.env`` only takes effect after a webup *restart*. To make the season
+    appear without restarting webup, patch the Redis job's ``display_name``
+    directly: take the ``S##(E##)`` token from the bridge-built folder/torrent
+    name and insert it right after the title.
+
+    Series only. Idempotent: skips if the label is already present. Never
+    raises — returns ``{"patched": bool, "reason": str, "display_name": str}``.
+    """
+    result: dict[str, Any] = {"patched": False, "reason": "", "display_name": ""}
+    try:
+        client = aioredis.from_url(_REDIS_URL, decode_responses=True)
+    except Exception as e:
+        result["reason"] = f"redis connect failed: {e!r}"
+        return result
+    try:
+        try:
+            raw = await client.hget(job_id, "data")
+        except Exception as e:
+            result["reason"] = f"redis hget failed: {e!r}"
+            return result
+        if not raw:
+            result["reason"] = "no job data in redis"
+            return result
+        try:
+            data = json.loads(raw)
+        except Exception as e:
+            result["reason"] = f"json parse failed: {e!r}"
+            return result
+        if data.get("category") != "series":
+            result["reason"] = "not a series"
+            return result
+        display = (data.get("display_name") or "").strip()
+        if not display:
+            result["reason"] = "no display_name"
+            return result
+        label = _season_label(
+            data.get("torrent_name"), data.get("title"), data.get("title_sanitized")
+        )
+        if not label:
+            result["reason"] = "no season token in source name"
+            return result
+        if re.search(rf"(?<![A-Za-z0-9]){re.escape(label)}(?![A-Za-z0-9])", display, re.IGNORECASE):
+            result["reason"] = f"season '{label}' already present"
+            return result
+        guess_title = (data.get("guess_title") or "").strip()
+        if guess_title and guess_title in display:
+            new_display = display.replace(guess_title, f"{guess_title} {label}", 1)
+        else:
+            new_display = f"{label} {display}"
+        data["display_name"] = new_display
+        try:
+            await client.hset(job_id, mapping={"data": json.dumps(data)})
+        except Exception as e:
+            result["reason"] = f"redis hset failed: {e!r}"
+            return result
+        result["patched"] = True
+        result["display_name"] = new_display
+        result["reason"] = f"inserted season '{label}' into display_name"
         return result
     finally:
         try:

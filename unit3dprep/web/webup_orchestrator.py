@@ -30,11 +30,9 @@ import logging
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
-import json
-
-from .config import load as load_config, runtime_setting
+from .config import runtime_setting
 from .webup_client import WebupClient, compute_job_id
-from .webup_job_fix import maybe_force_can_upload
+from .webup_job_fix import maybe_force_can_upload, maybe_inject_season
 from .webup_logclass import classify_msg, is_terminal_failure, is_terminal_success
 from .webup_ws import WILDCARD, WebupWSManager
 
@@ -404,25 +402,6 @@ async def stream_webup(
             await client.setenv("PREFS__PREFERRED_LANG", preferred_lang)
         except Exception as e:
             yield {"type": "log", "data": f"webup: setenv PREFERRED_LANG failed (non-fatal): {e}", "kind": "warn"}
-
-        # Push the tag ordering before /scan so the tracker name webup builds
-        # is correct regardless of webup's cached settings. Series order MUST
-        # include "season" or the S##(E##) label is dropped from the name (it
-        # is stored under the 'season' tag key, which webup only emits when the
-        # key is present in TAG_POSITION_SERIE). webup's /setenv clears its
-        # get_settings cache, so this takes effect immediately. Mirrors the
-        # PREFERRED_LANG push above; non-fatal on failure.
-        cfg = load_config()
-        for env_key, short_key in (
-            ("PREFS__TAG_POSITION_SERIE", "TAG_ORDER_SERIE"),
-            ("PREFS__TAG_POSITION_MOVIE", "TAG_ORDER_MOVIE"),
-        ):
-            order = cfg.get(short_key)
-            if isinstance(order, list) and order:
-                try:
-                    await client.setenv(env_key, json.dumps(order))
-                except Exception as e:
-                    yield {"type": "log", "data": f"webup: setenv {env_key} failed (non-fatal): {e}", "kind": "warn"}
         yield _progress_event("setenv", 100)
 
         yield _progress_event("scan", 0)
@@ -486,6 +465,25 @@ async def stream_webup(
             yield {
                 "type": "log", "kind": "warn",
                 "data": f"webup: can_upload patch skipped ({exc!r})",
+            }
+
+        # Webup 0.0.25 bug workaround: the tracker display_name is built from
+        # `PREFS__TAG_POSITION_SERIE`, but webup reads that into a module-global
+        # `settings` captured at import (media.py / tags_service.py), so a
+        # corrected tag order only takes effect after a webup *restart*. To make
+        # the season label appear without restarting webup, patch the Redis job's
+        # display_name directly, inserting the S##(E##) token after the title.
+        try:
+            sinj = await maybe_inject_season(job_id)
+            if sinj.get("patched"):
+                yield {
+                    "type": "log", "kind": "ok",
+                    "data": f"webup: {sinj['reason']}",
+                }
+        except Exception as exc:
+            yield {
+                "type": "log", "kind": "warn",
+                "data": f"webup: season inject skipped ({exc!r})",
             }
 
         yield _progress_event("scan", 100)
