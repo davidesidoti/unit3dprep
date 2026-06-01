@@ -17,12 +17,18 @@ Versioning: [Semantic Versioning](https://semver.org/).
   path, reverse proxy TLS e troubleshooting.
 
 ### Fixed
-- **Il numero di stagione (`S01`) spariva dal nome sul tracker** per i pacchetti stagione, pur essendo corretto nella rinomina locale. Unit3DWebUp componeva il titolo dall'ordine dei tag delle serie (`TAG_ORDER_SERIE`), che non includeva `season`, e lo legge una sola volta all'avvio. Ora il bridge inserisce l'etichetta di stagione direttamente nel nome inviato al tracker subito dopo lo scan: funziona senza dover riavviare Unit3DWebUp. Aggiunto inoltre `season` all'ordine di default delle serie e riparate automaticamente le configurazioni esistenti.
 - **La "Variante Docker" documentata non era avviabile**: faceva riferimento a un `Dockerfile`
   mai incluso nel repo (`build: .` → errore `lstat Dockerfile: no such file`) e, anche
   correggendolo, non avrebbe funzionato (Redis come servizio separato irraggiungibile da webup,
   `media`/`seedings` su bind mount separati → hardlink falliti, `U3DP_HOST` su loopback,
   `U3DP_HTTPS_ONLY=1` su HTTP puro → login 401). Sostituita con l'immagine all-in-one funzionante.
+
+## [1.0.2] - 2026-06-01
+
+Release patch: il numero di stagione (`S01`, `S02`, …) ora compare nel nome inviato al tracker per i pacchetti stagione delle serie.
+
+### Fixed
+- **Il numero di stagione (`S01`) spariva dal nome sul tracker** per i pacchetti stagione, pur essendo corretto nella rinomina locale. Unit3DWebUp componeva il titolo dall'ordine dei tag delle serie (`TAG_ORDER_SERIE`), che non includeva `season`, e lo legge una sola volta all'avvio. Ora il bridge inserisce l'etichetta di stagione direttamente nel nome inviato al tracker subito dopo lo scan: funziona senza dover riavviare Unit3DWebUp. Aggiunto inoltre `season` all'ordine di default delle serie e riparate automaticamente le configurazioni esistenti.
 
 ## [1.0.1] - 2026-05-31
 
