@@ -6,6 +6,11 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Documentazione: badge PyPI/Docker Hub nel README; guide d'installazione con riferimenti agli
+  artefatti pubblicati (`pip install unit3dprep`, immagine `hashdeveloper512/unit3dprep`) e tip
+  per saltare la build Docker usando l'immagine già pronta.
+
 ## [1.0.4] - 2026-06-06
 
 Release: **distribuzione ufficiale su PyPI e Docker Hub**. Ora `unit3dprep` si installa con `pip install unit3dprep` e l'immagine all-in-one con `docker pull hashdeveloper512/unit3dprep`. Inclusi i fix doc della guida Docker (Compose v2 richiesto).

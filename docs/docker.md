@@ -113,6 +113,9 @@ docker compose up -d
 docker compose logs -f
 ```
 
+!!! tip "Salta la build: usa l'immagine pubblicata"
+    L'immagine ufficiale è su Docker Hub: [`hashdeveloper512/unit3dprep`](https://hub.docker.com/r/hashdeveloper512/unit3dprep) (tag `latest`/`X.Y.Z`). Per non buildare in locale, nel `docker-compose.yml` sostituisci `build: .` con `image: hashdeveloper512/unit3dprep:latest` e salta `docker compose build` → `docker compose up -d` scarica l'immagine pronta.
+
 Nei log dovresti vedere, in ordine (prefisso `[entrypoint]`): `starting redis on 127.0.0.1:6379`,
 `seeding /data/.env`, `webup is up`, e infine `starting unit3dprep-web on 0.0.0.0:8765` seguito
 dalla riga di uvicorn `Application startup complete`.

@@ -24,6 +24,9 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+!!! tip "Also on PyPI"
+    The package is published: `pip install unit3dprep` (handy to integrate it into an existing environment). For the full flow in this guide a `git clone` is still preferable: `generate_hash.py` (step 3) and the systemd templates live in the repo. Otherwise use the [all-in-one Docker setup](docker.md), which needs none of this.
+
 Entry points registered:
 
 - `unit3dprep` → interactive CLI

@@ -8,6 +8,9 @@
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 ![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?style=for-the-badge&logo=github%20Pages&logoColor=white)
 
+[![PyPI](https://img.shields.io/pypi/v/unit3dprep?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/unit3dprep/)
+[![Docker Hub](https://img.shields.io/docker/v/hashdeveloper512/unit3dprep?style=for-the-badge&logo=docker&logoColor=white&label=Docker%20Hub&sort=semver)](https://hub.docker.com/r/hashdeveloper512/unit3dprep)
+
 Web UI + CLI di pre-flight per tracker Unit3D, accoppiata via HTTP a [`Unit3DWebUp`](https://pypi.org/project/Unit3DwebUp/) come backend di upload.
 Verifica tracce audio italiane, rinomina secondo la [nomenclatura ItaTorrents](docs/nomenclatura.md), crea hardlink in `~/seedings/` e orchestra il flusso `setenv → scan → maketorrent → upload → seed` su `Unit3DWebUp` con log live via WebSocket/SSE.
 
@@ -62,6 +65,8 @@ docker compose build
 docker compose up -d
 # apri http://127.0.0.1:8765
 ```
+
+> 🐳 Immagine pubblicata su Docker Hub: [`hashdeveloper512/unit3dprep`](https://hub.docker.com/r/hashdeveloper512/unit3dprep). Per saltare la build locale, in `docker-compose.yml` usa `image: hashdeveloper512/unit3dprep:latest` al posto di `build: .` → `docker compose up -d` la scarica.
 
 > Serve **Compose v2** (`docker compose`). La vecchia `docker-compose` v1 (1.29.2) crasha su `up` con Docker Engine 25+ (`KeyError: 'ContainerConfig'`). Se `docker compose version` non funziona, installa il plugin v2 (binario utente, senza repo): vedi [Deploy › Docker › §1](https://davidesidoti.github.io/unit3dprep/docker/#1-prerequisiti).
 
