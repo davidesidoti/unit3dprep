@@ -1,2 +1,11 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Keep shell scripts and Docker build files LF-only so images built on Windows
+# (autocrlf) don't get CRLF line endings — a CRLF shebang breaks the container
+# entrypoint with "exec format error" / "bad interpreter".
+*.sh                 text eol=lf
+docker/entrypoint.sh text eol=lf
+Dockerfile           text eol=lf
+.dockerignore        text eol=lf
+generate_hash.py     text eol=lf

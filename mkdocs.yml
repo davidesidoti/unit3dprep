@@ -78,6 +78,7 @@ plugins:
             CLI: CLI
             Web UI: Web UI
             Deploy: Deploy
+            Docker: Docker
             VPS (sudo/Docker): VPS (sudo/Docker)
             Ultra.cc: Ultra.cc
             Integrazione Unit3DWebUp: Integrazione Unit3DWebUp
@@ -95,6 +96,7 @@ plugins:
             CLI: CLI
             Web UI: Web UI
             Deploy: Deploy
+            Docker: Docker
             VPS (sudo/Docker): VPS (sudo/Docker)
             Ultra.cc: Ultra.cc
             Integrazione Unit3DWebUp: Unit3DWebUp integration
@@ -110,6 +112,7 @@ nav:
       - CLI: uso-cli.md
       - Web UI: uso-web.md
   - Deploy:
+      - Docker: docker.md
       - VPS (sudo/Docker): deploy-vps.md
       - Ultra.cc: deploy-ultracc.md
   - Nomenclatura: nomenclatura.md

@@ -338,83 +338,21 @@ npm run build
 
 ## Docker variant
 
-Minimal `Dockerfile` example (not shipped in the repo — add one if you need it):
+The repo ships a ready-to-use **all-in-one** image (Redis + Unit3DWebUp + unit3dprep in a
+single container) with a `Dockerfile` and `docker-compose.yml`. The full guide — clone, hash
+generation, external qBittorrent, TLS reverse proxy and troubleshooting — lives on its own
+page: **[Deploy › Docker](docker.md)**.
 
-```dockerfile
-FROM python:3.11-slim
+In short:
 
-RUN apt-get update \
- && apt-get install -y --no-install-recommends \
-        libmediainfo0v5 ffmpeg redis-server git \
- && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-COPY . .
-RUN pip install --no-cache-dir -e . Unit3DwebUp
-
-ENV U3DP_HOST=0.0.0.0 \
-    U3DP_PORT=8765 \
-    WEBUP_URL=http://127.0.0.1:8000 \
-    ENVPATH=/data
-
-EXPOSE 8765
-
-# IMPORTANT: do NOT set DOCKER=false. Webup uses a bare truthy check.
-# If you actually need Docker mode, set DOCKER=true AND provide every
-# TRACKER__/PREFS__/TORRENT__ value via env.
-
-# Run redis + webup + app together (POC/dev; for prod use separate containers)
-CMD ["sh","-c","redis-server --daemonize yes && uvicorn unit3dwup.start:app --host 127.0.0.1 --port 8000 & exec unit3dprep-web"]
+```bash
+git clone https://github.com/davidesidoti/unit3dprep.git
+cd unit3dprep
+cp config.env.example config.env   # then fill in U3DP_PASSWORD_HASH / U3DP_SECRET / TMDB_API_KEY
+docker compose build
+docker compose up -d
+# open http://127.0.0.1:8765
 ```
-
-`docker-compose.yml`:
-
-```yaml
-services:
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-
-  unit3dwebup:
-    image: python:3.11-slim
-    restart: unless-stopped
-    depends_on: [redis]
-    working_dir: /app
-    environment:
-      ENVPATH: /data
-      PYTHONUNBUFFERED: "1"
-    volumes:
-      - ./data:/data
-      - ./media:/root/media:ro
-      - ./seedings:/root/seedings
-    command: >
-      sh -c "apt-get update && apt-get install -y libmediainfo0v5 ffmpeg
-      && pip install Unit3DwebUp
-      && uvicorn unit3dwup.start:app --host 0.0.0.0 --port 8000"
-
-  unit3dprep:
-    build: .
-    restart: unless-stopped
-    depends_on: [unit3dwebup]
-    ports:
-      - "127.0.0.1:8765:8765"
-    environment:
-      U3DP_PASSWORD_HASH: ${U3DP_PASSWORD_HASH}
-      U3DP_SECRET: ${U3DP_SECRET}
-      TMDB_API_KEY: ${TMDB_API_KEY}
-      U3DP_HTTPS_ONLY: "1"
-      ENVPATH: /data
-      WEBUP_URL: http://unit3dwebup:8000
-    volumes:
-      - ./data:/data
-      - ./media:/root/media:ro
-      - ./seedings:/root/seedings
-```
-
-!!! danger "Hardlinks and Docker"
-    Hardlinks only work **inside the same volume**. If you mount `media` and `seedings` as separate bind mounts, hardlinks fail. Use **one single volume** containing both subfolders, or bind-mount the host folder that contains them.
-
-Proxy in front of Docker: handle TLS with Caddy / Traefik / external nginx pointing to `127.0.0.1:8765`.
 
 ---
 

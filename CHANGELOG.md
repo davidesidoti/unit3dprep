@@ -6,6 +6,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-06-06
+
+Release patch: setup **Docker all-in-one** ufficiale (Redis + Unit3DWebUp + unit3dprep in un singolo container, con `PUID`/`PGID`, pre-seed delle chiavi e Redis senza persistenza) e allineamento della documentazione al codice.
+
 ### Added
 - **Setup Docker all-in-one ufficiale**: `Dockerfile`, `docker-compose.yml`, `config.env.example`
   e `.dockerignore` nel repo. Un singolo container avvia Redis + Unit3DWebUp + unit3dprep
@@ -15,6 +19,20 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - **Nuova pagina di documentazione [Deploy › Docker](docs/docker.md)** (+ mirror inglese):
   guida passo-passo (clone, generazione hash, avvio), qBittorrent esterno con allineamento dei
   path, reverse proxy TLS e troubleshooting.
+- **Supporto `PUID`/`PGID` nel container Docker**: lo stack fa drop dei privilegi all'utente
+  indicato (default `1000:1000`), così i file scritti nel volume `./data` (config, db, torrent,
+  hardlink) appartengono all'utente host e i media si gestiscono senza `sudo`. Impostabili in
+  `config.env`; `PUID=0` mantiene l'esecuzione come root.
+- **Pre-seed delle chiavi via env al primo boot Docker**: `TMDB_API_KEY` e, opzionali,
+  `ITT_APIKEY`/`ITT_PID`/`TVDB_APIKEY`/`QBIT_*` impostate in `config.env` vengono scritte nella
+  `.env` condivisa alla prima creazione, così Unit3DWebUp le legge subito (niente più warning
+  `*_APIKEY not set`). Lette solo se la `.env` non esiste ancora: in seguito si configura tutto
+  dalla web UI. Abilita il setup headless senza passare dall'interfaccia.
+
+### Changed
+- **Redis nel container Docker gira senza persistenza** (`--save "" --appendonly no`): è solo
+  il job-store transitorio di webup, quindi nessun background-save (il warning del kernel
+  "Memory overcommit must be enabled" diventa irrilevante) e nessun `dump.rdb` nel volume `./data`.
 
 ### Fixed
 - **La "Variante Docker" documentata non era avviabile**: faceva riferimento a un `Dockerfile`
@@ -22,6 +40,11 @@ Versioning: [Semantic Versioning](https://semver.org/).
   correggendolo, non avrebbe funzionato (Redis come servizio separato irraggiungibile da webup,
   `media`/`seedings` su bind mount separati → hardlink falliti, `U3DP_HOST` su loopback,
   `U3DP_HTTPS_ONLY=1` su HTTP puro → login 401). Sostituita con l'immagine all-in-one funzionante.
+- **Documentazione allineata al codice**: corretto il requisito Python (le guide indicavano
+  3.10/3.11 ma `Unit3DwebUp 0.0.25` richiede **3.12+**, altrimenti `pip install` fallisce);
+  i nomi canonici `.env` (`TRACKER__ITT_APIKEY`/`ITT_URL`/`ITT_PID`, non `TRACKER__APIKEYS`);
+  il default di `U3DP_SYSTEMD_UNIT` (`unit3dprep-web.service`); i path SSE di wizard e quick-upload
+  (`/api/wizard/{tok}/upload`, `/api/upload/{job}/stream`); e le righe di log attese nel setup Docker.
 
 ## [1.0.2] - 2026-06-01
 

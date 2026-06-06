@@ -328,7 +328,7 @@ Backup prima sempre.
 
 ### `_sqlite3` rotto su pyenv 3.13 / Ultra.cc
 
-Noto. Il progetto **non usa** SQLite proprio per questo motivo: storico + cache sono file JSON. Se vedi errori `_sqlite3 undefined symbol`, provengono da un'altra libreria. Installa Python 3.11 via pyenv e punta il venv a quello.
+Noto. Il progetto **non usa** SQLite proprio per questo motivo: storico + cache sono file JSON. Se vedi errori `_sqlite3 undefined symbol`, provengono da un'altra libreria. Installa Python 3.12 via pyenv (minimo richiesto da Unit3DWebUp 0.0.25) e punta il venv a quello.
 
 ---
 

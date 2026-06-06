@@ -50,6 +50,21 @@ unit3dprep-web
 
 Apri <http://127.0.0.1:8765>, fai login, completa Settings → tracker/qBit/image host. Le credenziali vengono salvate in `$ENVPATH/.env` con la nomenclatura canonica `TRACKER__* / TORRENT__* / PREFS__*` e sincronizzate live a Unit3DWebUp. Per il deploy systemd dei due servizi vedi [`deploy/systemd/`](deploy/systemd/).
 
+### Docker (all-in-one)
+
+Redis + Unit3DWebUp + unit3dprep in un singolo container:
+
+```bash
+git clone https://github.com/davidesidoti/unit3dprep.git
+cd unit3dprep
+cp config.env.example config.env   # compila U3DP_PASSWORD_HASH / U3DP_SECRET / TMDB_API_KEY
+docker compose build
+docker compose up -d
+# apri http://127.0.0.1:8765
+```
+
+Guida completa: [Deploy › Docker](https://davidesidoti.github.io/unit3dprep/docker/).
+
 ---
 
 ## Guide
@@ -59,6 +74,7 @@ Apri <http://127.0.0.1:8765>, fai login, completa Settings → tracker/qBit/imag
 - [Integrazione Unit3DWebUp](https://davidesidoti.github.io/unit3dprep/integrazione-webup/)
 - [Uso › CLI](https://davidesidoti.github.io/unit3dprep/uso-cli/)
 - [Uso › Web UI](https://davidesidoti.github.io/unit3dprep/uso-web/)
+- [Deploy › Docker](https://davidesidoti.github.io/unit3dprep/docker/)
 - [Deploy › VPS (sudo/Docker)](https://davidesidoti.github.io/unit3dprep/deploy-vps/)
 - [Deploy › Ultra.cc](https://davidesidoti.github.io/unit3dprep/deploy-ultracc/)
 - [Nomenclatura](https://davidesidoti.github.io/unit3dprep/nomenclatura/)

@@ -60,7 +60,7 @@ Typical steps:
 4. **Name preview** — editable; if `W_CONFIRM_NAMES` is OFF, skips the confirmation.
 5. **Duplicate check** — if `W_DUPLICATE_CHECK` (default ON), query the ITT API before hardlinking. If a torrent with the same exact byte size already exists, a yellow panel pops up (see below). Skipped for season packs.
 6. **Hardlink** — into `U3DP_SEEDINGS_DIR/.unit3dprep/<jobid>/...` (per-upload sandbox, see [Unit3DWebUp integration](integrazione-webup.md#scan_path-semantics-per-upload-sandbox)). If `W_HARDLINK_ONLY`, stops here and records exit code `0`.
-7. **Upload** — the HTTP bridge runs `setenv → scan → maketorrent → upload → seed` against Unit3DWebUp and streams logs + progress to the frontend over SSE (`GET /wizard/{token}/stream`). Phase weights shown in the bar: setenv 3% / scan 27% / maketorrent 45% / upload 15% / seed 10%.
+7. **Upload** — the HTTP bridge runs `setenv → scan → maketorrent → upload → seed` against Unit3DWebUp and streams logs + progress to the frontend over SSE (`GET /api/wizard/{tok}/upload`). Phase weights shown in the bar: setenv 3% / scan 27% / maketorrent 45% / upload 15% / seed 10%.
 8. **History write** — `update_exit_code(seeding_path, code)` persists into `U3DP_DB_PATH` (also from `wizard_finish` when `W_HARDLINK_ONLY=1`, exit code 0).
 
 ### Pre-upload duplicate check
@@ -78,7 +78,7 @@ Best-effort: if the ITT API is unreachable or returns an error, the check is ski
 
 ### Quick upload
 
-`POST /upload/quick` skips most of the wizard for power users: you get a job ID and consume `GET /upload/{job}/stream`. Use it when you already have renamed files in `~/seedings/`. The flow calls `stream_webup` directly, no unit3dprep pre-flight.
+`POST /api/upload/quick` skips most of the wizard for power users: you get a job ID and consume `GET /api/upload/{job}/stream`. Use it when you already have renamed files in `~/seedings/`. The flow calls `stream_webup` directly, no unit3dprep pre-flight.
 
 ### Dry-run
 
@@ -160,7 +160,7 @@ Sections:
 - **Upload options** — `ANON`, `PERSONAL_RELEASE`, `NUMBER_OF_SCREENSHOTS`, `COMPRESS_SCSHOT`, `TAG_ORDER_*`, etc.
 - **Seeding Flow** — `U3DP_*` with effective values (env vs file) via `env_runtime()`. `UNIT3DUP_CONFIG` is read-only.
 - **Version** — see [dedicated section](#version-and-auto-update).
-- **App Auto-Update** — `U3DP_SYSTEMD_UNIT`, systemd user unit name used by the "Update app" button for the post-update restart. Default `unit3dprep.service`; on Ultra.cc typically `unit3dprep-web.service`.
+- **App Auto-Update** — `U3DP_SYSTEMD_UNIT`, systemd user unit name used by the "Update app" button for the post-update restart. Default `unit3dprep-web.service`; override only if your unit has a different name.
 - **Wizard Defaults** — all `W_*`.
 - **Interface** — language selector (IT / EN); preference saved to `localStorage` and synced to `U3DP_LANG` via `PUT /api/settings`.
 

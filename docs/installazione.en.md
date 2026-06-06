@@ -1,12 +1,12 @@
 # Installation
 
-This guide covers installing on a Linux/macOS/WSL system with Python 3.10+, both `unit3dprep` (Web UI + CLI) and the upload backend `Unit3DWebUp`. For production deployment see [VPS](deploy-vps.md) or [Ultra.cc](deploy-ultracc.md).
+This guide covers installing on a Linux/macOS/WSL system with Python 3.12+, both `unit3dprep` (Web UI + CLI) and the upload backend `Unit3DWebUp`. For production deployment see [VPS](deploy-vps.md) or [Ultra.cc](deploy-ultracc.md).
 
 ## Prerequisites
 
 | Requirement | Notes |
 |---|---|
-| **Python 3.10+** | 3.11 recommended. 3.13 works but has a broken `_sqlite3` on pyenv — not blocking because the project uses JSON. |
+| **Python 3.12+** | **Required by Unit3DWebUp 0.0.25** (`requires_python >=3.12`): on 3.10/3.11 the `pip install Unit3DwebUp` in step 2 fails with a *Requires-Python* error. `unit3dprep` alone runs on 3.10+, but the full stack needs 3.12+. 3.13 works (the project uses JSON, not `_sqlite3`). |
 | **libmediainfo** | System library required by `pymediainfo`. Debian/Ubuntu: `sudo apt install libmediainfo0v5`. macOS: `brew install mediainfo`. |
 | **ffmpeg** | Required by Unit3DWebUp to generate screenshots. Without it `/scan` silently returns 0 items. Debian/Ubuntu: `sudo apt install ffmpeg`. |
 | **Redis** | Required by Unit3DWebUp. Hardcoded to `127.0.0.1:6379` (the `REDIS_HOST`/`REDIS_PORT` env vars are ignored by webup). Debian/Ubuntu: `sudo apt install redis-server && sudo systemctl enable --now redis-server`. |
@@ -32,6 +32,9 @@ Entry points registered:
 ## 2 — Install Unit3DWebUp
 
 `Unit3DWebUp` is the HTTP backend that performs the actual upload to the tracker. Install it from PyPI in the same venv (simpler) or in a dedicated one:
+
+!!! danger "Python 3.12+ required"
+    `Unit3DwebUp` 0.0.25 declares `requires_python >=3.12`: if the venv from step 1 runs Python 3.10/3.11, `pip install Unit3DwebUp` fails with `ERROR: ... requires a different Python`. Check with `python3 --version` and recreate the venv with a 3.12+ interpreter if needed.
 
 ```bash
 # Same venv (simple)

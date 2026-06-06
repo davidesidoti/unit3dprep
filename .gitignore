@@ -129,6 +129,9 @@ celerybeat.pid
 
 # Environments
 .env
+# Docker: secrets file (copy of config.env.example) + compose volume
+config.env
+/data/
 .venv
 env/
 venv/

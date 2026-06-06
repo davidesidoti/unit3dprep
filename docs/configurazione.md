@@ -40,7 +40,7 @@ Le chiavi `U3DP_*` e `W_*` vengono **rilette ad ogni accesso** tramite `config.r
 | `U3DP_DB_PATH` | `~/.unit3dprep_db.json` | Storico upload (JSON). |
 | `U3DP_TMDB_CACHE_PATH` | `~/.unit3dprep_tmdb_cache.json` | Cache query TMDB. |
 | `U3DP_LANG_CACHE_PATH` | `~/.unit3dprep_lang_cache.json` | Cache rilevamento lingua audio. |
-| `U3DP_SYSTEMD_UNIT` | `unit3dprep.service` | Nome systemd user unit dell'app, usato dal bottone "Update app" per `systemctl --user cat/restart`. Su Ultra.cc impostare a `unit3dprep-web.service`. |
+| `U3DP_SYSTEMD_UNIT` | `unit3dprep-web.service` | Nome systemd user unit dell'app, usato dal bottone "Update app" per `systemctl --user cat/restart`. Override solo se la tua unit ha un nome diverso. |
 | `U3DP_DRY_RUN_TRACKER` | `0` | Se `1` (o `true`/`yes`) il wizard salta la chiamata `/upload` a Unit3DWebUp: utile in dev/WSL per esercitare la pipeline (`setenv→scan→maketorrent→seed`) senza polluire il tracker live. |
 | `U3DP_GITHUB_REPO` | `davidesidoti/unit3dprep` | Slug `owner/repo` usato per il polling delle release dell'app (env-only, letto all'import). |
 
@@ -95,9 +95,9 @@ ENVPATH=~/.config/unit3dprep uvicorn unit3dwup.start:app
 
 | Nome corto (API/UI) | Nome canonico (su disco / `.env`) |
 |---|---|
-| `ITT_APIKEY` | `TRACKER__APIKEYS=["..."]` |
-| `ITT_URL` | `TRACKER__URLS=["..."]` |
-| `ITT_PID` | `TRACKER__PIDS=["..."]` |
+| `ITT_APIKEY` | `TRACKER__ITT_APIKEY` |
+| `ITT_URL` | `TRACKER__ITT_URL` |
+| `ITT_PID` | `TRACKER__ITT_PID` |
 | `MULTI_TRACKER` | `TRACKER__MULTI_TRACKER=["itt", ...]` (JSON array) |
 | `TMDB_APIKEY` | `TRACKER__TMDB_APIKEY` |
 | `TVDB_APIKEY` | `TRACKER__TVDB_APIKEY` |
@@ -184,7 +184,7 @@ Il bottone "Update app" rimane disabilitato (`can_update_app: false`) se:
 - `systemctl` non è nel PATH, oppure
 - l'unit configurata non esiste (`systemctl --user cat <unit>` fallisce).
 
-Su Ultra.cc la user unit tipica si chiama `unit3dprep-web.service`, non il default `unit3dprep.service`. Imposta:
+Il default di `U3DP_SYSTEMD_UNIT` è già `unit3dprep-web.service` (il nome usato sia su Ultra.cc sia nel deploy VPS). Se la tua unit ha un nome diverso, impostalo:
 
 ```ini
 # ~/.config/systemd/user/unit3dprep-web.service

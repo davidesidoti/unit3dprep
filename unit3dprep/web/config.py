@@ -642,6 +642,64 @@ def _short_to_canonical(cfg: dict[str, Any]) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
+# First-boot bootstrap from environment variables (e.g. Docker config.env)
+# ---------------------------------------------------------------------------
+
+# Config short keys that may be seeded from an identically-named env var the
+# first time the .env is created. Kept to unambiguous, deploy-relevant keys
+# (tracker creds, metadata APIs, qBit client) to avoid clashing with generic
+# environment names. Anything else is configured through the web UI afterwards.
+_BOOTSTRAP_ENV_KEYS = {
+    "ITT_URL", "ITT_APIKEY", "ITT_PID",
+    "TMDB_APIKEY", "TVDB_APIKEY",
+    "QBIT_HOST", "QBIT_PORT", "QBIT_USER", "QBIT_PASS",
+}
+
+# Friendlier / historical env names → internal short key. ``TMDB_API_KEY`` is
+# the name unit3dprep already reads for its own TMDB calls; accept it here too
+# so a single env var feeds both unit3dprep and webup's TMDB_APIKEY.
+_BOOTSTRAP_ENV_ALIASES = {
+    "TMDB_API_KEY": "TMDB_APIKEY",
+}
+
+
+def bootstrap_env_overrides() -> dict[str, Any]:
+    """Read seedable config values from the environment (first-boot only).
+
+    Returns short-key → coerced-value for every recognised, non-empty env var.
+    """
+    out: dict[str, Any] = {}
+    for key in _BOOTSTRAP_ENV_KEYS:
+        val = os.environ.get(key)
+        if val:
+            out[key] = _coerce_value(DEFAULT_CONFIG.get(key, ""), val)
+    for env_name, short in _BOOTSTRAP_ENV_ALIASES.items():
+        val = os.environ.get(env_name)
+        if val:
+            out[short] = _coerce_value(DEFAULT_CONFIG.get(short, ""), val)
+    return out
+
+
+def seed_initial_env() -> list[str]:
+    """Create the shared .env from defaults + env overrides if it's absent.
+
+    Used by the Docker entrypoint on first boot so API keys / client settings
+    supplied via env vars (config.env) land in the .env that Unit3DWebUp reads
+    at startup. No-op (returns ``[]``) if the .env already exists, so it never
+    clobbers values the operator later changes through the web UI.
+
+    Returns the list of short keys seeded from the environment.
+    """
+    if _resolve_env_path().exists():
+        return []
+    overrides = bootstrap_env_overrides()
+    cfg = dict(DEFAULT_CONFIG)
+    cfg.update(overrides)
+    save(cfg)
+    return sorted(overrides)
+
+
+# ---------------------------------------------------------------------------
 # load() / save() / migration
 # ---------------------------------------------------------------------------
 

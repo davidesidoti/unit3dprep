@@ -1,12 +1,12 @@
 # Installazione
 
-Questa guida copre l'installazione su sistema Linux/macOS/WSL con Python 3.10+, sia di `unit3dprep` (Web UI + CLI) sia del backend di upload `Unit3DWebUp`. Per il deploy in produzione vedi [VPS](deploy-vps.md) o [Ultra.cc](deploy-ultracc.md).
+Questa guida copre l'installazione su sistema Linux/macOS/WSL con Python 3.12+, sia di `unit3dprep` (Web UI + CLI) sia del backend di upload `Unit3DWebUp`. Per il deploy in produzione vedi [VPS](deploy-vps.md) o [Ultra.cc](deploy-ultracc.md).
 
 ## Prerequisiti
 
 | Requisito | Note |
 |---|---|
-| **Python 3.10+** | 3.11 consigliato. 3.13 funziona ma ha `_sqlite3` rotto su pyenv — non bloccante perché il progetto usa JSON. |
+| **Python 3.12+** | **Richiesto da Unit3DWebUp 0.0.25** (`requires_python >=3.12`): su 3.10/3.11 il `pip install Unit3DwebUp` del passo 2 fallisce con errore *Requires-Python*. `unit3dprep` da solo gira anche su 3.10, ma per lo stack completo serve 3.12+. 3.13 ok (il progetto usa JSON, non `_sqlite3`). |
 | **libmediainfo** | Libreria di sistema richiesta da `pymediainfo`. Debian/Ubuntu: `sudo apt install libmediainfo0v5`. macOS: `brew install mediainfo`. |
 | **ffmpeg** | Richiesto da Unit3DWebUp per generare gli screenshot. Senza, `/scan` ritorna 0 item silenziosamente. Debian/Ubuntu: `sudo apt install ffmpeg`. |
 | **Redis** | Richiesto da Unit3DWebUp. Hardcoded a `127.0.0.1:6379` (le env vars `REDIS_HOST`/`REDIS_PORT` sono ignorate da webup). Debian/Ubuntu: `sudo apt install redis-server && sudo systemctl enable --now redis-server`. |
@@ -32,6 +32,9 @@ Entry points registrati:
 ## 2 — Installa Unit3DWebUp
 
 `Unit3DWebUp` è il backend HTTP che fa l'upload effettivo al tracker. Installalo da PyPI nello stesso venv (più semplice) o in un venv dedicato:
+
+!!! danger "Serve Python 3.12+"
+    `Unit3DwebUp` 0.0.25 dichiara `requires_python >=3.12`: se il venv del passo 1 è su Python 3.10/3.11, `pip install Unit3DwebUp` fallisce con `ERROR: ... requires a different Python`. Verifica con `python3 --version` e, se serve, ricrea il venv con un interprete 3.12+.
 
 ```bash
 # Stesso venv (semplice)

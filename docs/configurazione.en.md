@@ -40,7 +40,7 @@
 | `U3DP_DB_PATH` | `~/.unit3dprep_db.json` | Upload history (JSON). |
 | `U3DP_TMDB_CACHE_PATH` | `~/.unit3dprep_tmdb_cache.json` | TMDB query cache. |
 | `U3DP_LANG_CACHE_PATH` | `~/.unit3dprep_lang_cache.json` | Audio language detection cache. |
-| `U3DP_SYSTEMD_UNIT` | `unit3dprep.service` | App systemd user unit name, used by the "Update app" button for `systemctl --user cat/restart`. On Ultra.cc set to `unit3dprep-web.service`. |
+| `U3DP_SYSTEMD_UNIT` | `unit3dprep-web.service` | App systemd user unit name, used by the "Update app" button for `systemctl --user cat/restart`. Override only if your unit has a different name. |
 | `U3DP_DRY_RUN_TRACKER` | `0` | When `1` (or `true`/`yes`) the wizard skips the `/upload` call to Unit3DWebUp: useful in dev/WSL to exercise the pipeline (`setenv→scan→maketorrent→seed`) without polluting the live tracker. |
 | `U3DP_GITHUB_REPO` | `davidesidoti/unit3dprep` | `owner/repo` slug used to poll the app's GitHub releases (env-only, read at import). |
 
@@ -95,9 +95,9 @@ ENVPATH=~/.config/unit3dprep uvicorn unit3dwup.start:app
 
 | Short name (API/UI) | Canonical name (on disk / `.env`) |
 |---|---|
-| `ITT_APIKEY` | `TRACKER__APIKEYS=["..."]` |
-| `ITT_URL` | `TRACKER__URLS=["..."]` |
-| `ITT_PID` | `TRACKER__PIDS=["..."]` |
+| `ITT_APIKEY` | `TRACKER__ITT_APIKEY` |
+| `ITT_URL` | `TRACKER__ITT_URL` |
+| `ITT_PID` | `TRACKER__ITT_PID` |
 | `MULTI_TRACKER` | `TRACKER__MULTI_TRACKER=["itt", ...]` (JSON array) |
 | `TMDB_APIKEY` | `TRACKER__TMDB_APIKEY` |
 | `TVDB_APIKEY` | `TRACKER__TVDB_APIKEY` |
@@ -184,7 +184,7 @@ The "Update app" button stays disabled (`can_update_app: false`) when:
 - `systemctl` is not in `PATH`, or
 - the configured unit does not exist (`systemctl --user cat <unit>` fails).
 
-On Ultra.cc the user unit is typically `unit3dprep-web.service`, not the default `unit3dprep.service`. Set:
+The default for `U3DP_SYSTEMD_UNIT` is already `unit3dprep-web.service` (the name used on both Ultra.cc and the VPS deploy). If your unit has a different name, set it:
 
 ```ini
 # ~/.config/systemd/user/unit3dprep-web.service

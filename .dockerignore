@@ -1,0 +1,17 @@
+# Keep the build context small. The frontend SPA is already built into
+# unit3dprep/web/dist/ (committed), so the frontend/ sources are not needed.
+.git
+.github
+frontend
+site
+graphify-out
+data
+config.env
+*.egg-info
+**/__pycache__
+*.pyc
+*.pyo
+.venv
+.mypy_cache
+.pytest_cache
+.ruff_cache

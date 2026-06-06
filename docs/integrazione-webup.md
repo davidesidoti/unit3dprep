@@ -63,7 +63,7 @@ Tutta la fase di upload al tracker è delegata a [`Unit3DWebUp`](https://pypi.or
 
 Consumati da:
 
-- Wizard SSE (`/wizard/{token}/stream` + `/upload/{job}/stream`) → frontend con barra grafica.
+- Wizard SSE (`/api/wizard/{tok}/upload` + `/api/upload/{job}/stream`) → frontend con barra grafica.
 - CLI `run_webup_sync()` → stdout testuale.
 
 ### Semantica `SCAN_PATH` + sandbox per-upload
@@ -114,8 +114,8 @@ Lo storage su disco è un singolo `.env` condiviso. Per non rompere la API stori
 
 ```python
 WEBUP_KEY_MAP = {
-    "ITT_APIKEY": "TRACKER__APIKEYS",
-    "ITT_URL": "TRACKER__URLS",
+    "ITT_APIKEY": "TRACKER__ITT_APIKEY",
+    "ITT_URL": "TRACKER__ITT_URL",
     "QBIT_HOST": "TORRENT__QBIT_HOST",
     "MULTI_TRACKER": "TRACKER__MULTI_TRACKER",
     "TAG_ORDER_MOVIE": "PREFS__TAG_POSITION_MOVIE",
@@ -125,7 +125,7 @@ _WEBUP_TO_SHORT = {v: k for k, v in WEBUP_KEY_MAP.items()}
 ```
 
 - **In memoria / API `/api/settings`**: nomi corti (`ITT_APIKEY`, `QBIT_HOST`, ...).
-- **Su disco / `.env` / push a webup**: nomi canonici (`TRACKER__APIKEYS=["..."]`, ...).
+- **Su disco / `.env` / push a webup**: nomi canonici (`TRACKER__ITT_APIKEY`, `TRACKER__ITT_URL`, ...).
 - Liste come `MULTI_TRACKER` sono serializzate come **JSON arrays** (richiesto da pydantic-settings v2 di webup), non CSV.
 
 ### Skip rules

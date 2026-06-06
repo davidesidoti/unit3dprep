@@ -67,7 +67,7 @@ python3 --version
 which python3
 ```
 
-Default Python on Ultra.cc is often 3.13 in pyenv, with broken `_sqlite3` (`undefined symbol: sqlite3_deserialize`). **Not a problem** for this project: app uses JSON for history, not SQLite. If other tools error on `_sqlite3`, install Python 3.11 with `pyenv install 3.11` and `pyenv local 3.11.X`.
+Default Python on Ultra.cc is often 3.13 in pyenv, with broken `_sqlite3` (`undefined symbol: sqlite3_deserialize`). **Not a problem** for this project: app uses JSON for history, not SQLite. This stack needs **Python 3.12+** anyway (Unit3DWebUp 0.0.25 requires `>=3.12`): install it with `pyenv install 3.12` and `pyenv local 3.12.X`.
 
 Same venv for both packages (simple):
 
@@ -204,8 +204,8 @@ EOF
 !!! warning "Never set `DOCKER`"
     Webup `config/settings.py` does `env_file=ENV_FILE if not os.getenv("DOCKER") else None` (truthy check). `DOCKER=false` (string) → `env_file=None` → webup ignores the `.env` → every request fails with 500 "Field required". Omit it from the unit file.
 
-!!! note "`U3DP_SYSTEMD_UNIT=unit3dprep-web.service` is mandatory on Ultra.cc"
-    The "Update app" button uses `systemctl --user cat <unit>` to validate the unit. Default is `unit3dprep.service`; without the override `can_update_app` stays `false` and the button is disabled.
+!!! note "`U3DP_SYSTEMD_UNIT` on Ultra.cc"
+    The "Update app" button validates the unit with `systemctl --user cat <unit>`. The default is already `unit3dprep-web.service` — the same name this guide uses — so `can_update_app` works; the unit file above sets it explicitly anyway. Change it only if you rename the unit.
 
 Enable and start (order matters — webup must be up before the app):
 
@@ -360,7 +360,7 @@ Frontend: the published package ships the prebuilt `dist/`, no Node needed on Ul
 | `OSError: Invalid cross-device link` | `seedings` on a different FS | Move `~/seedings` under `$HOME` |
 | Webup `500` everywhere | `DOCKER` env set or `.env` empty values | Remove `DOCKER`; use Settings UI to write the `.env` |
 | Version card `Current: -` | `Unit3DwebUp` not installed in the venv read by `WEBUP_VENV_BIN` | `~/.venvs/unit3dprep/bin/pip install Unit3DwebUp` |
-| `can_update_app: false` | `U3DP_SYSTEMD_UNIT` not overridden | Add `Environment=U3DP_SYSTEMD_UNIT=unit3dprep-web.service` to the unit file |
+| `can_update_app: false` | your systemd unit has a name other than the default `unit3dprep-web.service` | Add `Environment=U3DP_SYSTEMD_UNIT=<unit-name>` to the unit file |
 | `status=203/EXEC` on systemctl | path in `ExecStart` does not exist | `ls -la <path>` — verify `which unit3dprep-web` |
 
 See also [general Troubleshooting](troubleshooting.md).
