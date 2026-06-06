@@ -108,13 +108,17 @@ PGID=1000
 ## 3 — Start it
 
 ```bash
-docker compose build
 docker compose up -d
 docker compose logs -f
 ```
 
-!!! tip "Skip the build: use the published image"
-    The official image is on Docker Hub: [`hashdeveloper512/unit3dprep`](https://hub.docker.com/r/hashdeveloper512/unit3dprep) (tags `latest`/`X.Y.Z`). To avoid building locally, in `docker-compose.yml` replace `build: .` with `image: hashdeveloper512/unit3dprep:latest` and skip `docker compose build` → `docker compose up -d` pulls the ready-made image.
+The `docker-compose.yml` already points at the published Docker Hub image
+([`hashdeveloper512/unit3dprep`](https://hub.docker.com/r/hashdeveloper512/unit3dprep),
+tags `latest`/`X.Y.Z`): `docker compose up -d` pulls it automatically — no build step needed.
+
+!!! tip "Want to build the image locally?"
+    Open `docker-compose.yml`, comment out `image:` and uncomment `build: .`, then run
+    `docker compose build && docker compose up -d`.
 
 In the logs you should see, in order (prefixed `[entrypoint]`): `starting redis on 127.0.0.1:6379`,
 `seeding /data/.env`, `webup is up`, and finally `starting unit3dprep-web on 0.0.0.0:8765` followed
@@ -176,12 +180,15 @@ TLS reverse proxy (Caddy, Traefik, nginx) in front pointing at `127.0.0.1:8765`,
 ## 6 — Updating
 
 ```bash
-git pull
-docker compose build
+docker compose pull
 docker compose up -d
 ```
 
-Your data (config, db, media, seedings) lives in the `./data` volume and survives the rebuild.
+Your data (config, db, media, seedings) lives in the `./data` volume and survives the update.
+
+!!! tip "Using a local build?"
+    If you uncommented `build: .` in `docker-compose.yml`, update with
+    `git pull && docker compose build && docker compose up -d`.
 
 ---
 

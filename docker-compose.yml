@@ -1,18 +1,20 @@
 # unit3dprep — all-in-one Docker setup.
 # Quick start:
 #   1. cp config.env.example config.env   (then fill in the values)
-#   2. docker compose build
-#   3. docker compose up -d
-#   4. open http://127.0.0.1:8765
+#   2. docker compose up -d               (pulls the published image automatically)
+#   3. open http://127.0.0.1:8765
 # Full guide: docs/docker.md
+#
+# To build the image locally instead of using the published one, comment out
+# `image:` below and uncomment `build: .`.
 #
 # `version` is only needed by the legacy docker-compose v1 (the standalone
 # Python tool); Compose v2 (`docker compose`) ignores it with a harmless notice.
 version: "3.8"
 services:
   unit3dprep:
-    build: .
-    image: unit3dprep:latest
+    image: hashdeveloper512/unit3dprep:latest
+    # build: .   # ← uncomment to build locally instead of pulling from Docker Hub
     container_name: unit3dprep
     restart: unless-stopped
 

@@ -7,9 +7,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- Documentazione: badge PyPI/Docker Hub nel README; guide d'installazione con riferimenti agli
-  artefatti pubblicati (`pip install unit3dprep`, immagine `hashdeveloper512/unit3dprep`) e tip
-  per saltare la build Docker usando l'immagine già pronta.
+- `docker-compose.yml` usa ora l'immagine pubblicata su Docker Hub per default
+  (`hashdeveloper512/unit3dprep:latest`): `docker compose up -d` scarica l'immagine senza
+  richiedere alcuna build locale. Per buildare in locale basta decommentare `build: .`.
+- Guida Docker: §3 semplificato (rimosso `docker compose build`), §6 aggiornamento usa
+  `docker compose pull`. Badge PyPI/Docker Hub nel README; tip installazione via `pip install
+  unit3dprep` e immagine pubblicata.
 
 ## [1.0.4] - 2026-06-06
 

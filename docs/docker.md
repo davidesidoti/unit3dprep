@@ -108,13 +108,17 @@ PGID=1000
 ## 3 — Avvia
 
 ```bash
-docker compose build
 docker compose up -d
 docker compose logs -f
 ```
 
-!!! tip "Salta la build: usa l'immagine pubblicata"
-    L'immagine ufficiale è su Docker Hub: [`hashdeveloper512/unit3dprep`](https://hub.docker.com/r/hashdeveloper512/unit3dprep) (tag `latest`/`X.Y.Z`). Per non buildare in locale, nel `docker-compose.yml` sostituisci `build: .` con `image: hashdeveloper512/unit3dprep:latest` e salta `docker compose build` → `docker compose up -d` scarica l'immagine pronta.
+Il `docker-compose.yml` usa già l'immagine pubblicata su Docker Hub
+([`hashdeveloper512/unit3dprep`](https://hub.docker.com/r/hashdeveloper512/unit3dprep),
+tag `latest`/`X.Y.Z`): `docker compose up -d` la scarica automaticamente senza build.
+
+!!! tip "Vuoi buildare l'immagine in locale?"
+    Apri `docker-compose.yml`, commenta `image:` e decommenta `build: .`, poi lancia
+    `docker compose build && docker compose up -d`.
 
 Nei log dovresti vedere, in ordine (prefisso `[entrypoint]`): `starting redis on 127.0.0.1:6379`,
 `seeding /data/.env`, `webup is up`, e infine `starting unit3dprep-web on 0.0.0.0:8765` seguito
@@ -176,12 +180,15 @@ e imposta `U3DP_HTTPS_ONLY=1` in `config.env`.
 ## 6 — Aggiornamento
 
 ```bash
-git pull
-docker compose build
+docker compose pull
 docker compose up -d
 ```
 
-I dati (config, db, media, seedings) vivono nel volume `./data` e sopravvivono al rebuild.
+I dati (config, db, media, seedings) vivono nel volume `./data` e sopravvivono all'aggiornamento.
+
+!!! tip "Usi la build locale?"
+    Se hai decommentato `build: .` nel `docker-compose.yml`, aggiorna con
+    `git pull && docker compose build && docker compose up -d`.
 
 ---
 
