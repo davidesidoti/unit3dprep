@@ -6,6 +6,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Guida Docker: l'avviso `docker compose` (v2) vs `docker-compose` (v1) è ora un callout
+  prominente prima del primo comando, con il comando per installare il plugin Compose v2.
+
 ## [1.0.3] - 2026-06-06
 
 Release patch: setup **Docker all-in-one** ufficiale (Redis + Unit3DWebUp + unit3dprep in un singolo container, con `PUID`/`PGID`, pre-seed delle chiavi e Redis senza persistenza) e allineamento della documentazione al codice.

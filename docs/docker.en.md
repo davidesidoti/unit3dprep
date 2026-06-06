@@ -28,10 +28,11 @@ or Node required.
 
 ## 1 — Prerequisites
 
-- [Docker Engine](https://docs.docker.com/engine/install/) + **Compose**.
-  The **Compose v2** plugin is recommended (`docker compose version`). If you have the legacy
-  **`docker-compose` v1** (hyphenated, `docker-compose version`) the commands below still work:
-  replace `docker compose` with `docker-compose`.
+- [Docker Engine](https://docs.docker.com/engine/install/) + **Compose v2**.
+  Check with `docker compose version`. If it fails, on Debian/Ubuntu install the plugin with
+  `sudo apt-get install docker-compose-plugin`. Alternatively, with the legacy
+  **`docker-compose` v1** (hyphenated, `docker-compose version`) the commands still work:
+  replace `docker compose` with `docker-compose` in **all** the commands below.
 - A reachable qBittorrent (on your host or another container) **if** you want real seeding.
   Not needed just to try the UI.
 
@@ -44,6 +45,12 @@ git clone https://github.com/davidesidoti/unit3dprep.git
 cd unit3dprep
 cp config.env.example config.env
 ```
+
+!!! warning "`docker compose` (v2) vs `docker-compose` (v1) — read before continuing"
+    The commands in this guide use `docker compose` (Compose **v2**). If `docker compose version`
+    fails and you only have `docker-compose` v1 (hyphenated), use **`docker-compose`** in **all**
+    the commands below: `docker-compose run …`, `docker-compose build`, `docker-compose up -d`,
+    `docker-compose logs -f`. (See [§1](#1-prerequisites) to install the v2 plugin.)
 
 Generate the web UI password hash (interactive):
 

@@ -28,10 +28,11 @@ serve `sudo`, systemd o Node.
 
 ## 1 — Prerequisiti
 
-- [Docker Engine](https://docs.docker.com/engine/install/) + **Compose**.
-  Consigliato il plugin **Compose v2** (`docker compose version`). Se hai il vecchio
-  **`docker-compose` v1** (col trattino, `docker-compose version`) i comandi sotto funzionano
-  ugualmente: sostituisci `docker compose` con `docker-compose`.
+- [Docker Engine](https://docs.docker.com/engine/install/) + **Compose v2**.
+  Verifica con `docker compose version`. Se il comando fallisce, su Debian/Ubuntu installa il
+  plugin con `sudo apt-get install docker-compose-plugin`. In alternativa, col vecchio
+  **`docker-compose` v1** (col trattino, `docker-compose version`) i comandi funzionano
+  ugualmente: sostituisci `docker compose` con `docker-compose` in **tutti** i comandi sotto.
 - qBittorrent raggiungibile (sul tuo host o in un altro container) **se** vuoi fare il
   seed reale. Per provare solo l'interfaccia non serve subito.
 
@@ -44,6 +45,12 @@ git clone https://github.com/davidesidoti/unit3dprep.git
 cd unit3dprep
 cp config.env.example config.env
 ```
+
+!!! warning "`docker compose` (v2) vs `docker-compose` (v1) — leggi prima di continuare"
+    I comandi di questa guida usano `docker compose` (Compose **v2**). Se `docker compose version`
+    fallisce e hai solo `docker-compose` v1 (col trattino), usa **`docker-compose`** in **tutti** i
+    comandi sotto: `docker-compose run …`, `docker-compose build`, `docker-compose up -d`,
+    `docker-compose logs -f`. (Vedi [§1](#1-prerequisiti) per installare il plugin v2.)
 
 Genera l'hash della password della web UI (interattivo):
 
