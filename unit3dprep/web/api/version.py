@@ -724,7 +724,7 @@ async def _update_app_from_git() -> AsyncGenerator[dict, None]:
 
 async def _update_app_from_pip() -> AsyncGenerator[dict, None]:
     before = _current_app_version()
-    yield _sse("log", "install mode: pip (non-git) — will reinstall from GitHub tag")
+    yield _sse("log", "install mode: pip — will upgrade from PyPI")
 
     info = await _get_info(force=True)
     latest = (info.get("app") or {}).get("latest")
@@ -733,24 +733,15 @@ async def _update_app_from_pip() -> AsyncGenerator[dict, None]:
         yield _sse("done", {"ok": False})
         return
 
-    spec = f"git+https://github.com/{GITHUB_REPO}.git@v{latest}"
+    # Published on PyPI as `unit3dprep`; pin to the version advertised by the
+    # GitHub release so we install exactly what's expected (CI publishes the
+    # wheel to PyPI on the same tag).
     async for ev in _stream_subprocess(
-        [sys.executable, "-m", "pip", "install", "--upgrade", "--force-reinstall", "--no-deps", spec]
+        [sys.executable, "-m", "pip", "install", "--upgrade", f"unit3dprep=={latest}"]
     ):
         if ev["event"] == "exit":
             if json.loads(ev["data"])["code"] != 0:
-                yield _sse("error", {"message": "pip install failed"})
-                yield _sse("done", {"ok": False})
-                return
-            break
-        yield ev
-
-    async for ev in _stream_subprocess(
-        [sys.executable, "-m", "pip", "install", "--upgrade", spec]
-    ):
-        if ev["event"] == "exit":
-            if json.loads(ev["data"])["code"] != 0:
-                yield _sse("error", {"message": "pip install (deps) failed"})
+                yield _sse("error", {"message": "pip install failed (PyPI may not have this version yet — retry shortly)"})
                 yield _sse("done", {"ok": False})
                 return
             break

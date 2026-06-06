@@ -6,7 +6,15 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- **Pubblicazione automatica su PyPI e Docker Hub**: a ogni `git tag vX.Y.Z` due workflow GitHub
+  Actions pubblicano il pacchetto su PyPI (`pip install unit3dprep`) e l'immagine all-in-one su
+  Docker Hub (`docker pull <utente>/unit3dprep`, tag `X.Y.Z`/`X.Y`/`latest`). Metadati `pyproject`
+  completati (descrizione, README, licenza GPLv3, classifiers, link) per una pagina PyPI leggibile.
+
 ### Changed
+- Auto-update in-app (modalità pip) ora si aggiorna da **PyPI**
+  (`pip install --upgrade unit3dprep==X`) invece che dal tag GitHub.
 - Guida Docker: **Compose v2 ora richiesto esplicitamente**. La vecchia `docker-compose` v1
   (1.29.2) è incompatibile con Docker Engine 25+ e fa crashare `docker compose up` con
   `KeyError: 'ContainerConfig'`; la guida ora lo segnala con un callout prominente, le istruzioni
