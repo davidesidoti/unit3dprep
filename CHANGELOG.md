@@ -6,6 +6,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-06-06
+
+Release: **distribuzione ufficiale su PyPI e Docker Hub**. Ora `unit3dprep` si installa con `pip install unit3dprep` e l'immagine all-in-one con `docker pull hashdeveloper512/unit3dprep`. Inclusi i fix doc della guida Docker (Compose v2 richiesto).
+
 ### Added
 - **Pubblicazione automatica su PyPI e Docker Hub**: a ogni `git tag vX.Y.Z` due workflow GitHub
   Actions pubblicano il pacchetto su PyPI (`pip install unit3dprep`) e l'immagine all-in-one su
