@@ -7,8 +7,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Changed
-- Guida Docker: l'avviso `docker compose` (v2) vs `docker-compose` (v1) è ora un callout
-  prominente prima del primo comando, con il comando per installare il plugin Compose v2.
+- Guida Docker: **Compose v2 ora richiesto esplicitamente**. La vecchia `docker-compose` v1
+  (1.29.2) è incompatibile con Docker Engine 25+ e fa crashare `docker compose up` con
+  `KeyError: 'ContainerConfig'`; la guida ora lo segnala con un callout prominente, il comando
+  per installare il plugin (`docker-compose-plugin`) e una riga di troubleshooting dedicata.
 
 ## [1.0.3] - 2026-06-06
 

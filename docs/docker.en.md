@@ -28,11 +28,11 @@ or Node required.
 
 ## 1 — Prerequisites
 
-- [Docker Engine](https://docs.docker.com/engine/install/) + **Compose v2**.
-  Check with `docker compose version`. If it fails, on Debian/Ubuntu install the plugin with
-  `sudo apt-get install docker-compose-plugin`. Alternatively, with the legacy
-  **`docker-compose` v1** (hyphenated, `docker-compose version`) the commands still work:
-  replace `docker compose` with `docker-compose` in **all** the commands below.
+- [Docker Engine](https://docs.docker.com/engine/install/) + **Compose v2** (`docker compose version`).
+  **Compose v2 is required.** If `docker compose version` fails, on Debian/Ubuntu install the
+  plugin: `sudo apt-get install docker-compose-plugin`. The legacy `docker-compose` v1 (1.29.2,
+  Python — EOL) is **not** supported: it's incompatible with Docker Engine 25+ and crashes
+  `docker compose up` with `KeyError: 'ContainerConfig'` (see [Troubleshooting](#troubleshooting)).
 - A reachable qBittorrent (on your host or another container) **if** you want real seeding.
   Not needed just to try the UI.
 
@@ -46,11 +46,11 @@ cd unit3dprep
 cp config.env.example config.env
 ```
 
-!!! warning "`docker compose` (v2) vs `docker-compose` (v1) — read before continuing"
-    The commands in this guide use `docker compose` (Compose **v2**). If `docker compose version`
-    fails and you only have `docker-compose` v1 (hyphenated), use **`docker-compose`** in **all**
-    the commands below: `docker-compose run …`, `docker-compose build`, `docker-compose up -d`,
-    `docker-compose logs -f`. (See [§1](#1-prerequisites) to install the v2 plugin.)
+!!! warning "Compose v2 required — read before continuing"
+    The commands use `docker compose` (Compose **v2**). Check with `docker compose version`; if
+    missing, install the plugin: `sudo apt-get install docker-compose-plugin`. Do **not** use the
+    legacy `docker-compose` v1 (1.29.2): with Docker Engine 25+ it crashes `docker compose up`
+    with `KeyError: 'ContainerConfig'`.
 
 Generate the web UI password hash (interactive):
 
@@ -175,6 +175,7 @@ Your data (config, db, media, seedings) lives in the `./data` volume and survive
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
+| `KeyError: 'ContainerConfig'` on `docker compose up` | `docker-compose` v1 (1.29.2) incompatible with Docker Engine 25+ | Use **Compose v2**: `sudo apt-get install docker-compose-plugin`, then `docker compose up -d`. Remove orphaned containers first: `docker rm -f unit3dprep` |
 | Login "succeeds" but you stay logged out (401) | `U3DP_HTTPS_ONLY=1` over plain HTTP | Set `U3DP_HTTPS_ONLY=0` (or put a TLS proxy in front) |
 | `http://127.0.0.1:8765` doesn't respond | container unhealthy | `docker compose logs -f`; check for `starting unit3dprep-web on 0.0.0.0:8765` + `Application startup complete` |
 | Unit3DWebUp card **grey/red** | webup didn't start | Check the logs; the `.env` is seeded automatically on first boot |
