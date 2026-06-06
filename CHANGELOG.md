@@ -9,8 +9,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ### Changed
 - Guida Docker: **Compose v2 ora richiesto esplicitamente**. La vecchia `docker-compose` v1
   (1.29.2) è incompatibile con Docker Engine 25+ e fa crashare `docker compose up` con
-  `KeyError: 'ContainerConfig'`; la guida ora lo segnala con un callout prominente, il comando
-  per installare il plugin (`docker-compose-plugin`) e una riga di troubleshooting dedicata.
+  `KeyError: 'ContainerConfig'`; la guida ora lo segnala con un callout prominente, le istruzioni
+  per installare il plugin v2 (binario CLI utente, valido anche senza il repo APT Docker) e una
+  riga di troubleshooting dedicata.
 
 ## [1.0.3] - 2026-06-06
 

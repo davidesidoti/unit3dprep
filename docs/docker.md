@@ -29,12 +29,23 @@ serve `sudo`, systemd o Node.
 ## 1 — Prerequisiti
 
 - [Docker Engine](https://docs.docker.com/engine/install/) + **Compose v2** (`docker compose version`).
-  **Compose v2 è richiesto.** Se `docker compose version` non funziona, su Debian/Ubuntu installa
-  il plugin: `sudo apt-get install docker-compose-plugin`. La vecchia `docker-compose` v1 (1.29.2,
+  **Compose v2 è richiesto** (installazione sotto, se manca). La vecchia `docker-compose` v1 (1.29.2,
   Python — EOL) **non** è supportata: è incompatibile con Docker Engine 25+ e fa crashare
   `docker compose up` con `KeyError: 'ContainerConfig'` (vedi [Troubleshooting](#troubleshooting)).
 - qBittorrent raggiungibile (sul tuo host o in un altro container) **se** vuoi fare il
   seed reale. Per provare solo l'interfaccia non serve subito.
+
+**Installare Compose v2** (se `docker compose version` non funziona) — plugin CLI utente, senza repo né `sudo`:
+
+```bash
+mkdir -p ~/.docker/cli-plugins
+curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+  -o ~/.docker/cli-plugins/docker-compose
+chmod +x ~/.docker/cli-plugins/docker-compose
+docker compose version
+```
+
+In alternativa, se hai configurato il [repo APT ufficiale Docker](https://docs.docker.com/engine/install/): `sudo apt-get install docker-compose-plugin` (il pacchetto **non** è nei repo standard di Debian/Ubuntu).
 
 ---
 
@@ -48,9 +59,9 @@ cp config.env.example config.env
 
 !!! warning "Serve Compose v2 — leggi prima di continuare"
     I comandi usano `docker compose` (Compose **v2**). Verifica con `docker compose version`; se
-    manca, installa il plugin: `sudo apt-get install docker-compose-plugin`. **Non** usare la
-    vecchia `docker-compose` v1 (1.29.2): con Docker Engine 25+ fa crashare `docker compose up`
-    con `KeyError: 'ContainerConfig'`.
+    manca, installalo come mostrato in [§1](#1-prerequisiti). **Non** usare la vecchia
+    `docker-compose` v1 (1.29.2): con Docker Engine 25+ fa crashare `docker compose up` con
+    `KeyError: 'ContainerConfig'`.
 
 Genera l'hash della password della web UI (interattivo):
 
@@ -175,7 +186,7 @@ I dati (config, db, media, seedings) vivono nel volume `./data` e sopravvivono a
 
 | Sintomo | Causa probabile | Fix |
 | --- | --- | --- |
-| `KeyError: 'ContainerConfig'` su `docker compose up` | `docker-compose` v1 (1.29.2) incompatibile con Docker Engine 25+ | Usa **Compose v2**: `sudo apt-get install docker-compose-plugin`, poi `docker compose up -d`. Rimuovi prima eventuali container orfani: `docker rm -f unit3dprep` |
+| `KeyError: 'ContainerConfig'` su `docker compose up` | `docker-compose` v1 (1.29.2) incompatibile con Docker Engine 25+ | Installa **Compose v2** ([§1](#1-prerequisiti)), rimuovi i container orfani (`docker rm -f unit3dprep`), poi `docker compose up -d` |
 | Login "riesce" ma resti sloggato (401) | `U3DP_HTTPS_ONLY=1` su HTTP puro | Metti `U3DP_HTTPS_ONLY=0` (o un proxy TLS davanti) |
 | `http://127.0.0.1:8765` non risponde | container non in salute | `docker compose logs -f`; verifica che compaia `starting unit3dprep-web on 0.0.0.0:8765` + `Application startup complete` |
 | Card Unit3DWebUp **grigia/rossa** | webup non parte | Controlla i log; al primo boot la `.env` viene seminata automaticamente |

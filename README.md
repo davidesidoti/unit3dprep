@@ -63,7 +63,7 @@ docker compose up -d
 # apri http://127.0.0.1:8765
 ```
 
-> Serve **Compose v2** (`docker compose`). La vecchia `docker-compose` v1 (1.29.2) crasha su `up` con Docker Engine 25+ (`KeyError: 'ContainerConfig'`): installa il plugin con `sudo apt-get install docker-compose-plugin`.
+> Serve **Compose v2** (`docker compose`). La vecchia `docker-compose` v1 (1.29.2) crasha su `up` con Docker Engine 25+ (`KeyError: 'ContainerConfig'`). Se `docker compose version` non funziona, installa il plugin v2 (binario utente, senza repo): vedi [Deploy › Docker › §1](https://davidesidoti.github.io/unit3dprep/docker/#1-prerequisiti).
 
 Guida completa: [Deploy › Docker](https://davidesidoti.github.io/unit3dprep/docker/).
 
