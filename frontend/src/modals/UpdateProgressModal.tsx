@@ -19,6 +19,7 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
   const [from, setFrom] = useState<string>('');
   const [to, setTo] = useState<string>('');
   const [count, setCount] = useState(5);
+  const [restartKind, setRestartKind] = useState<'service' | 'container'>('service');
   const logRef = useRef<HTMLDivElement>(null);
   const closeSSE = useRef<(() => void) | null>(null);
   const phaseRef = useRef<Phase>('running');
@@ -62,6 +63,7 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
             if (j.ok) {
               setFrom(j.from || from);
               setTo(j.to || '');
+              if (j.restart === 'container') setRestartKind('container');
               setPhaseSafe('countdown');
             } else if (phaseRef.current !== 'error') {
               setPhaseSafe('error');
@@ -98,7 +100,10 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
         target, from, to, at: Date.now(),
       }));
     } catch { /* noop */ }
-    let n = 5;
+    // A container restart reboots the whole stack (redis + webup + UI), which
+    // takes noticeably longer than a systemd service restart — give it more
+    // time before reloading so the page comes back up on the first try.
+    let n = restartKind === 'container' ? 20 : 5;
     setCount(n);
     const iv = window.setInterval(() => {
       n -= 1;
@@ -109,7 +114,7 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
       }
     }, 1000);
     return () => window.clearInterval(iv);
-  }, [phase, target, from, to]);
+  }, [phase, target, from, to, restartKind]);
 
   const title = target === 'app' ? t('update.appTitle') : t('update.webupTitle');
 
@@ -185,6 +190,11 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
             <div style={{ fontSize: 13, marginBottom: 4 }}>
               {target === 'app' ? `app ${from} → ${to}` : `webup ${from} → ${to}`}
             </div>
+            {restartKind === 'container' && (
+              <div style={{ fontSize: 11, color: 'var(--fg-4)', marginBottom: 4 }}>
+                {t('update.containerRestarting')}
+              </div>
+            )}
             <div style={{ fontSize: 20, fontWeight: 700 }}>
               {t('update.autoRefreshIn')} {count}…
             </div>

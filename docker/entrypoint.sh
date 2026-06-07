@@ -38,6 +38,15 @@ if [ "$(id -u)" = "0" ]; then
     find "${DATA_DIR}" -mindepth 1 -maxdepth 1 ! -name media \
         -exec chown -R "${PUID}:${PGID}" {} + 2>/dev/null || true
 
+    # Hand site-packages + console scripts to the runtime user so the in-UI
+    # update button (Settings → Version) can `pip install --upgrade` in place.
+    # The package is installed as root at build time; without this chown the
+    # unprivileged process can't write site-packages and the update fails.
+    PYLIB="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))' 2>/dev/null || true)"
+    if [ -n "${PYLIB}" ]; then
+        chown -R "${PUID}:${PGID}" "${PYLIB}" /usr/local/bin 2>/dev/null || true
+    fi
+
     # Re-exec this same script as the unprivileged user.
     exec gosu "${PUID}:${PGID}" "$0" "$@"
 fi

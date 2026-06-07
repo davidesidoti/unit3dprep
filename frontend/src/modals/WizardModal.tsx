@@ -28,7 +28,7 @@ type DuplicateInfo = {
   tmdb_id?: number;
 };
 
-export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => void }) {
+export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: (completed?: boolean) => void }) {
   const { t } = useTranslation();
   const [token, setToken] = useState<string | null>(null);
   const [step, setStep] = useState<StepId>('audio');
@@ -89,7 +89,7 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => v
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => onClose()}
             style={{
               marginLeft: 'auto', background: 'transparent', border: 'none',
               color: 'var(--fg-3)', cursor: 'pointer', fontSize: 20,
@@ -176,11 +176,11 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: () => v
             <HardlinkStep
               token={token}
               onNext={() => setStep('upload')}
-              onFinishOnly={onClose}
+              onFinishOnly={() => onClose(true)}
             />
           )}
           {token && step === 'upload' && (
-            <UploadStep token={token} onClose={onClose} />
+            <UploadStep token={token} onClose={() => onClose(true)} />
           )}
         </div>
       </div>

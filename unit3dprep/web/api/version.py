@@ -249,8 +249,9 @@ async def _compute_info() -> dict:
             "installed": webup_current is not None,
             "repo_path": str(_webup_repo_path()),
         },
-        "can_update_app": _systemd_available(),
-        "can_update_webup": _webup_can_update(),
+        "can_update_app": _systemd_available() or _in_docker(),
+        "can_update_webup": _webup_can_update() or (_in_docker() and webup_current is not None),
+        "docker": _in_docker(),
     }
 
 
@@ -305,6 +306,37 @@ def _install_mode() -> str:
     if _repo_root() is not None:
         return "git"
     return "pip"
+
+
+def _in_docker() -> bool:
+    """True when running inside the all-in-one Docker image.
+
+    Primary signal is the `U3DP_IN_DOCKER` env var baked into the Dockerfile;
+    `/.dockerenv` is a robust fallback for images run with the env stripped.
+    In Docker there is no systemd, so updates restart the container instead
+    (see `_schedule_container_restart`).
+    """
+    if str(runtime_setting("U3DP_IN_DOCKER", "")).strip().lower() in ("1", "true", "yes", "on"):
+        return True
+    return Path("/.dockerenv").exists()
+
+
+def _schedule_container_restart() -> None:
+    """Restart the container by sending SIGTERM to PID 1 after a short delay.
+
+    In the all-in-one image `unit3dprep-web` (uvicorn) is exec'd as PID 1, so
+    SIGTERM triggers a graceful uvicorn shutdown → container exit → Docker's
+    `restart: unless-stopped` policy reboots the whole stack with the freshly
+    pip-installed version. The 3s delay lets the SSE stream emit `done` before
+    the teardown. Detached so it outlives this request handler.
+    """
+    subprocess.Popen(
+        ["sh", "-c", "sleep 3; kill -TERM 1"],
+        start_new_session=True,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
 
 
 async def _get_info(force: bool = False) -> dict:
@@ -410,7 +442,9 @@ async def update_webup():
         )
         yield _sse("start", {"target": "webup", "current": before})
 
-        if not _webup_can_update():
+        # In Docker we restart the container instead of a systemd unit, so the
+        # only requirement is a python interpreter with Unit3DwebUp installed.
+        if not _webup_can_update() and not (_in_docker() and Path(_webup_python()).exists()):
             py = _webup_python()
             if not Path(py).exists():
                 yield _sse("error", {"message": f"webup python not found at {py} (set WEBUP_VENV_BIN)"})
@@ -449,6 +483,23 @@ async def update_webup():
                     return
                 break
             yield ev
+
+        # In Docker webup runs as a subprocess of the entrypoint, so restarting
+        # the container (SIGTERM to PID 1) reboots webup with the new version.
+        if _in_docker():
+            try:
+                _schedule_container_restart()
+                yield _sse("log", "container restart scheduled (SIGTERM to PID 1, 3s)")
+            except Exception as exc:
+                yield _sse("error", {"message": f"failed to schedule restart: {exc}"})
+            _cache["data"] = None
+            _cache["at"] = 0.0
+            after = _current_webup_pip_version() or _current_webup_repo_version()
+            yield _sse("done", {
+                "ok": True, "target": "webup", "from": before, "to": after,
+                "restart": "container",
+            })
+            return
 
         # Restart webup service via systemd-run timer (fire-and-forget;
         # outside our cgroup, won't be killed when this request finishes).
@@ -532,7 +583,7 @@ async def update_app():
             mode = _install_mode()
             yield _sse("start", {"target": "app", "current": before, "mode": mode})
 
-            if not _systemd_available():
+            if not _systemd_available() and not _in_docker():
                 yield _sse("error", {"message": f"systemd unit '{_systemd_unit()}' not available"})
                 yield _sse("done", {"ok": False})
                 return
@@ -570,6 +621,16 @@ async def update_app():
             return
 
         await asyncio.sleep(1.5)
+
+        # In Docker there's no systemd: restart the container (SIGTERM to PID 1)
+        # so the auto-restart policy reboots the stack with the new version.
+        if _in_docker():
+            try:
+                _schedule_container_restart()
+                yield _sse("log", "container restart scheduled (SIGTERM to PID 1, 3s)")
+            except Exception as exc:
+                yield _sse("error", {"message": f"failed to schedule restart: {exc}"})
+            return
 
         # Schedule the restart via a transient systemd-run timer so the restart
         # command lives OUTSIDE this service's cgroup. A plain `Popen(...,
@@ -750,5 +811,11 @@ async def _update_app_from_pip() -> AsyncGenerator[dict, None]:
     after = _current_app_version()
     _cache["data"] = None
     _cache["at"] = 0.0
-    yield _sse("log", f"restarting systemd unit {_systemd_unit()}…")
-    yield _sse("done", {"ok": True, "target": "app", "from": before, "to": after, "mode": "pip"})
+    if _in_docker():
+        yield _sse("log", "restarting container…")
+    else:
+        yield _sse("log", f"restarting systemd unit {_systemd_unit()}…")
+    done = {"ok": True, "target": "app", "from": before, "to": after, "mode": "pip"}
+    if _in_docker():
+        done["restart"] = "container"
+    yield _sse("done", done)

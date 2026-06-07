@@ -6,6 +6,19 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-06-07
+
+### Added
+- Aggiornamenti di app e Unit3DWebUp lanciabili dal bottone in UI (Impostazioni → Versione)
+  anche nelle installazioni Docker: l'update è applicato in-place nel container e poi il
+  container si riavvia da solo. È temporaneo — al successivo `docker compose pull` si torna
+  alla versione dell'immagine, che resta il metodo di aggiornamento canonico.
+
+### Fixed
+- La Libreria si aggiorna automaticamente al termine del wizard (upload completato o
+  solo-hardlink): l'elemento appena caricato viene segnato subito come "caricato"
+  senza dover lanciare manualmente la scansione.
+
 ### Changed
 - `docker-compose.yml` usa ora l'immagine pubblicata su Docker Hub per default
   (`hashdeveloper512/unit3dprep:latest`): `docker compose up -d` scarica l'immagine senza

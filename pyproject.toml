@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unit3dprep"
-version = "1.0.4"
+version = "1.0.5"
 description = "Web UI + CLI di pre-flight per tracker Unit3D, companion di Unit3DWebUp (audio ITA, nomenclatura ItaTorrents, hardlink, upload)"
 readme = "README.md"
 license = { file = "LICENSE" }

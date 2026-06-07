@@ -18,6 +18,7 @@ ENV PYTHONUNBUFFERED=1 \
     U3DP_HOST=0.0.0.0 \
     U3DP_PORT=8765 \
     U3DP_HTTPS_ONLY=0 \
+    U3DP_IN_DOCKER=1 \
     WEBUP_URL=http://127.0.0.1:8000
 
 # libmediainfo + ffmpeg: required by webup (mediainfo extraction + screenshots).

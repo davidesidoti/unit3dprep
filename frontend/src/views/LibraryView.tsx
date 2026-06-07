@@ -60,7 +60,7 @@ const posterBg = (item: LibraryItem) =>
     ? `linear-gradient(160deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.75) 100%), url("${item.tmdb_poster}") center/cover`
     : gradient(item.name);
 
-export function LibraryView({ onStartWizard, isMobile }: { onStartWizard: (c: WizardCtx) => void; isMobile?: boolean }) {
+export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStartWizard: (c: WizardCtx) => void; isMobile?: boolean; refreshSignal?: number }) {
   const { t } = useTranslation();
   const [category, setCategory] = useState<Category>('');
   const [items, setItems] = useState<LibraryItem[]>([]);
@@ -143,6 +143,12 @@ export function LibraryView({ onStartWizard, isMobile }: { onStartWizard: (c: Wi
   };
 
   useEffect(() => { if (category) load(category); }, [category]);
+
+  // Refresh library when the wizard signals a completed upload/hardlink
+  // (refreshSignal === 0 at mount → no superfluous reload).
+  useEffect(() => {
+    if (category && refreshSignal) reloadKeepSelection(category);
+  }, [refreshSignal]);
 
   useEffect(() => {
     setBulkMode(false);

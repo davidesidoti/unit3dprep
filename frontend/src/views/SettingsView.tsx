@@ -328,6 +328,11 @@ function VersionSection() {
                 {t('settings.versionNoSystemd')}
               </div>
             )}
+            {info.docker && info.can_update_app && (
+              <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-display)' }}>
+                {t('settings.versionDockerNote')}
+              </div>
+            )}
           </div>
         )}
 
@@ -441,6 +446,11 @@ function VersionSection() {
             {!info?.can_update_webup && (
               <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-display)' }}>
                 {t('settings.versionWebupNoSystemd')}
+              </div>
+            )}
+            {info?.docker && info?.can_update_webup && (
+              <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-display)' }}>
+                {t('settings.versionDockerNote')}
               </div>
             )}
           </div>

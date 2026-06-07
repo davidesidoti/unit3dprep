@@ -73,6 +73,7 @@ export interface VersionInfo {
   webup: VersionBotTarget;
   can_update_app: boolean;
   can_update_webup?: boolean;
+  docker?: boolean;
 }
 
 export interface WebupHealth {

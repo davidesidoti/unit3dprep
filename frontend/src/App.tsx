@@ -29,6 +29,7 @@ export function App() {
   });
   const [showUpload, setShowUpload] = useState(false);
   const [wizardCtx, setWizardCtx] = useState<WizardCtx | null>(null);
+  const [libraryRefresh, setLibraryRefresh] = useState(0);
   const [queueFilter, setQueueFilter] = useState('');
   const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -136,7 +137,7 @@ export function App() {
         />
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
           {view === 'queue' && <QueueView nameFilter={queueFilter} />}
-          {view === 'library' && <LibraryView onStartWizard={setWizardCtx} isMobile={isMobile} />}
+          {view === 'library' && <LibraryView onStartWizard={setWizardCtx} isMobile={isMobile} refreshSignal={libraryRefresh} />}
           {view === 'uploaded' && <UploadedView />}
           {view === 'search' && <SearchView />}
           {view === 'settings' && <SettingsView isMobile={isMobile} />}
@@ -144,7 +145,15 @@ export function App() {
         </div>
       </div>
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
-      {wizardCtx && <WizardModal ctx={wizardCtx} onClose={() => setWizardCtx(null)} />}
+      {wizardCtx && (
+        <WizardModal
+          ctx={wizardCtx}
+          onClose={(completed) => {
+            setWizardCtx(null);
+            if (completed) setLibraryRefresh((n) => n + 1);
+          }}
+        />
+      )}
       {pendingChangelog && (
         <ChangelogModal
           target={pendingChangelog.target}

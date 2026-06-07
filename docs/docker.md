@@ -185,10 +185,28 @@ docker compose up -d
 ```
 
 I dati (config, db, media, seedings) vivono nel volume `./data` e sopravvivono all'aggiornamento.
+Questo è il metodo **canonico**: scarica la nuova immagine e ricrea il container.
 
 !!! tip "Usi la build locale?"
     Se hai decommentato `build: .` nel `docker-compose.yml`, aggiorna con
     `git pull && docker compose build && docker compose up -d`.
+
+### Aggiornamento dal bottone in UI
+
+Anche in Docker puoi lanciare l'aggiornamento dell'app e di Unit3DWebUp dal bottone
+**Impostazioni → Versione** quando è disponibile una nuova release. L'update viene applicato
+*in-place* dentro al container (`pip install --upgrade`) e poi il container si **riavvia da solo**.
+
+!!! warning "L'update in-UI è temporaneo"
+    L'aggiornamento in-UI vive nel filesystem del container: sopravvive ai riavvii ma viene
+    **azzerato al successivo `docker compose pull`** (che riparte dalla versione dell'immagine).
+    È una comodità per aggiornare subito senza toccare la shell; il metodo definitivo resta
+    `docker compose pull && docker compose up -d`.
+
+    Il riavvio si basa sulla restart policy del container: il `docker-compose.yml` fornito ha
+    `restart: unless-stopped`, quindi il container riparte da solo. Se lanci l'immagine con un
+    `docker run` senza `--restart`, dopo l'update il container resterà fermo e dovrai riavviarlo
+    a mano.
 
 ---
 
