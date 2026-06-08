@@ -9,7 +9,7 @@
 ![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?style=for-the-badge&logo=github%20Pages&logoColor=white)
 
 [![PyPI](https://img.shields.io/pypi/v/unit3dprep?style=for-the-badge&logo=pypi&logoColor=white&label=PyPI)](https://pypi.org/project/unit3dprep/)
-[![Docker Hub](https://img.shields.io/docker/v/hashdeveloper512/unit3dprep?style=for-the-badge&logo=docker&logoColor=white&label=Docker%20Hub&sort=semver)](https://hub.docker.com/r/hashdeveloper512/unit3dprep)
+[![Docker Hub](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)](https://hub.docker.com/r/hashdeveloper512/unit3dprep)
 
 Web UI + CLI di pre-flight per tracker Unit3D, accoppiata via HTTP a [`Unit3DWebUp`](https://pypi.org/project/Unit3DwebUp/) come backend di upload.
 Verifica tracce audio italiane, rinomina secondo la [nomenclatura ItaTorrents](docs/nomenclatura.md), crea hardlink in `~/seedings/` e orchestra il flusso `setenv → scan → maketorrent → upload → seed` su `Unit3DWebUp` con log live via WebSocket/SSE.
