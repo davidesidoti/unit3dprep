@@ -132,6 +132,7 @@ export function Sidebar({
                 border: active
                   ? '1px solid rgba(59,130,246,0.2)'
                   : '1px solid transparent',
+                position: 'relative',
               }}
               onMouseEnter={(e) => {
                 if (!active) {
@@ -146,6 +147,7 @@ export function Sidebar({
                 }
               }}
             >
+              {active && <span className="u3d-nav-accent" />}
               <Icon size={15} />
               {t(item.key)}
             </div>

@@ -105,6 +105,7 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
   return (
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}
+      className="u3d-overlay-in"
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -113,7 +114,7 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="u3d-mobile-modal"
+        className="u3d-mobile-modal u3d-modal-in"
         style={{
           background: 'var(--bg-surface)', border: '1px solid var(--border)',
           borderRadius: 8, width: 560,
@@ -384,7 +385,10 @@ function UploadProgressBar({ progress, done, success }: {
           background: barColor,
           transition: 'width 250ms ease-out',
           borderRadius: 3,
-        }} />
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {!done && pct > 0 && pct < 100 && <div className="u3d-shimmer-overlay" />}
+        </div>
       </div>
       <div style={{
         display: 'flex', justifyContent: 'space-between', marginTop: 4,

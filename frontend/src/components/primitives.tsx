@@ -62,6 +62,7 @@ const STATUS_MAP: Record<string, { bg: string; color: string; label: string }> =
 
 export function StatusPill({ status }: { status: string }) {
   const m = STATUS_MAP[status] ?? STATUS_MAP.pending;
+  const isActive = status === 'seeding' || status === 'uploading';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -72,6 +73,7 @@ export function StatusPill({ status }: { status: string }) {
       <span style={{
         width: 5, height: 5, borderRadius: '50%',
         background: m.color, display: 'inline-block',
+        animation: isActive ? 'pulse 2s ease-in-out infinite' : undefined,
       }} />
       {m.label}
     </span>
@@ -83,6 +85,7 @@ export const BTN_PRIMARY: CSSProperties = {
   padding: '8px 18px', borderRadius: 6, fontSize: 12,
   fontWeight: 600, cursor: 'pointer',
   fontFamily: 'var(--font-display)',
+  transition: 'background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out)',
 };
 
 export const BTN_SECONDARY: CSSProperties = {
@@ -90,6 +93,7 @@ export const BTN_SECONDARY: CSSProperties = {
   borderRadius: 6, padding: '6px 14px', fontSize: 12,
   fontWeight: 600, cursor: 'pointer', color: 'var(--fg-2)',
   fontFamily: 'var(--font-display)',
+  transition: 'background var(--dur-fast) var(--ease-out), border-color var(--dur-fast), transform var(--dur-fast) var(--ease-out)',
 };
 
 export const INPUT_CSS: CSSProperties = {

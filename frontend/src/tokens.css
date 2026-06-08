@@ -81,6 +81,10 @@
 
   --tracking-tight: -0.02em; --tracking-wide: 0.05em;
   --tracking-wider: 0.08em;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 120ms; --dur-base: 180ms; --dur-slow: 280ms;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -120,6 +124,77 @@ code, pre, kbd {
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes u3d-slide-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 @keyframes u3d-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes u3d-fade-in-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes u3d-scale-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+@keyframes u3d-slide-in-right { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes u3d-pop { 0% { transform: scale(1); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
+@keyframes u3d-shimmer { from { transform: translateX(-100%); } to { transform: translateX(200%); } }
+@keyframes u3d-bar-in { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+/* --- Motion utilities --- */
+.u3d-animate-in { animation: u3d-fade-in-up var(--dur-base) var(--ease-out) both; }
+.u3d-modal-in { animation: u3d-scale-in var(--dur-base) var(--ease-out) both; }
+.u3d-slide-in-right { animation: u3d-slide-in-right var(--dur-base) var(--ease-out) both; }
+.u3d-overlay-in { animation: u3d-fade-in var(--dur-base) var(--ease-out) both; }
+.u3d-pop { animation: u3d-pop var(--dur-base) var(--ease-out); }
+
+/* Progress bar shimmer overlay — place inside the fill div (position:relative) */
+.u3d-shimmer-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
+  animation: u3d-shimmer 1.6s ease-in-out infinite;
+}
+
+/* Sidebar active accent bar */
+.u3d-nav-accent {
+  position: absolute; left: 0; top: 4px; bottom: 4px; width: 3px;
+  background: var(--blue); border-radius: 0 3px 3px 0;
+  animation: u3d-bar-in var(--dur-fast) var(--ease-out) both;
+  transform-origin: center;
+}
+
+/* Table/list row hover */
+.u3d-row { transition: background var(--dur-fast) var(--ease-out); }
+.u3d-row:hover { background: var(--bg-card) !important; }
+
+/* Card hover lift */
+.u3d-card {
+  transition: transform var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast),
+              background var(--dur-fast),
+              box-shadow var(--dur-fast);
+}
+.u3d-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+
+/* Press feedback */
+.u3d-pressable { transition: transform var(--dur-fast) var(--ease-out); }
+.u3d-pressable:active { transform: scale(0.97); }
+
+/* Staggered entrance for list/grid children.
+   Use `backwards` fill (NOT `both`): forwards-fill would pin the final
+   transform and break hover lift on cards that are also `.u3d-card`. */
+.u3d-stagger > * { animation: u3d-fade-in-up var(--dur-base) var(--ease-out) backwards; }
+.u3d-stagger > *:nth-child(1)  { animation-delay: 0ms; }
+.u3d-stagger > *:nth-child(2)  { animation-delay: 35ms; }
+.u3d-stagger > *:nth-child(3)  { animation-delay: 70ms; }
+.u3d-stagger > *:nth-child(4)  { animation-delay: 105ms; }
+.u3d-stagger > *:nth-child(5)  { animation-delay: 140ms; }
+.u3d-stagger > *:nth-child(6)  { animation-delay: 175ms; }
+.u3d-stagger > *:nth-child(7)  { animation-delay: 210ms; }
+.u3d-stagger > *:nth-child(8)  { animation-delay: 245ms; }
+.u3d-stagger > *:nth-child(9)  { animation-delay: 280ms; }
+.u3d-stagger > *:nth-child(10) { animation-delay: 315ms; }
+.u3d-stagger > *:nth-child(11) { animation-delay: 350ms; }
+.u3d-stagger > *:nth-child(n+12) { animation-delay: 385ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 @media (max-width: 768px) {
   .u3d-hide-mobile { display: none !important; }

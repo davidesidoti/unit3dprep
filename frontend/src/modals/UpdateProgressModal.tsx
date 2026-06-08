@@ -123,13 +123,14 @@ export function UpdateProgressModal({ target, onClose, onCompleted }: Props) {
       onClick={(e) => {
         if (e.target === e.currentTarget && phase !== 'running' && phase !== 'countdown') onClose();
       }}
+      className="u3d-overlay-in"
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 1000, padding: 16,
       }}
     >
-      <div style={{
+      <div className="u3d-modal-in" style={{
         background: 'var(--bg-surface)', borderRadius: 10,
         border: '1px solid var(--border)', width: '100%', maxWidth: 640,
         maxHeight: '80vh', display: 'flex', flexDirection: 'column',

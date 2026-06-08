@@ -136,12 +136,14 @@ export function App() {
           onMenuClick={() => setDrawerOpen(true)}
         />
         <div style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-          {view === 'queue' && <QueueView nameFilter={queueFilter} />}
-          {view === 'library' && <LibraryView onStartWizard={setWizardCtx} isMobile={isMobile} refreshSignal={libraryRefresh} />}
-          {view === 'uploaded' && <UploadedView />}
-          {view === 'search' && <SearchView />}
-          {view === 'settings' && <SettingsView isMobile={isMobile} />}
-          {view === 'logs' && <LogsView />}
+          <div key={view} className="u3d-animate-in" style={{ height: '100%' }}>
+            {view === 'queue' && <QueueView nameFilter={queueFilter} />}
+            {view === 'library' && <LibraryView onStartWizard={setWizardCtx} isMobile={isMobile} refreshSignal={libraryRefresh} />}
+            {view === 'uploaded' && <UploadedView />}
+            {view === 'search' && <SearchView />}
+            {view === 'settings' && <SettingsView isMobile={isMobile} />}
+            {view === 'logs' && <LogsView />}
+          </div>
         </div>
       </div>
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}

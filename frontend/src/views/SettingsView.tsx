@@ -339,7 +339,7 @@ function VersionSection() {
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
           {clTrigger(appCLOpen, openAppCL, info?.app?.current)}
           {appCLOpen && (
-            <div style={{ padding: '4px 14px 14px', borderTop: '1px solid var(--border-subtle)' }}>
+            <div className="u3d-animate-in" style={{ padding: '4px 14px 14px', borderTop: '1px solid var(--border-subtle)' }}>
               {appCLLoading && (
                 <div style={{ color: 'var(--fg-4)', fontSize: 11, fontFamily: 'var(--font-display)', paddingTop: 6 }}>
                   {t('changelog.loading')}
@@ -459,7 +459,7 @@ function VersionSection() {
         <div style={{ borderTop: '1px solid var(--border-subtle)' }}>
           {clTrigger(botCLOpen, () => setBotCLOpen((v) => !v), info?.webup?.current ?? info?.webup?.latest)}
           {botCLOpen && (
-            <div style={{
+            <div className="u3d-animate-in" style={{
               padding: '10px 14px 14px', borderTop: '1px solid var(--border-subtle)',
               fontSize: 11, fontFamily: 'var(--font-display)', color: 'var(--fg-3)', lineHeight: 1.6,
             }}>

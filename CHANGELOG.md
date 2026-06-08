@@ -6,6 +6,21 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-06-08
+
+### Added
+- Micro-animazioni alla UI per un'esperienza più viva: le viste entrano con una
+  transizione fade + slide al cambio sezione, le card della Libreria compaiono a
+  cascata e si sollevano leggermente al passaggio del mouse, il pannello dettaglio
+  del media scivola da destra, i modal entrano con un effetto scala + dissolvenza,
+  i pulsanti principali danno un feedback al click. Le barre di avanzamento nel
+  wizard e nell'upload mostrano uno shimmer animato durante il processo. I pallini
+  di stato "seeding" e "uploading" pulsano per indicare attività. Le righe di
+  Queue e Caricati entrano a cascata e reagiscono all'hover. I risultati di ricerca
+  entrano a cascata. La voce attiva nella sidebar mostra un accento animato.
+  Tutte le animazioni si disattivano automaticamente se il sistema richiede
+  movimento ridotto (`prefers-reduced-motion`).
+
 ## [1.0.5] - 2026-06-07
 
 ### Added

@@ -79,13 +79,14 @@ export function TopBar({
         )}
         <button
           onClick={onUploadClick}
+          className="u3d-pressable"
           style={{
             background: 'var(--blue)', color: '#fff', border: 'none',
             borderRadius: 6, padding: '6px 14px', fontSize: 12,
             fontWeight: 600, cursor: 'pointer',
             fontFamily: 'var(--font-display)',
             display: 'flex', alignItems: 'center', gap: 6,
-            transition: 'background 150ms',
+            transition: 'background 150ms, transform var(--dur-fast) var(--ease-out)',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--blue-bright)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--blue)')}

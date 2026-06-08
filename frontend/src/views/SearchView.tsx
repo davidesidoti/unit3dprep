@@ -96,14 +96,17 @@ export function SearchView() {
         }}>{error}</div>
       )}
 
+      <div className={filtered.length > 0 ? 'u3d-stagger' : undefined}>
       {filtered.map((r) => (
         <div
           key={`${r.tracker}-${r.id}`}
+          className="u3d-card"
           style={{
             background: 'var(--bg-card)', border: '1px solid var(--border)',
             borderRadius: 6, padding: '12px 16px', marginBottom: 8,
             display: 'flex', alignItems: 'center',
             justifyContent: 'space-between', cursor: 'pointer',
+            transition: 'background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out)',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-card-hover)')}
           onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-card)')}
@@ -140,6 +143,7 @@ export function SearchView() {
           </div>
         </div>
       ))}
+      </div>
 
       {!loading && filtered.length === 0 && !error && query && (
         <div style={{

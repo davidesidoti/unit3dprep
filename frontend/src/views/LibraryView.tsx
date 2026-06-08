@@ -399,12 +399,13 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
         <button
           disabled={scanning}
           onClick={() => load(category)}
+          className="u3d-pressable"
           style={actionBtn}
         >
           <RefreshCw size={11} style={{ animation: loading ? 'spin 1s linear infinite' : '' }} />
           {loading ? t('library.scanning') : t('library.rescan')}
         </button>
-        <button disabled={enriching} onClick={runEnrich} style={actionBtn}>
+        <button disabled={enriching} onClick={runEnrich} className="u3d-pressable" style={actionBtn}>
           <Database size={11} />
           {enriching ? t('library.enriching') : t('library.autoTmdb')}
         </button>
@@ -521,7 +522,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       </div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <div style={{
+        <div className="u3d-stagger" style={{
           flex: 1, display: 'grid',
           gridTemplateColumns: isMobile
             ? 'repeat(auto-fill, minmax(110px, 1fr))'
@@ -553,6 +554,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
             return (
               <div
                 key={item.path}
+                className="u3d-card"
                 onClick={handleClick}
                 style={{
                   background: 'var(--bg-card)',
@@ -560,7 +562,6 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
                   borderRadius: 6, overflow: 'hidden',
                   cursor: bulkDisabled ? 'not-allowed' : 'pointer',
                   opacity: bulkDisabled ? 0.45 : 1,
-                  transition: 'all 150ms',
                   display: 'flex', flexDirection: 'column',
                   position: 'relative',
                 }}
@@ -723,7 +724,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       {bulkToast && (
         <div style={{
           position: 'fixed', bottom: 20, left: '50%',
-          transform: 'translateX(-50%)',
+          translate: '-50% 0',
           background: 'var(--bg-card)',
           border: '1px solid var(--green)',
           color: 'var(--green)',
@@ -733,7 +734,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           boxShadow: '0 6px 20px rgba(0,0,0,0.45)',
           zIndex: 300,
           display: 'flex', alignItems: 'center', gap: 10,
-          animation: 'u3d-fade-in 150ms ease',
+          animation: 'u3d-fade-in-up var(--dur-base) var(--ease-out)',
         }}>
           <span>{bulkToast}</span>
           <button
@@ -781,11 +782,15 @@ function DetailPanel({
       }
     : { width: 360, borderLeft: '1px solid var(--border-subtle)' };
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', background: '#0a0c12',
-      overflowY: 'auto', flexShrink: 0,
-      ...mobileOverlayStyle,
-    }}>
+    <div
+      key={item.path}
+      className={isMobile ? 'u3d-modal-in' : 'u3d-slide-in-right'}
+      style={{
+        display: 'flex', flexDirection: 'column', background: '#0a0c12',
+        overflowY: 'auto', flexShrink: 0,
+        ...mobileOverlayStyle,
+      }}
+    >
       {isMobile && (
         <button
           onClick={onClose}

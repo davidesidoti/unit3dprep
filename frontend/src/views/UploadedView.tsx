@@ -115,6 +115,7 @@ export function UploadedView() {
             <div key={h} style={th}>{h}</div>
           ))}
         </div>
+        <div className="u3d-stagger">
         {filtered.map((r) => {
           const c = kindColors[r.kind] ?? kindColors.movie;
           const expanded = selected === r.id;
@@ -122,6 +123,7 @@ export function UploadedView() {
             <div key={r.id}>
               <div
                 onClick={() => setSelected(expanded ? null : r.id)}
+                className={expanded ? undefined : 'u3d-row'}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '80px minmax(240px, 1fr) 90px 180px 100px 140px',
@@ -192,7 +194,7 @@ export function UploadedView() {
                 </div>
               </div>
               {expanded && (
-                <div style={{
+                <div className="u3d-animate-in" style={{
                   padding: '14px 18px', background: 'var(--bg-base)',
                   borderBottom: '1px solid var(--border-subtle)',
                 }}>
@@ -218,6 +220,7 @@ export function UploadedView() {
             </div>
           );
         })}
+        </div>
         {filtered.length === 0 && (
           <div style={{
             padding: '40px 20px', textAlign: 'center',

@@ -60,12 +60,12 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: (comple
   const idx = STEPS.findIndex((s) => s.id === stepperStep);
 
   return (
-    <div style={{
+    <div className="u3d-overlay-in" style={{
       position: 'fixed', inset: 0, background: 'rgba(2,4,8,0.85)',
       zIndex: 100, display: 'flex', alignItems: 'center',
       justifyContent: 'center', padding: 20,
     }}>
-      <div style={{
+      <div className="u3d-modal-in" style={{
         width: 'min(820px, 100%)', maxHeight: '92vh',
         background: '#0a0c12', border: '1px solid var(--border)',
         borderRadius: 10, display: 'flex', flexDirection: 'column',
@@ -273,6 +273,7 @@ function AudioStep({ token, onNext, onOverride }: {
         <button
           onClick={onNext}
           disabled={!allOk}
+          className="u3d-pressable"
           style={{
             background: allOk ? 'var(--blue)' : 'var(--border)',
             border: 'none', color: allOk ? '#fff' : 'var(--fg-3)',
@@ -343,6 +344,7 @@ function TmdbStep({ token, ctx, onNext }: {
         <button
           onClick={lookup}
           disabled={!tmdbId || loading}
+          className="u3d-pressable"
           style={{
             background: tmdbId && !loading ? 'var(--blue)' : 'var(--border)',
             border: 'none', color: tmdbId && !loading ? '#fff' : 'var(--fg-3)',
@@ -361,7 +363,7 @@ function TmdbStep({ token, ctx, onNext }: {
         }}>{error}</div>
       )}
       {matched && (
-        <div style={{
+        <div className="u3d-animate-in" style={{
           display: 'flex', gap: 14, padding: 14,
           background: '#0a0c12', border: '1px solid var(--green-dim)',
           borderRadius: 6,
@@ -396,6 +398,7 @@ function TmdbStep({ token, ctx, onNext }: {
         <button
           onClick={onNext}
           disabled={!matched}
+          className="u3d-pressable"
           style={{
             background: matched ? 'var(--blue)' : 'var(--border)',
             border: 'none', color: matched ? '#fff' : 'var(--fg-3)',
@@ -491,6 +494,7 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
         <button
           onClick={submit}
+          className="u3d-pressable"
           style={{
             background: 'var(--blue)', border: 'none', color: '#fff',
             padding: '8px 18px', borderRadius: 6, fontSize: 12,
@@ -717,6 +721,7 @@ function HardlinkStep({ token, onNext, onFinishOnly }: {
         <button
           onClick={execute}
           disabled={running}
+          className="u3d-pressable"
           style={{
             width: '100%', background: running ? 'var(--border)' : 'var(--blue)',
             border: 'none', color: '#fff', padding: 10,
@@ -740,6 +745,7 @@ function HardlinkStep({ token, onNext, onFinishOnly }: {
           {hardlinkOnly ? (
             <button
               onClick={finishOnly}
+              className="u3d-pressable"
               style={{
                 background: 'var(--green)', border: 'none', color: 'var(--bg-base)',
                 padding: '8px 18px', borderRadius: 6, fontSize: 12,
@@ -750,6 +756,7 @@ function HardlinkStep({ token, onNext, onFinishOnly }: {
           ) : (
             <button
               onClick={onNext}
+              className="u3d-pressable"
               style={{
                 background: 'var(--blue)', border: 'none', color: '#fff',
                 padding: '8px 18px', borderRadius: 6, fontSize: 12,
@@ -812,7 +819,10 @@ function ProgressBar({ progress, done, success }: {
           background: barColor,
           transition: 'width 250ms ease-out',
           borderRadius: 3,
-        }} />
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {!done && pct > 0 && pct < 100 && <div className="u3d-shimmer-overlay" />}
+        </div>
       </div>
       <div style={{
         display: 'flex', justifyContent: 'space-between', marginTop: 4,

@@ -123,9 +123,9 @@ export function QueueView({ nameFilter = '' }: { nameFilter?: string }) {
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="u3d-stagger">
           {filtered.map((tor) => (
-            <tr key={tor.hash}>
+            <tr key={tor.hash} className="u3d-row">
               <td style={tdStyle}>
                 <span style={{
                   fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-1)',

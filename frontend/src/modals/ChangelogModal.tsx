@@ -37,13 +37,14 @@ export function ChangelogModal({ target, from, to, onClose }: Props) {
   return (
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="u3d-overlay-in"
       style={{
         position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         zIndex: 1000, padding: 16,
       }}
     >
-      <div style={{
+      <div className="u3d-modal-in" style={{
         background: 'var(--bg-surface)', borderRadius: 10,
         border: '1px solid var(--border)', width: '100%', maxWidth: 640,
         maxHeight: '85vh', display: 'flex', flexDirection: 'column',
