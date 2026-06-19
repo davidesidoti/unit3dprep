@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-20
+
 ### Added
 - Nuova schermata **Reseed** per rimettere in seed torrent di ItaTorrents con 0 seed
   che hai già nella libreria. Due modalità: **Candidati automatici** — scansiona una
