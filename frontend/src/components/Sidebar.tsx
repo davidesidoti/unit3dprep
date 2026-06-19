@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  List, Library, CheckCircle, UploadCloud, Search, Settings, Terminal, LogOut, X,
+  List, Library, CheckCircle, UploadCloud, Search, Settings, Terminal, LogOut, X, RefreshCw,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { id: 'uploaded', icon: CheckCircle,  key: 'nav.uploaded' },
   { id: 'upload',   icon: UploadCloud,  key: 'nav.upload' },
   { id: 'search',   icon: Search,       key: 'nav.search' },
+  { id: 'reseed',   icon: RefreshCw,    key: 'nav.reseed' },
   { id: 'settings', icon: Settings,     key: 'nav.settings' },
   { id: 'logs',     icon: Terminal,     key: 'nav.logs' },
 ] as const;

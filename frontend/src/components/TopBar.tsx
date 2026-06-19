@@ -21,6 +21,7 @@ export function TopBar({
     library: t('topbar.library'),
     uploaded: t('topbar.uploaded'),
     search: t('topbar.search'),
+    reseed: t('topbar.reseed'),
     settings: t('topbar.settings'),
     logs: t('topbar.logs'),
   };

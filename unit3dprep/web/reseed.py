@@ -1,0 +1,537 @@
+"""Reseed logic: re-seed ITT torrents the user already has on disk.
+
+Unit3DWebUp is an upload-only pipeline (scan → maketorrent → upload → seed of
+a *new* torrent) and exposes nothing for fetching an existing torrent or
+listing 0-seed ones. So reseed talks to the ITT/Unit3D API + qBittorrent
+directly:
+
+  1. discover ITT torrents with **0 seeders** whose exact byte size matches a
+     local single-file media item (movie or single episode), via tmdbId +
+     size, reusing the duplicate-check pattern;
+  2. download the `.torrent`;
+  3. add it to qBit **paused + skip-check**, read the file layout qBit expects
+     (`/torrents/files`), hardlink the local content into those paths, then
+     recheck — qBit re-hashes and, if the content matches, seeds.
+
+No bencode parsing is needed: qBit is the source of truth for the on-disk
+layout.
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from pathlib import Path
+from typing import Any, AsyncGenerator
+
+import httpx
+
+from ..core import VIDEO_EXTENSIONS, hardlink_file, seedings_dir
+from ..media import discover_categories, scan_category
+from .clients import get_client
+from .db import record_upload
+from .tmdb_cache import get_many
+from .trackers import _human_size, _resolution_for, _type_for
+
+try:
+    from guessit import guessit as _guessit
+except ImportError:  # pragma: no cover
+    _guessit = None  # type: ignore
+
+log = logging.getLogger("unit3dprep.reseed")
+
+_TIMEOUT = httpx.Timeout(20.0, connect=5.0)
+# Serializes reseed runs: perform_reseed identifies the freshly-added torrent
+# by diffing qBit's hash set before/after the add, which is only reliable when
+# no other add runs concurrently.
+_reseed_lock = asyncio.Lock()
+
+_CHECKING_STATES = {
+    "checkingUP", "checkingDL", "checkingResumeData",
+    "queuedForChecking", "allocating", "checking", "moving",
+}
+
+
+# ---------------------------------------------------------------------------
+# ITT / Unit3D API helpers
+# ---------------------------------------------------------------------------
+
+
+def _itt_creds(cfg: dict[str, Any]) -> tuple[str, str]:
+    base = (cfg.get("ITT_URL") or "").rstrip("/")
+    token = (cfg.get("ITT_APIKEY") or "").strip()
+    return base, token
+
+
+def _itt_configured(base: str, token: str) -> bool:
+    return bool(base) and bool(token) and token not in {"no_key", ""}
+
+
+async def _filter(client: httpx.AsyncClient, base: str, params: dict[str, str]) -> list[dict]:
+    r = await client.get(f"{base}/api/torrents/filter", params=params)
+    r.raise_for_status()
+    payload = r.json()
+    items = payload.get("data") if isinstance(payload, dict) else None
+    return items if isinstance(items, list) else []
+
+
+async def fetch_torrent_meta(base: str, token: str, torrent_id: int) -> dict | None:
+    """Single-torrent attributes (name, size, resolution, download_link, …).
+
+    Unit3D's show endpoint returns the resource **without** the `data` envelope
+    used by the list/filter endpoints — i.e. ``{type, id, attributes:{…}}`` at
+    the top level — so handle both shapes.
+    """
+    base = base.rstrip("/")
+    async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as c:
+        r = await c.get(f"{base}/api/torrents/{torrent_id}", params={"api_token": token})
+        r.raise_for_status()
+        payload = r.json()
+    if not isinstance(payload, dict):
+        return None
+    if isinstance(payload.get("attributes"), dict):  # show endpoint (no envelope)
+        return payload["attributes"]
+    data = payload.get("data")
+    if isinstance(data, list):
+        data = data[0] if data else None
+    if isinstance(data, dict):
+        return data.get("attributes") or data
+    return None
+
+
+async def download_torrent_file(download_link: str) -> bytes:
+    """Fetch the raw `.torrent` from the Unit3D ``download_link``.
+
+    Unit3D serves the `.torrent` at ``/torrent/download/{id}.{rsskey}`` — the
+    rsskey is baked into the ``download_link`` returned by the torrents API for
+    the api_token's owner. The `.torrent` is NOT reachable via ``?api_token=``
+    (that route requires a web session and otherwise returns the HTML page), so
+    ``download_link`` is the only reliable mechanism. Validates the body is
+    bencoded.
+    """
+    if not download_link:
+        raise RuntimeError("download_link assente nella risposta dell'API ITT")
+    async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as c:
+        r = await c.get(download_link)
+    if r.status_code == 200 and r.content[:1] == b"d":
+        return r.content
+    raise RuntimeError(
+        f"download .torrent fallito: HTTP {r.status_code} "
+        f"(content-type {r.headers.get('content-type', '?')})"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Candidate discovery (library-driven, batched)
+# ---------------------------------------------------------------------------
+
+
+def _guess_episode(name: str) -> int | None:
+    if _guessit is None:
+        return None
+    try:
+        ep = dict(_guessit(name)).get("episode")
+        if isinstance(ep, list):
+            ep = ep[0] if ep else None
+        return int(ep) if ep is not None else None
+    except Exception:
+        return None
+
+
+def _scan_units(category: str) -> list[dict[str, Any]]:
+    """Flatten a category into single-file reseed units (one ITT query each).
+
+    Movies → one unit per single-file movie. Series → one unit per episode.
+    """
+    units: list[dict[str, Any]] = []
+    for item in scan_category(category):
+        if item.kind == "movie":
+            if len(item.video_files) == 1:
+                units.append({
+                    "item": item, "file": item.video_files[0],
+                    "kind": "movie", "season": None, "episode": None,
+                })
+        else:
+            for season in item.seasons:
+                for vf in season.video_files:
+                    units.append({
+                        "item": item, "file": vf, "kind": "episode",
+                        "season": season.number, "episode": _guess_episode(vf.name),
+                    })
+    return units
+
+
+def _candidate_dict(unit: dict[str, Any], local_size: int, attrs: dict, entry: dict, base: str) -> dict:
+    item = unit["item"]
+    tid = int(entry.get("id") or attrs.get("id") or 0)
+    t_size = 0
+    try:
+        t_size = int(attrs.get("size") or 0)
+    except (TypeError, ValueError):
+        pass
+    return {
+        "source_path": str(unit["file"]),
+        "item_name": item.name,
+        "category": item.category,
+        "kind": unit["kind"],
+        "season": unit["season"],
+        "episode": unit["episode"],
+        "local_size": local_size,
+        "local_size_human": _human_size(local_size),
+        "torrent": {
+            "tracker": "ITT",
+            "id": tid,
+            "name": attrs.get("name") or "",
+            "type": _type_for(attrs),
+            "size": t_size,
+            "size_human": _human_size(t_size),
+            "resolution": _resolution_for(attrs),
+            "seeders": int(attrs.get("seeders") or 0),
+            "leechers": int(attrs.get("leechers") or 0),
+            "details_link": attrs.get("details_link") or f"{base}/torrents/{tid}",
+            "download_link": attrs.get("download_link") or "",
+        },
+    }
+
+
+async def _match_unit(
+    client: httpx.AsyncClient, base: str, token: str,
+    unit: dict[str, Any], cache: dict[str, dict], max_seeders: int = 0,
+) -> dict | str | None:
+    """Return a candidate dict, ``"unenriched"`` (no tmdbId), or ``None``.
+
+    A candidate is a tracker torrent with the **exact** byte size of the local
+    file (required for the qBit recheck to pass) and ``seeders <= max_seeders``
+    (default 0 = only dead torrents; raise to also reseed near-dead ones).
+    """
+    item = unit["item"]
+    tmdb = cache.get(str(item.path)) or {}
+    tmdb_id = tmdb.get("tmdb_id", "")
+    if not tmdb_id:
+        return "unenriched"
+    try:
+        size = unit["file"].stat().st_size
+    except OSError:
+        return None
+    params: dict[str, str] = {"tmdbId": str(tmdb_id), "api_token": token, "perPage": "100"}
+    if unit["kind"] == "episode":
+        if unit["season"] is not None:
+            params["seasonNumber"] = str(unit["season"])
+        if unit["episode"] is not None:
+            params["episodeNumber"] = str(unit["episode"])
+    data = await _filter(client, base, params)
+    for entry in data:
+        attrs = entry.get("attributes") or {}
+        try:
+            t_size = int(attrs.get("size"))
+        except (TypeError, ValueError):
+            continue
+        if t_size != size:
+            continue
+        if int(attrs.get("seeders") or 0) > max_seeders:
+            continue
+        return _candidate_dict(unit, size, attrs, entry, base)
+    return None
+
+
+async def stream_reseed_candidates(
+    cfg: dict[str, Any], category: str, *, offset: int = 0, limit: int = 20,
+    max_seeders: int = 0,
+) -> AsyncGenerator[tuple[str, dict], None]:
+    """Stream reseed candidates over the `[offset:offset+limit]` window of
+    single-file units in `category`, yielding ``("candidate", {...})`` as each
+    match is found (bounded ITT concurrency) and a final
+    ``("done", {next_offset, has_more, scanned, unenriched})``.
+
+    `max_seeders` (default 0) is the inclusive seeder ceiling for a match —
+    0 keeps only dead torrents; raise it to also surface near-dead ones."""
+    base, token = _itt_creds(cfg)
+    units = _scan_units(category)
+    window = units[offset:offset + limit]
+    next_offset = offset + len(window)
+
+    def _summary(unenriched: int) -> dict:
+        return {
+            "next_offset": next_offset,
+            "has_more": next_offset < len(units),
+            "scanned": len(window),
+            "unenriched": unenriched,
+        }
+
+    if not _itt_configured(base, token) or not window:
+        yield ("done", _summary(0))
+        return
+
+    item_paths = list({str(u["item"].path) for u in window})
+    cache = await get_many(item_paths)
+    sem = asyncio.Semaphore(8)
+    unenriched = 0
+
+    async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
+        async def check(unit: dict[str, Any]) -> dict | str | None:
+            async with sem:
+                return await _match_unit(client, base, token, unit, cache, max_seeders)
+
+        tasks = [asyncio.create_task(check(u)) for u in window]
+        for fut in asyncio.as_completed(tasks):
+            try:
+                res = await fut
+            except Exception as e:  # noqa: BLE001
+                log.warning("reseed candidate check failed: %s", e)
+                continue
+            if res == "unenriched":
+                unenriched += 1
+            elif res:
+                yield ("candidate", res)
+
+    yield ("done", _summary(unenriched))
+
+
+async def suggest_local_files(cfg: dict[str, Any], torrent_id: int) -> dict[str, Any]:
+    """For the manual flow: torrent meta + local single-file items whose size
+    matches the torrent exactly (pre-selection)."""
+    base, token = _itt_creds(cfg)
+    if not _itt_configured(base, token):
+        return {"torrent": None, "matches": []}
+    meta = await fetch_torrent_meta(base, token, torrent_id)
+    if not meta:
+        return {"torrent": None, "matches": []}
+    try:
+        size = int(meta.get("size"))
+    except (TypeError, ValueError):
+        size = 0
+
+    matches: list[dict] = []
+    if size > 0:
+        for category in discover_categories():
+            for unit in _scan_units(category):
+                try:
+                    fsize = unit["file"].stat().st_size
+                except OSError:
+                    continue
+                if fsize == size:
+                    item = unit["item"]
+                    matches.append({
+                        "source_path": str(unit["file"]),
+                        "item_name": item.name,
+                        "category": item.category,
+                        "kind": unit["kind"],
+                        "size": fsize,
+                        "size_human": _human_size(fsize),
+                    })
+    tid = int(meta.get("id") or torrent_id)
+    return {
+        "torrent": {
+            "tracker": "ITT",
+            "id": tid,
+            "name": meta.get("name") or "",
+            "type": _type_for(meta),
+            "size": size,
+            "size_human": _human_size(size) if size else "—",
+            "resolution": _resolution_for(meta),
+            "seeders": int(meta.get("seeders") or 0),
+            "leechers": int(meta.get("leechers") or 0),
+            "details_link": meta.get("details_link") or f"{base}/torrents/{tid}",
+            "download_link": meta.get("download_link") or "",
+        },
+        "matches": matches,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Hardlink planning
+# ---------------------------------------------------------------------------
+
+
+def _video_files_under(root: Path) -> list[Path]:
+    if root.is_dir():
+        return sorted(p for p in root.rglob("*") if p.is_file() and p.suffix.lower() in VIDEO_EXTENSIONS)
+    base = root.parent
+    return sorted(p for p in base.iterdir() if p.is_file() and p.suffix.lower() in VIDEO_EXTENSIONS)
+
+
+def _safe_size(p: Path) -> int | None:
+    try:
+        return p.stat().st_size
+    except OSError:
+        return None
+
+
+def _plan_and_hardlink(files: list[dict], src: Path, save_path: str) -> tuple[list[str], list[str], str | None]:
+    """Hardlink local content into the paths qBit expects under `save_path`.
+
+    Returns (linked_names, missing_names, primary_target_path).
+    """
+    save = Path(save_path)
+    linked: list[str] = []
+    missing: list[str] = []
+    primary: str | None = None
+
+    if len(files) == 1:
+        name = files[0].get("name") or src.name
+        want = files[0].get("size")
+        real_src = src
+        if src.is_dir():
+            cand = next((p for p in _video_files_under(src) if _safe_size(p) == want), None)
+            real_src = cand or next(iter(_video_files_under(src)), src)
+        target = save / name
+        hardlink_file(real_src, target)
+        linked.append(name)
+        return linked, missing, str(target)
+
+    # Multi-file (season pack via manual flow): match each torrent file to a
+    # local file by exact size.
+    pool = _video_files_under(src)
+    used: set[Path] = set()
+    for f in files:
+        name = f.get("name") or ""
+        want = f.get("size")
+        match = next((p for p in pool if p not in used and _safe_size(p) == want), None)
+        if match is None:
+            missing.append(name)
+            continue
+        used.add(match)
+        target = save / name
+        hardlink_file(match, target)
+        linked.append(name)
+        if primary is None:
+            primary = str(target)
+    return linked, missing, primary
+
+
+# ---------------------------------------------------------------------------
+# Reseed orchestration (SSE generator)
+# ---------------------------------------------------------------------------
+
+
+def _ev(event: str, **data: Any) -> dict:
+    return {"event": event, "data": json.dumps(data)}
+
+
+def _log(msg: str) -> dict:
+    return {"event": "log", "data": msg}
+
+
+async def _await_new_hash(client, before: set[str], *, timeout: float = 20.0) -> str | None:
+    loop = asyncio.get_event_loop()
+    deadline = loop.time() + timeout
+    while loop.time() < deadline:
+        cur = {t.hash for t in await client.list()}
+        new = cur - before
+        if new:
+            return sorted(new)[0]
+        await asyncio.sleep(0.5)
+    return None
+
+
+async def _poll_recheck(client, torrent_hash: str, *, timeout: float = 900.0) -> AsyncGenerator[tuple[float, str], None]:
+    loop = asyncio.get_event_loop()
+    deadline = loop.time() + timeout
+    seen_checking = False
+    while loop.time() < deadline:
+        info = await client.info_one(torrent_hash)
+        if info is not None:
+            prog = float(info.get("progress", 0) or 0)
+            st = info.get("state", "") or ""
+            yield prog, st
+            if st in _CHECKING_STATES:
+                seen_checking = True
+            elif seen_checking or prog >= 0.999:
+                return
+        await asyncio.sleep(1.0)
+
+
+async def perform_reseed(
+    cfg: dict[str, Any], *, tracker: str, torrent_id: int, source_path: str,
+    category: str = "", kind: str = "", title: str = "",
+) -> AsyncGenerator[dict, None]:
+    base, token = _itt_creds(cfg)
+    if not _itt_configured(base, token):
+        yield {"event": "error", "data": "ITT non configurato"}
+        yield _ev("done", ok=False)
+        return
+    src = Path(source_path)
+    if not src.exists():
+        yield {"event": "error", "data": f"File locale non trovato: {source_path}"}
+        yield _ev("done", ok=False)
+        return
+
+    async with _reseed_lock:
+        loop = asyncio.get_event_loop()
+        try:
+            yield _log("Recupero metadati del torrent…")
+            meta = await fetch_torrent_meta(base, token, torrent_id)
+            download_link = (meta or {}).get("download_link") or ""
+
+            yield {"event": "progress", "data": json.dumps({"phase": "download", "pct": 0})}
+            yield _log("Scarico il file .torrent da ITT…")
+            tbytes = await download_torrent_file(download_link)
+            yield {"event": "progress", "data": json.dumps({"phase": "download", "pct": 100})}
+
+            client = get_client(cfg)
+            save = seedings_dir()
+            save.mkdir(parents=True, exist_ok=True)
+            save_path = str(save.resolve())
+
+            yield _log("Aggiungo il torrent a qBittorrent (in pausa)…")
+            before = {t.hash for t in await client.list()}
+            # skip_checking=False so the initial progress reflects reality (files
+            # not hardlinked yet → 0%), never a spurious 100%. We hardlink the
+            # content next, then trigger an explicit recheck below — that recheck
+            # is the real verification of whether the local content matches.
+            await client.add_torrent(
+                tbytes, save_path=save_path, paused=True,
+                skip_checking=False, tags="u3dp-reseed",
+            )
+            new_hash = await _await_new_hash(client, before)
+            if not new_hash:
+                yield {"event": "error", "data": "Torrent aggiunto ma non individuato in qBit (forse già presente)."}
+                yield _ev("done", ok=False)
+                return
+
+            yield {"event": "progress", "data": json.dumps({"phase": "hardlink", "pct": 0})}
+            files = await client.torrent_files(new_hash)
+            yield _log(f"qBit attende {len(files)} file. Creo gli hardlink…")
+            linked, missing, primary = await loop.run_in_executor(
+                None, _plan_and_hardlink, files, src, save_path
+            )
+            for name in linked:
+                yield _log(f"→ {name}")
+            for name in missing:
+                yield _log(f"⚠ nessun file locale per: {name}")
+            yield {"event": "progress", "data": json.dumps({"phase": "hardlink", "pct": 100})}
+
+            yield _log("Avvio il recheck in qBittorrent…")
+            await client.recheck(new_hash)
+            yield {"event": "progress", "data": json.dumps({"phase": "recheck", "pct": 0})}
+            final = 0.0
+            async for prog, _st in _poll_recheck(client, new_hash):
+                final = prog
+                yield {"event": "progress", "data": json.dumps({"phase": "recheck", "pct": round(prog * 100)})}
+
+            if final >= 0.999:
+                await client.resume(new_hash)
+                seeding_path = primary or save_path
+                try:
+                    await record_upload(
+                        category=category or "", kind=kind or "movie",
+                        source_path=str(src.resolve()), seeding_path=seeding_path,
+                        title=title or "", final_name=Path(seeding_path).name,
+                        exit_code=0, hardlink_only=True,
+                        duplicate_info={"reseed": True, "tracker": tracker, "torrent_id": torrent_id},
+                    )
+                except Exception:
+                    log.warning("reseed: record_upload failed", exc_info=True)
+                yield _log("✓ Reseed completato — il torrent è in seed.")
+                yield _ev("done", ok=True, hash=new_hash, progress=final)
+            else:
+                await client.pause(new_hash)
+                yield {"event": "error", "data": (
+                    f"Recheck incompleto ({round(final * 100)}%): il contenuto locale non "
+                    "corrisponde al torrent. Lasciato in pausa in qBittorrent."
+                )}
+                yield _ev("done", ok=False, hash=new_hash, progress=final)
+        except Exception as e:  # noqa: BLE001 — surface any failure to the UI
+            log.exception("reseed failed")
+            yield {"event": "error", "data": f"Reseed fallito: {e}"}
+            yield _ev("done", ok=False)

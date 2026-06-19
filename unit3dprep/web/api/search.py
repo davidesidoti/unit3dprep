@@ -32,9 +32,3 @@ async def search(request: Request, q: str, tracker: str = "ITT"):
         "tracker": tracker.upper(),
         "results": [r.to_dict() for r in results],
     })
-
-
-@router.post("/reseed/{tracker}/{torrent_id}")
-async def reseed(request: Request, tracker: str, torrent_id: int):
-    # Placeholder: trigger a unit3dup reseed run for a known torrent id.
-    raise HTTPException(501, t("err.reseed_not_implemented", get_request_lang(request)))

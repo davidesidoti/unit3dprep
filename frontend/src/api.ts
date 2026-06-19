@@ -83,6 +83,7 @@ export function openSSE(path: string, handlers: SseHandlers): () => void {
   const named = [
     'line', 'log', 'progress', 'input_needed', 'error',
     'done', 'file_result', 'enriched', 'lang_scanned', 'ping',
+    'candidate',
   ];
   const listeners: Array<[string, (e: MessageEvent) => void]> = [];
   for (const name of named) {

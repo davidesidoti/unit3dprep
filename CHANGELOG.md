@@ -6,6 +6,18 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Nuova schermata **Reseed** per rimettere in seed torrent di ItaTorrents con 0 seed
+  che hai già nella libreria. Due modalità: **Candidati automatici** — scansiona una
+  categoria e mostra i torrent ITT che combaciano con i tuoi file (per ID TMDB e
+  dimensione esatta) con seeder sotto una soglia configurabile (default 0 = solo torrent
+  morti), a lotti con un pulsante "Carica altri" per non appesantire la scansione; e
+  **Ricerca manuale** — cerca su ITT per titolo e fai il reseed a mano
+  quando il match automatico non trova una release. Cliccando un torrent un wizard
+  scarica il file `.torrent`, lo aggiunge a qBittorrent, crea l'hardlink del file
+  locale nel percorso atteso e avvia il recheck: se il contenuto corrisponde, il
+  torrent parte in seed.
+
 ## [1.0.6] - 2026-06-08
 
 ### Added

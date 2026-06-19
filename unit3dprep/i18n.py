@@ -68,9 +68,9 @@ CATALOG: dict[str, dict[str, str]] = {
         "it": "Tracker sconosciuto '{tracker}'",
         "en": "Unknown tracker '{tracker}'",
     },
-    "err.reseed_not_implemented": {
-        "it": "Reseed per tracker id non implementato",
-        "en": "Reseed by tracker id not implemented",
+    "err.reseed_session_expired": {
+        "it": "Sessione reseed non trovata o scaduta",
+        "en": "Reseed session not found or expired",
     },
     "err.record_not_found": {
         "it": "Record non trovato",

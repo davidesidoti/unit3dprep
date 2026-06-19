@@ -40,6 +40,33 @@ class TorrentClient(ABC):
     @abstractmethod
     async def remove(self, torrent_hash: str, delete_files: bool = False) -> None: ...
 
+    async def add_torrent(
+        self,
+        torrent_bytes: bytes,
+        *,
+        save_path: str,
+        paused: bool = True,
+        skip_checking: bool = False,
+        category: str | None = None,
+        tags: str | None = None,
+    ) -> None:
+        raise NotImplementedError(f"{self.name} client does not support add_torrent")
+
+    async def torrent_files(self, torrent_hash: str) -> list[dict]:
+        raise NotImplementedError(f"{self.name} client does not support torrent_files")
+
+    async def info_one(self, torrent_hash: str) -> dict | None:
+        raise NotImplementedError(f"{self.name} client does not support info_one")
+
+    async def recheck(self, torrent_hash: str) -> None:
+        raise NotImplementedError(f"{self.name} client does not support recheck")
+
+    async def resume(self, torrent_hash: str) -> None:
+        raise NotImplementedError(f"{self.name} client does not support resume")
+
+    async def pause(self, torrent_hash: str) -> None:
+        raise NotImplementedError(f"{self.name} client does not support pause")
+
 
 # ---------------------------------------------------------------------------
 # qBittorrent Web API (v2)
@@ -119,6 +146,80 @@ class QBittorrentClient(TorrentClient):
         r.raise_for_status()
         r2 = await cli.post("/api/v2/torrents/resume", data={"hashes": torrent_hash})
         r2.raise_for_status()
+
+    async def add_torrent(
+        self,
+        torrent_bytes: bytes,
+        *,
+        save_path: str,
+        paused: bool = True,
+        skip_checking: bool = False,
+        category: str | None = None,
+        tags: str | None = None,
+    ) -> None:
+        """Add a .torrent (raw bytes) pointing at `save_path`.
+
+        For reseed the caller adds **paused** (so it never announces before the
+        content is in place), hardlinks the matching files into the layout qBit
+        reports via `torrent_files()`, then triggers an explicit `recheck()`.
+        Keep `skip_checking` False so the initial progress reflects reality
+        (0% until the content is hardlinked) rather than a spurious 100%. qBit's
+        add endpoint does not return the infohash; callers diff `list()`
+        before/after.
+        """
+        cli = await self._http()
+        data: dict[str, str] = {
+            "savepath": save_path,
+            "paused": "true" if paused else "false",
+            "skip_checking": "true" if skip_checking else "false",
+            "autoTMM": "false",
+        }
+        if category:
+            data["category"] = category
+        if tags:
+            data["tags"] = tags
+        files = {"torrents": ("reseed.torrent", torrent_bytes, "application/x-bittorrent")}
+        r = await cli.post("/api/v2/torrents/add", data=data, files=files)
+        r.raise_for_status()
+        if r.text.strip().lower() == "fails.":
+            raise RuntimeError("qBittorrent rejected the .torrent file")
+
+    async def torrent_files(self, torrent_hash: str) -> list[dict]:
+        """Files qBit expects for a torrent: ``[{name, size, ...}]``.
+
+        ``name`` is the path relative to the torrent root — the source of
+        truth for where to hardlink the local content under the save path.
+        """
+        cli = await self._http()
+        r = await cli.get("/api/v2/torrents/files", params={"hash": torrent_hash})
+        r.raise_for_status()
+        data = r.json()
+        return data if isinstance(data, list) else []
+
+    async def info_one(self, torrent_hash: str) -> dict | None:
+        """Raw qBit torrent info for a single hash (raw `state` + `progress`)."""
+        cli = await self._http()
+        r = await cli.get("/api/v2/torrents/info", params={"hashes": torrent_hash})
+        r.raise_for_status()
+        data = r.json()
+        if isinstance(data, list) and data:
+            return data[0]
+        return None
+
+    async def recheck(self, torrent_hash: str) -> None:
+        cli = await self._http()
+        r = await cli.post("/api/v2/torrents/recheck", data={"hashes": torrent_hash})
+        r.raise_for_status()
+
+    async def resume(self, torrent_hash: str) -> None:
+        cli = await self._http()
+        r = await cli.post("/api/v2/torrents/resume", data={"hashes": torrent_hash})
+        r.raise_for_status()
+
+    async def pause(self, torrent_hash: str) -> None:
+        cli = await self._http()
+        r = await cli.post("/api/v2/torrents/pause", data={"hashes": torrent_hash})
+        r.raise_for_status()
 
     async def remove(self, torrent_hash: str, delete_files: bool = False) -> None:
         cli = await self._http()

@@ -6,6 +6,7 @@ import { LibraryView } from './views/LibraryView';
 import { QueueView } from './views/QueueView';
 import { UploadedView } from './views/UploadedView';
 import { SearchView } from './views/SearchView';
+import { ReseedView } from './views/ReseedView';
 import { SettingsView } from './views/SettingsView';
 import { LogsView } from './views/LogsView';
 import { LoginView } from './views/LoginView';
@@ -16,9 +17,9 @@ import type { WizardCtx, VersionInfo } from './types';
 
 type View =
   | 'queue' | 'library' | 'uploaded' | 'upload'
-  | 'search' | 'settings' | 'logs';
+  | 'search' | 'reseed' | 'settings' | 'logs';
 
-const VALID_VIEWS: View[] = ['queue', 'library', 'uploaded', 'search', 'settings', 'logs'];
+const VALID_VIEWS: View[] = ['queue', 'library', 'uploaded', 'search', 'reseed', 'settings', 'logs'];
 const STORAGE_KEY = 'u3d_view';
 
 export function App() {
@@ -141,6 +142,7 @@ export function App() {
             {view === 'library' && <LibraryView onStartWizard={setWizardCtx} isMobile={isMobile} refreshSignal={libraryRefresh} />}
             {view === 'uploaded' && <UploadedView />}
             {view === 'search' && <SearchView />}
+            {view === 'reseed' && <ReseedView isMobile={isMobile} />}
             {view === 'settings' && <SettingsView isMobile={isMobile} />}
             {view === 'logs' && <LogsView />}
           </div>

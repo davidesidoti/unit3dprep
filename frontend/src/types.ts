@@ -142,6 +142,57 @@ export interface SearchResult {
   url: string;
 }
 
+export interface ReseedTorrent {
+  tracker: string;
+  id: number;
+  name: string;
+  type: string;
+  size: number;
+  size_human: string;
+  resolution: string;
+  seeders: number;
+  leechers: number;
+  details_link: string;
+  download_link: string;
+}
+
+export interface ReseedCandidate {
+  source_path: string;
+  item_name: string;
+  category: string;
+  kind: string;          // 'movie' | 'episode'
+  season: number | null;
+  episode: number | null;
+  local_size: number;
+  local_size_human: string;
+  torrent: ReseedTorrent;
+}
+
+export interface ReseedMatch {
+  source_path: string;
+  item_name: string;
+  category: string;
+  kind: string;
+  size: number;
+  size_human: string;
+}
+
+export interface ReseedSuggest {
+  torrent: ReseedTorrent | null;
+  matches: ReseedMatch[];
+}
+
+// Drives ReseedWizardModal. Auto mode presets both `torrent` and `local`;
+// manual mode leaves them undefined and the wizard loads the torrent + the
+// size-matched local files from /reseed/suggest.
+export interface ReseedCtx {
+  tracker: string;
+  torrentId: number;
+  torrentName: string;
+  torrent?: ReseedTorrent;
+  local?: ReseedMatch;
+}
+
 export type LogKind = 'info' | 'ok' | 'warn' | 'error' | 'debug';
 
 export type LogSource =
