@@ -269,7 +269,7 @@ function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
 
   const run = async () => {
     if (!query.trim()) return;
-    setLoading(true); setError(''); setSearched(true);
+    setLoading(true); setError(''); setSearched(true); setResults([]);
     try {
       const r = await api.get<{ results: ReseedSearchResult[] }>(
         `/api/reseed/search?q=${encodeURIComponent(query)}`,
@@ -318,8 +318,12 @@ function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
             background: 'var(--blue)', border: 'none', borderRadius: 6,
             padding: '9px 18px', fontSize: 12, fontWeight: 600, color: '#fff',
             cursor: 'pointer', fontFamily: 'var(--font-display)',
+            display: 'flex', alignItems: 'center', gap: 6,
           }}
-        >{loading ? t('reseed.searching') : t('reseed.searchBtn')}</button>
+        >
+          {loading && <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />}
+          {loading ? t('reseed.searching') : t('reseed.searchBtn')}
+        </button>
       </div>
 
       {error && (
@@ -327,6 +331,17 @@ function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
           padding: 14, background: 'var(--red-dim)', border: '1px solid var(--red)',
           borderRadius: 6, color: 'var(--red)', fontFamily: 'var(--font-mono)', marginBottom: 16,
         }}>{error}</div>
+      )}
+
+      {loading && (
+        <div style={{
+          padding: '32px 20px', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', gap: 12, color: 'var(--fg-3)',
+          fontFamily: 'var(--font-display)',
+        }}>
+          <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', color: 'var(--blue)' }} />
+          <span style={{ fontSize: 12, textAlign: 'center' }}>{t('reseed.searchingHint')}</span>
+        </div>
       )}
 
       <div className={results.length > 0 ? 'u3d-stagger' : undefined}>

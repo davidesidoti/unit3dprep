@@ -458,6 +458,7 @@ export const it: Catalog = {
     searchPlaceholder: 'Cerca su ITT per titolo…',
     searchBtn: 'Cerca',
     searching: 'Ricerca…',
+    searchingHint: 'Cerco su ITT e confronto con la tua libreria — può volerci qualche secondo…',
     noResults: 'Nessun risultato.',
     noReseedable: 'Nessun torrent ri-seedabile per questa ricerca (nessun file locale con dimensione corrispondente).',
     youHave: 'Hai: {{name}}',

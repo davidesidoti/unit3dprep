@@ -456,6 +456,7 @@ export const en = {
     searchPlaceholder: 'Search ITT by title…',
     searchBtn: 'Search',
     searching: 'Searching…',
+    searchingHint: 'Searching ITT and matching against your library — this can take a moment…',
     noResults: 'No results.',
     noReseedable: 'No reseedable torrent for this search (no local file with a matching size).',
     youHave: 'You have: {{name}}',
