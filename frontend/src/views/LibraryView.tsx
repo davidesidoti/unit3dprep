@@ -1047,21 +1047,8 @@ function SeasonRow({
           )}
           <span style={{
             fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600,
-            color: 'var(--fg-1)',
+            color: 'var(--fg-1)', whiteSpace: 'nowrap',
           }}>{season.label}</span>
-          {statusReady && statusMeta && (
-            <span style={{ marginLeft: 6 }}>
-              <Badge
-                color={statusMeta.complete ? 'var(--green)' : 'var(--yellow)'}
-                bg={statusMeta.complete ? 'var(--green-dim)' : 'var(--yellow-dim)'}
-              >{statusMeta.complete ? t('library.seasonComplete') : t('library.seasonOngoing')}</Badge>
-            </span>
-          )}
-          {statusReady && !statusMeta && (
-            <span style={{ marginLeft: 6 }}>
-              <Badge color="var(--fg-3)" bg="var(--bg-card)">{t('library.seasonStatusUnknown')}</Badge>
-            </span>
-          )}
           {season.already_uploaded && (
             <span style={{ marginLeft: 6 }}><Badge>uploaded ✓</Badge></span>
           )}
@@ -1091,17 +1078,26 @@ function SeasonRow({
         </div>
       </div>
       <div style={{
+        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6,
         fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)',
       }}>
-        {statusMeta && statusMeta.episode_count > 0 ? (
-          <span style={incompletePack ? { color: 'var(--yellow)' } : undefined}>
-            {t('library.episodesLocalVsTmdb', { local: season.episode_count, total: statusMeta.episode_count })}
-          </span>
-        ) : (
-          <>{season.episode_count} {t('library.ep')}</>
-        )} · {season.size}
-        {season.langs.length > 0 && <span style={{ marginLeft: 8 }}>{season.langs.join(' / ')}</span>}
-        {!season.langs.length && <span style={{ marginLeft: 8, color: 'var(--yellow)' }}>? langs</span>}
+        {statusReady && statusMeta && (
+          <Badge
+            color={statusMeta.complete ? 'var(--green)' : 'var(--yellow)'}
+            bg={statusMeta.complete ? 'var(--green-dim)' : 'var(--yellow-dim)'}
+          >{statusMeta.complete ? t('library.seasonComplete') : t('library.seasonOngoing')}</Badge>
+        )}
+        {statusReady && !statusMeta && (
+          <Badge color="var(--fg-3)" bg="var(--bg-card)">{t('library.seasonStatusUnknown')}</Badge>
+        )}
+        <span style={incompletePack ? { color: 'var(--yellow)' } : undefined}>
+          {statusMeta && statusMeta.episode_count > 0
+            ? t('library.episodesLocalVsTmdb', { local: season.episode_count, total: statusMeta.episode_count })
+            : `${season.episode_count} ${t('library.ep')}`}
+          {' · '}{season.size}
+        </span>
+        {season.langs.length > 0 && <span>{season.langs.join(' / ')}</span>}
+        {!season.langs.length && <span style={{ color: 'var(--yellow)' }}>? langs</span>}
       </div>
       {!season.already_uploaded && season.uploaded_episodes > 0 && (
         <>
