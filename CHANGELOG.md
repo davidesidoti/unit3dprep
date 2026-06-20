@@ -19,6 +19,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
   velocizzare) e mostra una **barra di avanzamento** con la categoria in scansione mentre
   confronta con la libreria.
 
+### Fixed
+- Schermata Reseed: se il tracker risponde con un errore (es. **limite di richieste/429**,
+  facile da raggiungere subito dopo una scansione automatica intensa) la ricerca non resta
+  più vuota in silenzio — ora mostra un messaggio chiaro ("riprova tra poco"). I candidati
+  automatici segnalano inoltre quante richieste al tracker sono fallite.
+
 ## [1.1.1] - 2026-06-20
 
 ### Fixed

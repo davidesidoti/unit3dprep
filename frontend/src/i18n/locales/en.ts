@@ -452,6 +452,8 @@ export const en = {
     unenrichedNote_other: '{{count}} items skipped (no TMDB match — enrich the library or use manual search).',
     foundNote_one: '{{count}} candidate found',
     foundNote_other: '{{count}} candidates found',
+    failedNote_one: '{{count}} tracker request failed (rate limit?)',
+    failedNote_other: '{{count}} tracker requests failed (rate limit?)',
     reseedBtn: 'Reseed',
     searchPlaceholder: 'Search ITT by title…',
     searchBtn: 'Search',

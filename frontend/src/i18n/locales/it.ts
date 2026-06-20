@@ -454,6 +454,8 @@ export const it: Catalog = {
     unenrichedNote_other: '{{count}} elementi saltati (nessun match TMDB — arricchisci la libreria o usa la ricerca manuale).',
     foundNote_one: '{{count}} candidato trovato',
     foundNote_other: '{{count}} candidati trovati',
+    failedNote_one: '{{count}} richiesta al tracker fallita (limite?)',
+    failedNote_other: '{{count}} richieste al tracker fallite (limite?)',
     reseedBtn: 'Reseed',
     searchPlaceholder: 'Cerca su ITT per titolo…',
     searchBtn: 'Cerca',

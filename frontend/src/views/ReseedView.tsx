@@ -56,6 +56,7 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
   const [nextOffset, setNextOffset] = useState(0);
   const [unenriched, setUnenriched] = useState(0);
   const [total, setTotal] = useState(0);
+  const [failed, setFailed] = useState(0);
   const closeRef = useRef<null | (() => void)>(null);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
     if (!cat) return;
     closeRef.current?.();
     setScanning(true);
-    if (offset === 0) { setCands([]); setUnenriched(0); setHasMore(false); setTotal(0); }
+    if (offset === 0) { setCands([]); setUnenriched(0); setHasMore(false); setTotal(0); setFailed(0); }
     const close = openSSE(
       `/api/reseed/scan?category=${encodeURIComponent(cat)}&offset=${offset}&limit=20&max_seeders=${ms}`,
       {
@@ -83,6 +84,7 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
               setHasMore(!!d.has_more);
               setTotal(d.total ?? 0);
               setUnenriched((u) => (offset === 0 ? 0 : u) + (d.unenriched || 0));
+              setFailed((f) => (offset === 0 ? 0 : f) + (d.failed || 0));
             } catch { /* */ }
             setScanning(false);
             closeRef.current?.();
@@ -170,6 +172,9 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
             {total > 0 && ` · ${t('reseed.foundNote', { count: cands.length })}`}
             {unenriched > 0 && ` · ${t('reseed.unenrichedNote', { count: unenriched })}`}
           </span>
+          {failed > 0 && (
+            <span style={{ color: 'var(--yellow)' }}>· {t('reseed.failedNote', { count: failed })}</span>
+          )}
         </div>
       )}
 
@@ -292,6 +297,11 @@ function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
             try { setProgress(JSON.parse(data)); } catch { /* */ }
           } else if (name === 'result') {
             try { setResults((p) => [...p, JSON.parse(data) as ReseedSearchResult]); } catch { /* */ }
+          } else if (name === 'error') {
+            try { setError(JSON.parse(data).message || 'error'); } catch { setError('error'); }
+            setLoading(false);
+            closeRef.current?.();
+            closeRef.current = null;
           } else if (name === 'done') {
             setLoading(false);
             closeRef.current?.();

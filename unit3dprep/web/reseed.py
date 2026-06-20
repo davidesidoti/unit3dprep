@@ -75,6 +75,20 @@ async def _filter(client: httpx.AsyncClient, base: str, params: dict[str, str]) 
     return items if isinstance(items, list) else []
 
 
+def _itt_error_msg(e: Exception) -> str:
+    """User-facing message for an ITT API failure (notably the 429 rate limit
+    Unit3D applies — easy to hit right after a big auto scan)."""
+    resp = getattr(e, "response", None)
+    code = getattr(resp, "status_code", None) if resp is not None else None
+    if code == 429:
+        return "Limite di richieste del tracker superato — riprova tra poco."
+    if code is not None:
+        return f"Errore del tracker (HTTP {code})."
+    if isinstance(e, httpx.TimeoutException):
+        return "Timeout nella richiesta al tracker — riprova."
+    return f"Errore nella richiesta al tracker: {e}"
+
+
 async def fetch_torrent_meta(base: str, token: str, torrent_id: int) -> dict | None:
     """Single-torrent attributes (name, size, resolution, download_link, …).
 
@@ -293,13 +307,14 @@ async def stream_reseed_candidates(
     window = units[offset:offset + limit]
     next_offset = offset + len(window)
 
-    def _summary(unenriched: int) -> dict:
+    def _summary(unenriched: int, failed: int = 0) -> dict:
         return {
             "next_offset": next_offset,
             "has_more": next_offset < len(units),
             "scanned": len(window),
             "unenriched": unenriched,
             "total": len(units),
+            "failed": failed,
         }
 
     if not _itt_configured(base, token) or not window:
@@ -310,6 +325,7 @@ async def stream_reseed_candidates(
     cache = await get_many(item_paths)
     sem = asyncio.Semaphore(8)
     unenriched = 0
+    failed = 0
 
     async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
         async def check(unit: dict[str, Any]) -> dict | str | None:
@@ -320,15 +336,16 @@ async def stream_reseed_candidates(
         for fut in asyncio.as_completed(tasks):
             try:
                 res = await fut
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:  # noqa: BLE001 — count tracker failures (e.g. 429)
                 log.warning("reseed candidate check failed: %s", e)
+                failed += 1
                 continue
             if res == "unenriched":
                 unenriched += 1
             elif res:
                 yield ("candidate", res)
 
-    yield ("done", _summary(unenriched))
+    yield ("done", _summary(unenriched, failed))
 
 
 async def suggest_local_files(cfg: dict[str, Any], torrent_id: int) -> dict[str, Any]:
@@ -398,8 +415,14 @@ async def stream_reseed_search(
         yield ("done", {"count": 0})
         return
 
-    async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
-        data = await _filter(client, base, {"api_token": token, "name": query, "perPage": "50"})
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
+            data = await _filter(client, base, {"api_token": token, "name": query, "perPage": "50"})
+    except Exception as e:  # noqa: BLE001 — surface tracker failures (e.g. 429) to the UI
+        log.warning("reseed search: ITT query failed: %s", e)
+        yield ("error", {"message": _itt_error_msg(e)})
+        yield ("done", {"count": 0})
+        return
 
     categories = _search_categories(category)
     total = len(categories)
