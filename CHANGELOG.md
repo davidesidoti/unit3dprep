@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-20
+
 ### Added
 - Schermata Reseed, candidati automatici: contatore di avanzamento (file scansionati sul
   totale della categoria) e numero di file rimanenti sul pulsante "Carica altri", così la
