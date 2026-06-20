@@ -27,6 +27,7 @@ from ..reseed import (
     perform_reseed,
     reseed_search,
     stream_reseed_candidates,
+    stream_reseed_search,
     suggest_local_files,
 )
 
@@ -91,9 +92,20 @@ async def reseed_suggest(torrent_id: int):
 
 
 @router.get("/reseed/search")
-async def reseed_search_ep(q: str):
+async def reseed_search_ep(q: str, category: str = ""):
     cfg = web_config.load()
-    return JSONResponse(await reseed_search(cfg, q))
+    return JSONResponse(await reseed_search(cfg, q, category or None))
+
+
+@router.get("/reseed/search/stream")
+async def reseed_search_stream(q: str, category: str = ""):
+    cfg = web_config.load()
+
+    async def generate() -> AsyncGenerator[dict, None]:
+        async for kind, data in stream_reseed_search(cfg, q, category or None):
+            yield {"event": kind, "data": json.dumps(data)}
+
+    return EventSourceResponse(generate())
 
 
 # ---------------------------------------------------------------------------

@@ -195,20 +195,29 @@ def _local_match(unit: dict[str, Any], size: int) -> dict:
     }
 
 
-def _local_size_index() -> dict[int, list[dict]]:
-    """Map exact byte size -> local single-file matches across all categories.
+def _index_category(category: str) -> dict[int, list[dict]]:
+    """Size -> local matches for a single category (sync; run in an executor)."""
+    part: dict[int, list[dict]] = {}
+    for unit in _scan_units(category):
+        try:
+            sz = unit["file"].stat().st_size
+        except OSError:
+            continue
+        part.setdefault(sz, []).append(_local_match(unit, sz))
+    return part
+
+
+def _local_size_index(categories: list[str] | None = None) -> dict[int, list[dict]]:
+    """Map exact byte size -> local single-file matches.
 
     Used by the manual flow to keep only torrents the user can actually reseed
     (a tracker torrent is reseedable iff a local file has its exact size).
+    `categories=None` scans them all; pass a subset to narrow (and speed up).
     """
     idx: dict[int, list[dict]] = {}
-    for category in discover_categories():
-        for unit in _scan_units(category):
-            try:
-                sz = unit["file"].stat().st_size
-            except OSError:
-                continue
-            idx.setdefault(sz, []).append(_local_match(unit, sz))
+    for category in (categories if categories is not None else discover_categories()):
+        for sz, ms in _index_category(category).items():
+            idx.setdefault(sz, []).extend(ms)
     return idx
 
 
@@ -340,14 +349,24 @@ async def suggest_local_files(cfg: dict[str, Any], torrent_id: int) -> dict[str,
     return {"torrent": _torrent_brief(meta, tid, base), "matches": matches}
 
 
-async def reseed_search(cfg: dict[str, Any], query: str) -> dict[str, Any]:
+def _search_categories(category: str | None) -> list[str]:
+    """Resolve the category scope for a manual search: a valid single category,
+    or all of them when unset/unknown."""
+    cats = discover_categories()
+    if category and category in cats:
+        return [category]
+    return cats
+
+
+async def reseed_search(cfg: dict[str, Any], query: str, category: str | None = None) -> dict[str, Any]:
     """Manual flow search: query ITT by name but return ONLY torrents the user
     can actually reseed — those whose exact byte size matches a local
-    single-file item. Each result carries its matching local file(s)."""
+    single-file item. Each result carries its matching local file(s).
+    `category` narrows the local scan (faster)."""
     base, token = _itt_creds(cfg)
     if not _itt_configured(base, token) or not query.strip():
         return {"results": []}
-    idx = _local_size_index()
+    idx = _local_size_index(_search_categories(category))
     async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
         data = await _filter(client, base, {"api_token": token, "name": query, "perPage": "50"})
     results: list[dict] = []
@@ -366,6 +385,49 @@ async def reseed_search(cfg: dict[str, Any], query: str) -> dict[str, Any]:
             "local_matches": matches,
         })
     return {"results": results}
+
+
+async def stream_reseed_search(
+    cfg: dict[str, Any], query: str, category: str | None = None,
+) -> AsyncGenerator[tuple[str, dict], None]:
+    """Streaming manual search: emits ``("progress", {done, total, category})``
+    per local category scanned (the slow part), then a ``("result", {...})`` for
+    each reseedable torrent, then ``("done", {count})``."""
+    base, token = _itt_creds(cfg)
+    if not _itt_configured(base, token) or not query.strip():
+        yield ("done", {"count": 0})
+        return
+
+    async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
+        data = await _filter(client, base, {"api_token": token, "name": query, "perPage": "50"})
+
+    categories = _search_categories(category)
+    total = len(categories)
+    loop = asyncio.get_event_loop()
+    idx: dict[int, list[dict]] = {}
+    for i, cat in enumerate(categories):
+        part = await loop.run_in_executor(None, _index_category, cat)
+        for sz, ms in part.items():
+            idx.setdefault(sz, []).extend(ms)
+        yield ("progress", {"done": i + 1, "total": total, "category": cat})
+
+    count = 0
+    for entry in data:
+        attrs = entry.get("attributes") or {}
+        try:
+            tsize = int(attrs.get("size"))
+        except (TypeError, ValueError):
+            continue
+        matches = idx.get(tsize)
+        if not matches:
+            continue
+        tid = int(entry.get("id") or attrs.get("id") or 0)
+        count += 1
+        yield ("result", {
+            "torrent": _torrent_brief(attrs, tid, base),
+            "local_matches": matches,
+        })
+    yield ("done", {"count": count})
 
 
 # ---------------------------------------------------------------------------

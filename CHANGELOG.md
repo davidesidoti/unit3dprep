@@ -15,7 +15,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - Schermata Reseed, ricerca manuale: ora mostra **solo** i torrent effettivamente
   ri-seedabili — quelli di cui hai già il file in libreria con la stessa dimensione esatta —
   con indicato il file locale corrispondente, invece dell'intero elenco di risultati del
-  tracker.
+  tracker. La ricerca ha ora un **filtro categoria opzionale** (per restringere e
+  velocizzare) e mostra una **barra di avanzamento** con la categoria in scansione mentre
+  confronta con la libreria.
 
 ## [1.1.1] - 2026-06-20
 

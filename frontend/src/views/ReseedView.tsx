@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
-import { api, ApiError, openSSE } from '../api';
+import { api, openSSE } from '../api';
 import type { ReseedCandidate, ReseedCtx, ReseedSearchResult } from '../types';
 import { ReseedWizardModal } from '../modals/ReseedWizardModal';
 
@@ -261,26 +261,51 @@ function CandidateRow({ c, onReseed }: { c: ReseedCandidate; onReseed: (c: Resee
 
 function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
   const { t } = useTranslation();
+  const [categories, setCategories] = useState<CategoryInfo[]>([]);
+  const [category, setCategory] = useState('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ReseedSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number; category: string } | null>(null);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+  const closeRef = useRef<null | (() => void)>(null);
 
-  const run = async () => {
+  useEffect(() => {
+    api.get<{ categories: CategoryInfo[] }>('/api/library/categories')
+      .then((r) => setCategories(r.categories))
+      .catch(() => { /* ignore */ });
+    return () => { closeRef.current?.(); };
+  }, []);
+
+  // Streamed search: progress per local category scanned (the slow part), then
+  // a result per reseedable torrent. An optional category narrows the scan.
+  const run = () => {
     if (!query.trim()) return;
-    setLoading(true); setError(''); setSearched(true); setResults([]);
-    try {
-      const r = await api.get<{ results: ReseedSearchResult[] }>(
-        `/api/reseed/search?q=${encodeURIComponent(query)}`,
-      );
-      setResults(r.results);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'search failed');
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
+    closeRef.current?.();
+    setLoading(true); setError(''); setSearched(true); setResults([]); setProgress(null);
+    const close = openSSE(
+      `/api/reseed/search/stream?q=${encodeURIComponent(query)}&category=${encodeURIComponent(category)}`,
+      {
+        onEvent: (name, data) => {
+          if (name === 'progress') {
+            try { setProgress(JSON.parse(data)); } catch { /* */ }
+          } else if (name === 'result') {
+            try { setResults((p) => [...p, JSON.parse(data) as ReseedSearchResult]); } catch { /* */ }
+          } else if (name === 'done') {
+            setLoading(false);
+            closeRef.current?.();
+            closeRef.current = null;
+          }
+        },
+        onError: () => {
+          setLoading(false);
+          closeRef.current?.();
+          closeRef.current = null;
+        },
+      },
+    );
+    closeRef.current = close;
   };
 
   // Only reseedable torrents come back. If exactly one local file matches,
@@ -294,19 +319,36 @@ function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
     });
   };
 
+  const pct = progress && progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+
   return (
     <div>
       <div style={{ fontSize: 12, color: 'var(--fg-3)', marginBottom: 14, fontFamily: 'var(--font-display)' }}>
         {t('reseed.manualDesc')}
       </div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 18 }}>
+      <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          title={t('reseed.filterCategoryHint')}
+          style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '9px 10px', fontSize: 13,
+            color: 'var(--fg-1)', fontFamily: 'var(--font-display)',
+          }}
+        >
+          <option value="">{t('reseed.allCategories')}</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.label}</option>
+          ))}
+        </select>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') run(); }}
           placeholder={t('reseed.searchPlaceholder')}
           style={{
-            flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border)',
+            flex: 1, minWidth: 160, background: 'var(--bg-card)', border: '1px solid var(--border)',
             borderRadius: 6, padding: '9px 14px', fontSize: 13, color: 'var(--fg-1)',
             fontFamily: 'var(--font-display)',
           }}
@@ -335,12 +377,32 @@ function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
 
       {loading && (
         <div style={{
-          padding: '32px 20px', display: 'flex', flexDirection: 'column',
+          padding: '28px 20px', display: 'flex', flexDirection: 'column',
           alignItems: 'center', gap: 12, color: 'var(--fg-3)',
           fontFamily: 'var(--font-display)',
         }}>
           <RefreshCw size={22} style={{ animation: 'spin 1s linear infinite', color: 'var(--blue)' }} />
           <span style={{ fontSize: 12, textAlign: 'center' }}>{t('reseed.searchingHint')}</span>
+          {progress && progress.total > 0 && (
+            <div style={{ width: 'min(320px, 85%)' }}>
+              <div style={{
+                height: 6, background: 'var(--bg-base)', borderRadius: 3,
+                overflow: 'hidden', border: '1px solid var(--border-subtle)',
+              }}>
+                <div style={{
+                  height: '100%', width: `${pct}%`, background: 'var(--blue-bright)',
+                  transition: 'width 200ms ease-out', borderRadius: 3,
+                }} />
+              </div>
+              <div style={{
+                marginTop: 6, fontSize: 10, color: 'var(--fg-4)',
+                fontFamily: 'var(--font-mono)', textAlign: 'center',
+              }}>
+                {t('reseed.scanProgress', { done: progress.done, total: progress.total })}
+                {progress.category ? ` · ${progress.category}` : ''}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
