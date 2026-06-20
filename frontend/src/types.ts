@@ -21,6 +21,18 @@ export interface Season {
   video_files: VideoFile[];
 }
 
+export interface SeasonStatus {
+  episode_count: number;       // TMDB total episodes for this season
+  complete: boolean;           // no further episodes expected
+  next_air_date: string | null;
+}
+
+export interface SeriesStatus {
+  tmdb_id: string;
+  show_status: string;
+  seasons: Record<string, SeasonStatus>;  // keyed by season number
+}
+
 export interface LibraryItem {
   name: string;
   path: string;

@@ -68,6 +68,17 @@ def _set_sync(source_path: str, record: dict):
         _save(data)
 
 
+def _set_series_status_sync(source_path: str, show_status: str, seasons_meta: dict):
+    with _lock:
+        data = _load()
+        record = data.get(source_path) or {}
+        record["show_status"] = show_status
+        record["seasons_meta"] = seasons_meta
+        record["status_fetched_at"] = time.time()
+        data[source_path] = record
+        _save(data)
+
+
 def _get_many_sync(source_paths: list) -> dict:
     with _lock:
         data = _load()
@@ -102,6 +113,12 @@ async def get_cache(source_path: str) -> dict | None:
 async def set_cache(source_path: str, **fields):
     record = {**fields, "fetched_at": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())}
     await _run(_set_sync, source_path, record)
+
+
+async def set_series_status(source_path: str, show_status: str, seasons_meta: dict):
+    """Merge per-season completion data into the existing record (preserving
+    title/poster/etc.), stamping a numeric epoch ``status_fetched_at`` for TTL."""
+    await _run(_set_series_status_sync, source_path, show_status, seasons_meta)
 
 
 async def get_many(source_paths: list) -> dict:

@@ -434,6 +434,44 @@ def tmdb_search(kind: str, query: str, year: str, api_key: str, language: str | 
     return normalized
 
 
+def tv_season_status(data: dict) -> dict:
+    """Compute per-season completion from a TMDB ``/tv/{id}`` object.
+
+    Returns::
+
+        {
+          "show_status": str,        # raw TMDB `status` (e.g. "Ended", "Returning Series")
+          "seasons": {               # keyed by season_number as a string
+            "1": {"episode_count": int, "complete": bool, "next_air_date": str | None},
+            ...
+          },
+        }
+
+    A season is ``complete`` (no further episodes expected) when the show has
+    ended/been canceled, when no next episode is scheduled, or when the next
+    episode to air belongs to a different season. The single season still
+    receiving episodes (``next_episode_to_air.season_number``) is the only one
+    marked not complete.
+    """
+    show_status = (data.get("status") or "").strip()
+    ended = show_status in ("Ended", "Canceled")
+    next_ep = data.get("next_episode_to_air") or {}
+    next_season = next_ep.get("season_number")
+    next_air_date = next_ep.get("air_date")
+    seasons: dict[str, dict] = {}
+    for s in data.get("seasons") or []:
+        num = s.get("season_number")
+        if num is None:
+            continue
+        ongoing = (not ended) and next_season is not None and next_season == num
+        seasons[str(num)] = {
+            "episode_count": s.get("episode_count") or 0,
+            "complete": not ongoing,
+            "next_air_date": next_air_date if ongoing else None,
+        }
+    return {"show_status": show_status, "seasons": seasons}
+
+
 # ---------------------------------------------------------------------------
 # Name builder
 # ---------------------------------------------------------------------------

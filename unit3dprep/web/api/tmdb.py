@@ -8,9 +8,9 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from ...core import tmdb_fetch_bilingual, tmdb_poster_url, tmdb_search, tmdb_year
+from ...core import tmdb_fetch_bilingual, tmdb_poster_url, tmdb_search, tmdb_year, tv_season_status
 from ...i18n import get_request_lang, t
-from ..tmdb_cache import delete_cache, set_cache
+from ..tmdb_cache import delete_cache, set_cache, set_series_status
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
 
@@ -64,6 +64,14 @@ async def set_manual(request: Request, body: SetBody):
         overview=(data.get("overview") or "")[:300],
         overview_en=(data.get("overview_en") or "")[:300],
     )
+    if body.tmdb_kind == "tv":
+        # `data` already holds the full /tv/{id} object → derive season status
+        # with no extra TMDB call. set_cache above replaced the record, so this
+        # merge must run after it.
+        status_obj = tv_season_status(data)
+        await set_series_status(
+            body.source_path, status_obj["show_status"], status_obj["seasons"]
+        )
     return JSONResponse({"ok": True, "title": title, "year": year, "poster": poster})
 
 

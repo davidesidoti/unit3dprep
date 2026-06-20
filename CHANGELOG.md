@@ -6,6 +6,14 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Dettaglio serie: accanto a ogni stagione compare un'etichetta **Completa** / **In corso**
+  (in base a TMDB — se la serie è conclusa o se sono previsti altri episodi per quella stagione)
+  e il conteggio **episodi locali / totali TMDB**. Serve a capire al volo se caricare la stagione
+  come pack completo o a episodi singoli; se i tuoi episodi locali sono meno di quelli totali il
+  conteggio viene evidenziato. Lo stato si recupera all'apertura del dettaglio della serie e, se
+  manca l'ID TMDB, l'etichetta resta "Stato sconosciuto".
+
 ## [1.1.3] - 2026-06-20
 
 ### Added

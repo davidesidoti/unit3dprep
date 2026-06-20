@@ -7,7 +7,7 @@ import {
   CheckSquare, Square,
 } from 'lucide-react';
 import { api, openSSE } from '../api';
-import type { Category, LibraryItem, Season, WizardCtx } from '../types';
+import type { Category, LibraryItem, Season, SeasonStatus, SeriesStatus, WizardCtx } from '../types';
 import { LangChip, Badge, LoadMore } from '../components/primitives';
 import { useIncremental } from '../hooks/useIncremental';
 
@@ -792,6 +792,21 @@ function DetailPanel({
   isMobile?: boolean;
 }) {
   const { t } = useTranslation();
+  // Per-season completion (Completa / In corso) is fetched on-demand from TMDB
+  // when the panel opens — not part of the library scan payload. `statusReady`
+  // is true once we have an answer (or immediately when there's no TMDB id to
+  // query), so SeasonRow can distinguish "loading" from "unknown".
+  const [seriesStatus, setSeriesStatus] = useState<SeriesStatus | null>(null);
+  useEffect(() => {
+    setSeriesStatus(null);
+    if (!item.seasons || !item.tmdb_id) return;
+    let cancelled = false;
+    api.get<SeriesStatus>(`/api/library/series-status?path=${encodeURIComponent(item.path)}`)
+      .then((s) => { if (!cancelled) setSeriesStatus(s); })
+      .catch(() => { /* leave null → SeasonRow shows "unknown" */ });
+    return () => { cancelled = true; };
+  }, [item.path, item.tmdb_id]);
+  const statusReady = !item.tmdb_id || seriesStatus !== null;
   const mobileOverlayStyle = isMobile
     ? {
         position: 'fixed' as const, inset: 0, zIndex: 100,
@@ -917,6 +932,8 @@ function DetailPanel({
                   onStart={onStart}
                   onMarked={onMarked}
                   defaultOpen={idx === firstOpenIdx}
+                  statusMeta={seriesStatus?.seasons?.[String(s.number)]}
+                  statusReady={statusReady}
                 />
               ));
             })()}
@@ -980,7 +997,7 @@ function parseEpisode(filename: string, seriesName: string): { num: string; titl
 }
 
 function SeasonRow({
-  season, item, category, onStart, onMarked, defaultOpen,
+  season, item, category, onStart, onMarked, defaultOpen, statusMeta, statusReady,
 }: {
   season: Season;
   item: LibraryItem;
@@ -988,12 +1005,18 @@ function SeasonRow({
   onStart: (kind: 'movie' | 'series' | 'episode', path: string, season?: Season) => void;
   onMarked?: () => void;
   defaultOpen?: boolean;
+  statusMeta?: SeasonStatus;
+  statusReady?: boolean;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(defaultOpen ?? false);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const pct = Math.round((season.uploaded_episodes / Math.max(1, season.episode_count)) * 100);
   const canToggle = !season.already_uploaded;
+  // Complete season but fewer local episodes than TMDB lists → can't build a
+  // full season pack yet; flag the count so the user notices.
+  const tmdbEp = statusMeta?.episode_count ?? 0;
+  const incompletePack = !!statusMeta?.complete && tmdbEp > 0 && season.episode_count < tmdbEp;
   return (
     <div style={{
       padding: '8px 10px', background: 'var(--bg-card)',
@@ -1026,6 +1049,19 @@ function SeasonRow({
             fontFamily: 'var(--font-display)', fontSize: 13, fontWeight: 600,
             color: 'var(--fg-1)',
           }}>{season.label}</span>
+          {statusReady && statusMeta && (
+            <span style={{ marginLeft: 6 }}>
+              <Badge
+                color={statusMeta.complete ? 'var(--green)' : 'var(--yellow)'}
+                bg={statusMeta.complete ? 'var(--green-dim)' : 'var(--yellow-dim)'}
+              >{statusMeta.complete ? t('library.seasonComplete') : t('library.seasonOngoing')}</Badge>
+            </span>
+          )}
+          {statusReady && !statusMeta && (
+            <span style={{ marginLeft: 6 }}>
+              <Badge color="var(--fg-3)" bg="var(--bg-card)">{t('library.seasonStatusUnknown')}</Badge>
+            </span>
+          )}
           {season.already_uploaded && (
             <span style={{ marginLeft: 6 }}><Badge>uploaded ✓</Badge></span>
           )}
@@ -1057,7 +1093,13 @@ function SeasonRow({
       <div style={{
         fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-3)',
       }}>
-        {season.episode_count} {t('library.ep')} · {season.size}
+        {statusMeta && statusMeta.episode_count > 0 ? (
+          <span style={incompletePack ? { color: 'var(--yellow)' } : undefined}>
+            {t('library.episodesLocalVsTmdb', { local: season.episode_count, total: statusMeta.episode_count })}
+          </span>
+        ) : (
+          <>{season.episode_count} {t('library.ep')}</>
+        )} · {season.size}
         {season.langs.length > 0 && <span style={{ marginLeft: 8 }}>{season.langs.join(' / ')}</span>}
         {!season.langs.length && <span style={{ marginLeft: 8, color: 'var(--yellow)' }}>? langs</span>}
       </div>

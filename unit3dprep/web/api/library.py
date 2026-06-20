@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import time
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -17,10 +18,12 @@ from sse_starlette.sse import EventSourceResponse
 
 from ...core import (
     audio_languages,
+    tmdb_fetch,
     tmdb_fetch_bilingual,
     tmdb_poster_url,
     tmdb_search,
     tmdb_year,
+    tv_season_status,
 )
 from ...media import (
     MediaItem,
@@ -33,7 +36,7 @@ from ...media import (
 from ...i18n import get_request_lang, t as _i18n_t
 from ..db import list_uploads, record_upload
 from ..lang_cache import get_many_langs, set_lang
-from ..tmdb_cache import get_cache, get_many, set_cache
+from ..tmdb_cache import get_cache, get_many, set_cache, set_series_status
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
 
@@ -240,6 +243,67 @@ async def library_categories():
         "root_exists": root.exists(),
         "categories": cats,
     })
+
+
+_STATUS_TTL_SECONDS = 12 * 3600
+
+
+def _series_status_fresh(fetched_at: Any, show_status: str) -> bool:
+    """Cached season status is fresh when the show is finished (immutable) or
+    the last fetch is within the TTL."""
+    if show_status in ("Ended", "Canceled"):
+        return True
+    if not isinstance(fetched_at, (int, float)):
+        return False
+    return (time.time() - fetched_at) < _STATUS_TTL_SECONDS
+
+
+@router.get("/library/series-status")
+async def library_series_status(path: str):
+    """Per-season completion (complete vs ongoing) + TMDB episode count for a
+    series. Resolves the TMDB id from cache, refetches ``/tv/{id}`` when the
+    cached status is missing/stale, then caches it. On-demand only — never hit
+    during the library scan, so it costs at most one TMDB call per panel open.
+    """
+    record = await get_cache(path)
+    tmdb_id = (record or {}).get("tmdb_id", "")
+    if not tmdb_id:
+        return JSONResponse({"tmdb_id": "", "show_status": "", "seasons": {}})
+
+    cached_meta = (record or {}).get("seasons_meta")
+    cached_status = (record or {}).get("show_status", "")
+    if cached_meta is not None and _series_status_fresh(
+        (record or {}).get("status_fetched_at"), cached_status
+    ):
+        return JSONResponse(
+            {"tmdb_id": tmdb_id, "show_status": cached_status, "seasons": cached_meta}
+        )
+
+    if not TMDB_API_KEY:
+        return JSONResponse(
+            {"tmdb_id": tmdb_id, "show_status": cached_status, "seasons": cached_meta or {}}
+        )
+
+    loop = asyncio.get_event_loop()
+    try:
+        data = await loop.run_in_executor(None, tmdb_fetch, "tv", tmdb_id, TMDB_API_KEY)
+    except Exception:
+        # TMDB hiccup: serve stale cache if present, else report unknown.
+        if cached_meta is not None:
+            return JSONResponse(
+                {"tmdb_id": tmdb_id, "show_status": cached_status, "seasons": cached_meta}
+            )
+        return JSONResponse({"tmdb_id": tmdb_id, "show_status": "", "seasons": {}})
+
+    status_obj = tv_season_status(data)
+    await set_series_status(path, status_obj["show_status"], status_obj["seasons"])
+    return JSONResponse(
+        {
+            "tmdb_id": tmdb_id,
+            "show_status": status_obj["show_status"],
+            "seasons": status_obj["seasons"],
+        }
+    )
 
 
 @router.get("/library/{category}")
