@@ -161,14 +161,60 @@ def _scan_units(category: str) -> list[dict[str, Any]]:
     return units
 
 
-def _candidate_dict(unit: dict[str, Any], local_size: int, attrs: dict, entry: dict, base: str) -> dict:
-    item = unit["item"]
-    tid = int(entry.get("id") or attrs.get("id") or 0)
+def _torrent_brief(attrs: dict, tid: int, base: str) -> dict:
+    """The shared ReseedTorrent shape sent to the frontend."""
     t_size = 0
     try:
         t_size = int(attrs.get("size") or 0)
     except (TypeError, ValueError):
         pass
+    return {
+        "tracker": "ITT",
+        "id": tid,
+        "name": attrs.get("name") or "",
+        "type": _type_for(attrs),
+        "size": t_size,
+        "size_human": _human_size(t_size),
+        "resolution": _resolution_for(attrs),
+        "seeders": int(attrs.get("seeders") or 0),
+        "leechers": int(attrs.get("leechers") or 0),
+        "details_link": attrs.get("details_link") or f"{base}/torrents/{tid}",
+        "download_link": attrs.get("download_link") or "",
+    }
+
+
+def _local_match(unit: dict[str, Any], size: int) -> dict:
+    item = unit["item"]
+    return {
+        "source_path": str(unit["file"]),
+        "item_name": item.name,
+        "category": item.category,
+        "kind": unit["kind"],
+        "size": size,
+        "size_human": _human_size(size),
+    }
+
+
+def _local_size_index() -> dict[int, list[dict]]:
+    """Map exact byte size -> local single-file matches across all categories.
+
+    Used by the manual flow to keep only torrents the user can actually reseed
+    (a tracker torrent is reseedable iff a local file has its exact size).
+    """
+    idx: dict[int, list[dict]] = {}
+    for category in discover_categories():
+        for unit in _scan_units(category):
+            try:
+                sz = unit["file"].stat().st_size
+            except OSError:
+                continue
+            idx.setdefault(sz, []).append(_local_match(unit, sz))
+    return idx
+
+
+def _candidate_dict(unit: dict[str, Any], local_size: int, attrs: dict, entry: dict, base: str) -> dict:
+    item = unit["item"]
+    tid = int(entry.get("id") or attrs.get("id") or 0)
     return {
         "source_path": str(unit["file"]),
         "item_name": item.name,
@@ -178,19 +224,7 @@ def _candidate_dict(unit: dict[str, Any], local_size: int, attrs: dict, entry: d
         "episode": unit["episode"],
         "local_size": local_size,
         "local_size_human": _human_size(local_size),
-        "torrent": {
-            "tracker": "ITT",
-            "id": tid,
-            "name": attrs.get("name") or "",
-            "type": _type_for(attrs),
-            "size": t_size,
-            "size_human": _human_size(t_size),
-            "resolution": _resolution_for(attrs),
-            "seeders": int(attrs.get("seeders") or 0),
-            "leechers": int(attrs.get("leechers") or 0),
-            "details_link": attrs.get("details_link") or f"{base}/torrents/{tid}",
-            "download_link": attrs.get("download_link") or "",
-        },
+        "torrent": _torrent_brief(attrs, tid, base),
     }
 
 
@@ -256,6 +290,7 @@ async def stream_reseed_candidates(
             "has_more": next_offset < len(units),
             "scanned": len(window),
             "unenriched": unenriched,
+            "total": len(units),
         }
 
     if not _itt_configured(base, token) or not window:
@@ -300,42 +335,37 @@ async def suggest_local_files(cfg: dict[str, Any], torrent_id: int) -> dict[str,
         size = int(meta.get("size"))
     except (TypeError, ValueError):
         size = 0
-
-    matches: list[dict] = []
-    if size > 0:
-        for category in discover_categories():
-            for unit in _scan_units(category):
-                try:
-                    fsize = unit["file"].stat().st_size
-                except OSError:
-                    continue
-                if fsize == size:
-                    item = unit["item"]
-                    matches.append({
-                        "source_path": str(unit["file"]),
-                        "item_name": item.name,
-                        "category": item.category,
-                        "kind": unit["kind"],
-                        "size": fsize,
-                        "size_human": _human_size(fsize),
-                    })
+    matches = _local_size_index().get(size, []) if size > 0 else []
     tid = int(meta.get("id") or torrent_id)
-    return {
-        "torrent": {
-            "tracker": "ITT",
-            "id": tid,
-            "name": meta.get("name") or "",
-            "type": _type_for(meta),
-            "size": size,
-            "size_human": _human_size(size) if size else "—",
-            "resolution": _resolution_for(meta),
-            "seeders": int(meta.get("seeders") or 0),
-            "leechers": int(meta.get("leechers") or 0),
-            "details_link": meta.get("details_link") or f"{base}/torrents/{tid}",
-            "download_link": meta.get("download_link") or "",
-        },
-        "matches": matches,
-    }
+    return {"torrent": _torrent_brief(meta, tid, base), "matches": matches}
+
+
+async def reseed_search(cfg: dict[str, Any], query: str) -> dict[str, Any]:
+    """Manual flow search: query ITT by name but return ONLY torrents the user
+    can actually reseed — those whose exact byte size matches a local
+    single-file item. Each result carries its matching local file(s)."""
+    base, token = _itt_creds(cfg)
+    if not _itt_configured(base, token) or not query.strip():
+        return {"results": []}
+    idx = _local_size_index()
+    async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
+        data = await _filter(client, base, {"api_token": token, "name": query, "perPage": "50"})
+    results: list[dict] = []
+    for entry in data:
+        attrs = entry.get("attributes") or {}
+        try:
+            tsize = int(attrs.get("size"))
+        except (TypeError, ValueError):
+            continue
+        matches = idx.get(tsize)
+        if not matches:
+            continue
+        tid = int(entry.get("id") or attrs.get("id") or 0)
+        results.append({
+            "torrent": _torrent_brief(attrs, tid, base),
+            "local_matches": matches,
+        })
+    return {"results": results}
 
 
 # ---------------------------------------------------------------------------

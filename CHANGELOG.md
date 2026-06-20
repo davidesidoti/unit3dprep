@@ -6,6 +6,17 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Schermata Reseed, candidati automatici: contatore di avanzamento (file scansionati sul
+  totale della categoria) e numero di file rimanenti sul pulsante "Carica altri", così la
+  scansione a lotti dà un feedback chiaro invece di sembrare a vuoto.
+
+### Changed
+- Schermata Reseed, ricerca manuale: ora mostra **solo** i torrent effettivamente
+  ri-seedabili — quelli di cui hai già il file in libreria con la stessa dimensione esatta —
+  con indicato il file locale corrispondente, invece dell'intero elenco di risultati del
+  tracker.
+
 ## [1.1.1] - 2026-06-20
 
 ### Fixed

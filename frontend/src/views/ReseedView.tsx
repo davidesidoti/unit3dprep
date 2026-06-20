@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw } from 'lucide-react';
 import { api, ApiError, openSSE } from '../api';
-import type { ReseedCandidate, ReseedCtx, SearchResult } from '../types';
+import type { ReseedCandidate, ReseedCtx, ReseedSearchResult } from '../types';
 import { ReseedWizardModal } from '../modals/ReseedWizardModal';
 
 interface CategoryInfo { id: string; label: string; count: number; }
@@ -55,6 +55,7 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
   const [hasMore, setHasMore] = useState(false);
   const [nextOffset, setNextOffset] = useState(0);
   const [unenriched, setUnenriched] = useState(0);
+  const [total, setTotal] = useState(0);
   const closeRef = useRef<null | (() => void)>(null);
 
   useEffect(() => {
@@ -68,7 +69,7 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
     if (!cat) return;
     closeRef.current?.();
     setScanning(true);
-    if (offset === 0) { setCands([]); setUnenriched(0); setHasMore(false); }
+    if (offset === 0) { setCands([]); setUnenriched(0); setHasMore(false); setTotal(0); }
     const close = openSSE(
       `/api/reseed/scan?category=${encodeURIComponent(cat)}&offset=${offset}&limit=20&max_seeders=${ms}`,
       {
@@ -80,6 +81,7 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
               const d = JSON.parse(data);
               setNextOffset(d.next_offset ?? offset);
               setHasMore(!!d.has_more);
+              setTotal(d.total ?? 0);
               setUnenriched((u) => (offset === 0 ? 0 : u) + (d.unenriched || 0));
             } catch { /* */ }
             setScanning(false);
@@ -155,13 +157,21 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
             {scanning ? t('reseed.scanning') : t('reseed.scan')}
           </button>
         )}
-        {(cands.length > 0 || unenriched > 0) && !scanning && (
-          <span style={{ fontSize: 11, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
-            {t('reseed.foundNote', { count: cands.length })}
+      </div>
+
+      {category && (scanning || total > 0) && (
+        <div style={{
+          marginBottom: 14, fontSize: 11, color: 'var(--fg-3)',
+          fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          {scanning && <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />}
+          <span>
+            {total > 0 ? t('reseed.progress', { scanned: nextOffset, total }) : t('reseed.scanning')}
+            {total > 0 && ` · ${t('reseed.foundNote', { count: cands.length })}`}
             {unenriched > 0 && ` · ${t('reseed.unenrichedNote', { count: unenriched })}`}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {!category && (
         <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontFamily: 'var(--font-display)' }}>
@@ -191,12 +201,7 @@ function AutoCandidates({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
             fontSize: 12, fontWeight: 600, color: 'var(--fg-2)', cursor: 'pointer',
             fontFamily: 'var(--font-display)',
           }}
-        >{t('reseed.loadMore')}</button>
-      )}
-      {scanning && cands.length > 0 && (
-        <div style={{ padding: 10, textAlign: 'center', color: 'var(--fg-4)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
-          {t('reseed.scanning')}
-        </div>
+        >{t('reseed.loadMoreCount', { count: Math.max(0, total - nextOffset) })}</button>
       )}
     </div>
   );
@@ -257,16 +262,17 @@ function CandidateRow({ c, onReseed }: { c: ReseedCandidate; onReseed: (c: Resee
 function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
+  const [results, setResults] = useState<ReseedSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searched, setSearched] = useState(false);
 
   const run = async () => {
     if (!query.trim()) return;
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setSearched(true);
     try {
-      const r = await api.get<{ results: SearchResult[] }>(
-        `/api/search?q=${encodeURIComponent(query)}&tracker=ITT`,
+      const r = await api.get<{ results: ReseedSearchResult[] }>(
+        `/api/reseed/search?q=${encodeURIComponent(query)}`,
       );
       setResults(r.results);
     } catch (e) {
@@ -275,6 +281,17 @@ function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Only reseedable torrents come back. If exactly one local file matches,
+  // preset it so the wizard skips straight to confirm; otherwise the wizard
+  // loads the size-matched candidates for the user to pick.
+  const startReseed = (r: ReseedSearchResult) => {
+    const single = r.local_matches.length === 1 ? r.local_matches[0] : undefined;
+    onReseed({
+      tracker: r.torrent.tracker, torrentId: r.torrent.id,
+      torrentName: r.torrent.name, torrent: r.torrent, local: single,
+    });
   };
 
   return (
@@ -313,48 +330,55 @@ function ManualSearch({ onReseed }: { onReseed: (c: ReseedCtx) => void }) {
       )}
 
       <div className={results.length > 0 ? 'u3d-stagger' : undefined}>
-        {results.map((r) => (
-          <div
-            key={`${r.tracker}-${r.id}`}
-            className="u3d-card"
-            style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: 6, padding: '12px 16px', marginBottom: 8,
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <a
-                href={r.url} target="_blank" rel="noreferrer"
-                style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-1)', display: 'block', wordBreak: 'break-word' }}
-              >{r.name}</a>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 5, flexWrap: 'wrap' }}>
-                <Chip label={r.type} color="var(--blue-bright)" bg="var(--blue-dim)" />
-                <Chip label={r.resolution} />
-                <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{r.size}</span>
-                <span style={{
-                  fontSize: 10, color: r.seeders > 0 ? 'var(--green)' : 'var(--red)',
-                  fontFamily: 'var(--font-mono)',
-                }}>↑ {r.seeders} {t('reseed.seedersLabel')}</span>
-              </div>
-            </div>
-            <button
-              onClick={() => onReseed({ tracker: r.tracker, torrentId: r.id, torrentName: r.name })}
-              className="u3d-pressable"
+        {results.map((r) => {
+          const m = r.local_matches;
+          const localLabel = m.length === 1
+            ? t('reseed.youHave', { name: m[0].item_name })
+            : t('reseed.youHaveMulti', { count: m.length });
+          return (
+            <div
+              key={`${r.torrent.tracker}-${r.torrent.id}`}
+              className="u3d-card"
               style={{
-                background: 'var(--blue)', border: 'none', borderRadius: 6,
-                padding: '8px 16px', fontSize: 12, fontWeight: 600, color: '#fff',
-                cursor: 'pointer', fontFamily: 'var(--font-display)', flexShrink: 0,
-                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: 6, padding: '12px 16px', marginBottom: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
               }}
-            ><RefreshCw size={13} /> {t('reseed.reseedBtn')}</button>
-          </div>
-        ))}
+            >
+              <div style={{ minWidth: 0 }}>
+                <a
+                  href={r.torrent.details_link} target="_blank" rel="noreferrer"
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-1)', display: 'block', wordBreak: 'break-word' }}
+                >{r.torrent.name}</a>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 5, flexWrap: 'wrap' }}>
+                  <Chip label={r.torrent.type} color="var(--blue-bright)" bg="var(--blue-dim)" />
+                  <Chip label={r.torrent.resolution} />
+                  <span style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{r.torrent.size_human}</span>
+                  <span style={{
+                    fontSize: 10, color: r.torrent.seeders > 0 ? 'var(--green)' : 'var(--red)',
+                    fontFamily: 'var(--font-mono)',
+                  }}>↑ {r.torrent.seeders} {t('reseed.seedersLabel')}</span>
+                  <span style={{ fontSize: 10, color: 'var(--green)', fontFamily: 'var(--font-mono)' }}>✓ {localLabel}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => startReseed(r)}
+                className="u3d-pressable"
+                style={{
+                  background: 'var(--blue)', border: 'none', borderRadius: 6,
+                  padding: '8px 16px', fontSize: 12, fontWeight: 600, color: '#fff',
+                  cursor: 'pointer', fontFamily: 'var(--font-display)', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              ><RefreshCw size={13} /> {t('reseed.reseedBtn')}</button>
+            </div>
+          );
+        })}
       </div>
 
-      {!loading && results.length === 0 && !error && query && (
+      {!loading && results.length === 0 && !error && searched && (
         <div style={{ padding: 20, textAlign: 'center', color: 'var(--fg-3)', fontFamily: 'var(--font-display)' }}>
-          {t('reseed.noResults')}
+          {t('reseed.noReseedable')}
         </div>
       )}
     </div>

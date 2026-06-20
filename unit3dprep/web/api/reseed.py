@@ -23,7 +23,12 @@ from ...i18n import get_request_lang, t as _i18n_t
 from ...media import media_root, seedings_root
 from .. import config as web_config
 from ..logbuf import emit as log_emit
-from ..reseed import perform_reseed, stream_reseed_candidates, suggest_local_files
+from ..reseed import (
+    perform_reseed,
+    reseed_search,
+    stream_reseed_candidates,
+    suggest_local_files,
+)
 
 router = APIRouter(prefix="/api", tags=["reseed"])
 
@@ -83,6 +88,12 @@ async def reseed_scan(category: str, offset: int = 0, limit: int = 20, max_seede
 async def reseed_suggest(torrent_id: int):
     cfg = web_config.load()
     return JSONResponse(await suggest_local_files(cfg, torrent_id))
+
+
+@router.get("/reseed/search")
+async def reseed_search_ep(q: str):
+    cfg = web_config.load()
+    return JSONResponse(await reseed_search(cfg, q))
 
 
 # ---------------------------------------------------------------------------

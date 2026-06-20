@@ -182,6 +182,13 @@ export interface ReseedSuggest {
   matches: ReseedMatch[];
 }
 
+// A manual-search result: only torrents the user can reseed (exact size match),
+// each carrying its matching local file(s).
+export interface ReseedSearchResult {
+  torrent: ReseedTorrent;
+  local_matches: ReseedMatch[];
+}
+
 // Drives ReseedWizardModal. Auto mode presets both `torrent` and `local`;
 // manual mode leaves them undefined and the wizard loads the torrent + the
 // size-matched local files from /reseed/suggest.
