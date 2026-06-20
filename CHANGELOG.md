@@ -6,6 +6,15 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-20
+
+### Fixed
+- Compatibilità con qBittorrent 5.0+: gli endpoint della Web API rinominati
+  (`resume`→`start`, `pause`→`stop`, e il parametro `paused`→`stopped` nell'aggiunta
+  del torrent) sono ora gestiti con fallback automatico. Su qBittorrent recente il
+  wizard di Reseed non termina più con un falso "Reseed fallito" anche quando il
+  torrent è di fatto andato in seed.
+
 ## [1.1.0] - 2026-06-20
 
 ### Added

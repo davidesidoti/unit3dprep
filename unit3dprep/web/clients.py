@@ -141,11 +141,8 @@ class QBittorrentClient(TorrentClient):
         return out
 
     async def reseed(self, torrent_hash: str) -> None:
-        cli = await self._http()
-        r = await cli.post("/api/v2/torrents/recheck", data={"hashes": torrent_hash})
-        r.raise_for_status()
-        r2 = await cli.post("/api/v2/torrents/resume", data={"hashes": torrent_hash})
-        r2.raise_for_status()
+        await self.recheck(torrent_hash)
+        await self.resume(torrent_hash)
 
     async def add_torrent(
         self,
@@ -168,9 +165,14 @@ class QBittorrentClient(TorrentClient):
         before/after.
         """
         cli = await self._http()
+        flag = "true" if paused else "false"
         data: dict[str, str] = {
             "savepath": save_path,
-            "paused": "true" if paused else "false",
+            # qBit 5.0 renamed the add param `paused` → `stopped`; send both so
+            # the torrent is correctly added stopped on either version (the
+            # unknown one is ignored).
+            "paused": flag,
+            "stopped": flag,
             "skip_checking": "true" if skip_checking else "false",
             "autoTMM": "false",
         }
@@ -206,20 +208,37 @@ class QBittorrentClient(TorrentClient):
             return data[0]
         return None
 
+    async def _torrent_action(self, paths: list[str], data: dict[str, str]) -> None:
+        """POST a torrent action tolerating the qBittorrent 5.0 endpoint rename
+        (resume→start, pause→stop): try each path in order, treat a 404 as
+        "wrong version, try the next", and surface any other error."""
+        cli = await self._http()
+        last: httpx.Response | None = None
+        for path in paths:
+            r = await cli.post(path, data=data)
+            if r.status_code != 404:
+                r.raise_for_status()
+                return
+            last = r
+        if last is not None:
+            last.raise_for_status()
+
     async def recheck(self, torrent_hash: str) -> None:
         cli = await self._http()
         r = await cli.post("/api/v2/torrents/recheck", data={"hashes": torrent_hash})
         r.raise_for_status()
 
     async def resume(self, torrent_hash: str) -> None:
-        cli = await self._http()
-        r = await cli.post("/api/v2/torrents/resume", data={"hashes": torrent_hash})
-        r.raise_for_status()
+        await self._torrent_action(
+            ["/api/v2/torrents/start", "/api/v2/torrents/resume"],
+            {"hashes": torrent_hash},
+        )
 
     async def pause(self, torrent_hash: str) -> None:
-        cli = await self._http()
-        r = await cli.post("/api/v2/torrents/pause", data={"hashes": torrent_hash})
-        r.raise_for_status()
+        await self._torrent_action(
+            ["/api/v2/torrents/stop", "/api/v2/torrents/pause"],
+            {"hashes": torrent_hash},
+        )
 
     async def remove(self, torrent_hash: str, delete_files: bool = False) -> None:
         cli = await self._http()
