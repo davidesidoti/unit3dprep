@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from collections import deque
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -53,6 +54,78 @@ _CHECKING_STATES = {
 
 
 # ---------------------------------------------------------------------------
+# ITT request pacing
+#
+# Unit3D rate-limits its API; a big auto scan (one request per item) easily
+# trips it. We pace all reseed ITT calls to stay under a configurable cap
+# (`W_ITT_MAX_RPM`, requests/min, default 50; 0 disables) — a single batch
+# stays under the cap so it's not slowed, while heavy/repeated scans get spread
+# out — and retry on 429 honouring Retry-After, so the limit slows us down
+# instead of failing.
+# ---------------------------------------------------------------------------
+
+
+def _itt_max_rpm() -> int:
+    from . import config
+    try:
+        return int(config.runtime_setting("W_ITT_MAX_RPM", "50") or "50")
+    except (TypeError, ValueError):
+        return 50
+
+
+class _RateLimiter:
+    """At most `rpm` acquisitions per rolling 60s window, shared across all ITT
+    requests. Serialized via a lock so concurrent callers pace correctly."""
+
+    def __init__(self) -> None:
+        self._times: deque[float] = deque()
+        self._lock = asyncio.Lock()
+
+    async def acquire(self) -> None:
+        rpm = _itt_max_rpm()
+        if rpm <= 0:
+            return
+        async with self._lock:
+            loop = asyncio.get_event_loop()
+            while True:
+                now = loop.time()
+                while self._times and now - self._times[0] >= 60.0:
+                    self._times.popleft()
+                if len(self._times) < rpm:
+                    self._times.append(now)
+                    return
+                await asyncio.sleep(60.0 - (now - self._times[0]) + 0.05)
+
+
+_itt_rate = _RateLimiter()
+
+
+def _retry_after_seconds(resp: httpx.Response) -> float:
+    try:
+        ra = resp.headers.get("retry-after")
+        return float(ra) if ra else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
+async def _itt_get(
+    client: httpx.AsyncClient, url: str, params: dict[str, str], *, retries: int = 3,
+) -> httpx.Response:
+    """GET an ITT API URL through the shared limiter, retrying on 429 (honouring
+    Retry-After, capped) so a throttle slows us down instead of failing."""
+    attempt = 0
+    while True:
+        await _itt_rate.acquire()
+        r = await client.get(url, params=params)
+        if r.status_code != 429 or attempt >= retries:
+            return r
+        wait = _retry_after_seconds(r) or (5.0 * (attempt + 1))
+        log.info("ITT 429 — waiting %.0fs then retrying (%d/%d)", min(wait, 30.0), attempt + 1, retries)
+        await asyncio.sleep(min(wait, 30.0))
+        attempt += 1
+
+
+# ---------------------------------------------------------------------------
 # ITT / Unit3D API helpers
 # ---------------------------------------------------------------------------
 
@@ -68,7 +141,7 @@ def _itt_configured(base: str, token: str) -> bool:
 
 
 async def _filter(client: httpx.AsyncClient, base: str, params: dict[str, str]) -> list[dict]:
-    r = await client.get(f"{base}/api/torrents/filter", params=params)
+    r = await _itt_get(client, f"{base}/api/torrents/filter", params)
     r.raise_for_status()
     payload = r.json()
     items = payload.get("data") if isinstance(payload, dict) else None
@@ -98,7 +171,7 @@ async def fetch_torrent_meta(base: str, token: str, torrent_id: int) -> dict | N
     """
     base = base.rstrip("/")
     async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as c:
-        r = await c.get(f"{base}/api/torrents/{torrent_id}", params={"api_token": token})
+        r = await _itt_get(c, f"{base}/api/torrents/{torrent_id}", {"api_token": token})
         r.raise_for_status()
         payload = r.json()
     if not isinstance(payload, dict):

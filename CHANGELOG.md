@@ -24,6 +24,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
   facile da raggiungere subito dopo una scansione automatica intensa) la ricerca non resta
   più vuota in silenzio — ora mostra un messaggio chiaro ("riprova tra poco"). I candidati
   automatici segnalano inoltre quante richieste al tracker sono fallite.
+- Reseed: le richieste all'API del tracker sono ora **distribuite nel tempo** sotto una
+  soglia configurabile (`W_ITT_MAX_RPM`, default 50/min; un singolo lotto resta veloce) e
+  **ritentate automaticamente** sul 429 rispettando `Retry-After` — le scansioni intense
+  rallentano invece di fallire, senza dover riprovare a mano.
 
 ## [1.1.1] - 2026-06-20
 
