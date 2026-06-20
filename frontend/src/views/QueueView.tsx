@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import type { QueueTorrent } from '../types';
-import { StatusPill } from '../components/primitives';
+import { StatusPill, LoadMore } from '../components/primitives';
+import { useIncremental } from '../hooks/useIncremental';
 
 function humanSize(b: number): string {
   const u = ['TB', 'GB', 'MB', 'KB'];
@@ -40,6 +41,10 @@ export function QueueView({ nameFilter = '' }: { nameFilter?: string }) {
       return true;
     });
   }, [data.torrents, filter, nameFilter]);
+
+  // Deps are the filters only (NOT data.torrents): the 5s poll must not reset
+  // the user's "load more" position.
+  const { visible, remaining, hasMore, loadMore } = useIncremental(filtered, 50, [filter, nameFilter]);
 
   const counts = {
     total: data.torrents.length,
@@ -124,7 +129,7 @@ export function QueueView({ nameFilter = '' }: { nameFilter?: string }) {
           </tr>
         </thead>
         <tbody className="u3d-stagger">
-          {filtered.map((tor) => (
+          {visible.map((tor) => (
             <tr key={tor.hash} className="u3d-row">
               <td style={tdStyle}>
                 <span style={{
@@ -168,6 +173,11 @@ export function QueueView({ nameFilter = '' }: { nameFilter?: string }) {
           ))}
         </tbody>
       </table>
+      {hasMore && (
+        <div style={{ padding: '12px 24px' }}>
+          <LoadMore remaining={remaining} onClick={loadMore} />
+        </div>
+      )}
       {!loading && filtered.length === 0 && (
         <div style={{
           padding: '40px 20px', textAlign: 'center',

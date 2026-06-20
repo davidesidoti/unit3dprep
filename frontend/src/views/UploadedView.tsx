@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import type { UploadedRecord } from '../types';
+import { useIncremental } from '../hooks/useIncremental';
+import { LoadMore } from '../components/primitives';
 
 const kindColors: Record<string, { bg: string; fg: string }> = {
   movie:   { bg: 'var(--blue-dim)',   fg: 'var(--blue-bright)' },
@@ -27,6 +29,8 @@ export function UploadedView() {
     if (search && !r.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   }), [records, filter, search]);
+
+  const { visible, remaining, hasMore, loadMore } = useIncremental(filtered, 50, [filter, search]);
 
   const stats = {
     total: records.length,
@@ -116,7 +120,7 @@ export function UploadedView() {
           ))}
         </div>
         <div className="u3d-stagger">
-        {filtered.map((r) => {
+        {visible.map((r) => {
           const c = kindColors[r.kind] ?? kindColors.movie;
           const expanded = selected === r.id;
           return (
@@ -221,6 +225,11 @@ export function UploadedView() {
           );
         })}
         </div>
+        {hasMore && (
+          <div style={{ padding: '0 10px 10px' }}>
+            <LoadMore remaining={remaining} onClick={loadMore} />
+          </div>
+        )}
         {filtered.length === 0 && (
           <div style={{
             padding: '40px 20px', textAlign: 'center',

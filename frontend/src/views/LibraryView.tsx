@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { Category, LibraryItem, Season, WizardCtx } from '../types';
-import { LangChip, Badge } from '../components/primitives';
+import { LangChip, Badge, LoadMore } from '../components/primitives';
+import { useIncremental } from '../hooks/useIncremental';
 
 type SortKey = 'name' | 'year' | 'size';
 type SortDir = 'asc' | 'desc';
@@ -186,6 +187,10 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       return a.title.localeCompare(b.title) * dir;
     });
   }, [items, search, hideUploaded, hideNoItalian, sortBy, sortDir]);
+
+  const { visible, remaining, hasMore, loadMore } = useIncremental(
+    filtered, 60, [category, search, hideUploaded, hideNoItalian, sortBy, sortDir],
+  );
 
   const needTmdb = filtered.filter((i) => !i.tmdb_id).length;
   const needLangs = filtered.filter((i) => !i.lang_scanned).length;
@@ -532,7 +537,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           padding: isMobile ? '12px 14px' : '14px 18px',
           overflowY: 'auto', alignContent: 'start',
         }}>
-          {filtered.map((item) => {
+          {visible.map((item) => {
             const isSeries = !!item.seasons;
             const uploaded = isSeries
               ? item.seasons!.filter((s) => s.already_uploaded || s.all_episodes_uploaded).length
@@ -642,6 +647,18 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
               </div>
             );
           })}
+          {hasMore && (
+            <div style={{
+              gridColumn: '1/-1', display: 'flex', justifyContent: 'center',
+              padding: '6px 0 2px',
+            }}>
+              <LoadMore
+                remaining={remaining}
+                onClick={loadMore}
+                style={{ width: 'auto', padding: '10px 28px' }}
+              />
+            </div>
+          )}
           {!loading && filtered.length === 0 && (
             <div style={{
               gridColumn: '1/-1', padding: '60px 20px', textAlign: 'center',

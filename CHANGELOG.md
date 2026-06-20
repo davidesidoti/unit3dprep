@@ -6,6 +6,13 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Caricamento graduale degli elenchi lunghi in Libreria, Coda, Cronologia upload e Ricerca:
+  ora gli elementi non vengono mostrati tutti insieme ma a blocchi, con un pulsante
+  "Carica altri" (che indica quanti restano) per mostrarne altri. Migliora la fluidità con
+  librerie e code molto popolate, senza cambiare cosa viene caricato. Il conteggio riparte
+  da capo quando si cambia categoria, filtro o ricerca.
+
 ## [1.1.2] - 2026-06-20
 
 ### Added

@@ -20,6 +20,8 @@ export const it: Catalog = {
     ok: 'OK',
     error: 'Errore',
     language: 'Lingua',
+    loadMore: 'Carica altri',
+    loadMoreCount: 'Carica altri ({{count}} rimanenti)',
   },
   topbar: {
     queue: 'Coda Upload',

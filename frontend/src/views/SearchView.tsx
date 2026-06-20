@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../api';
 import type { SearchResult } from '../types';
+import { useIncremental } from '../hooks/useIncremental';
+import { LoadMore } from '../components/primitives';
 
 export function SearchView() {
   const { t } = useTranslation();
@@ -31,6 +33,8 @@ export function SearchView() {
   const filtered = filter === 'All' ? results : results.filter((r) =>
     r.type === filter || r.resolution === filter || r.tracker === filter,
   );
+
+  const { visible, remaining, hasMore, loadMore } = useIncremental(filtered, 30, [filter, results]);
 
   return (
     <div style={{ padding: 24 }}>
@@ -97,7 +101,7 @@ export function SearchView() {
       )}
 
       <div className={filtered.length > 0 ? 'u3d-stagger' : undefined}>
-      {filtered.map((r) => (
+      {visible.map((r) => (
         <div
           key={`${r.tracker}-${r.id}`}
           className="u3d-card"
@@ -144,6 +148,10 @@ export function SearchView() {
         </div>
       ))}
       </div>
+
+      {hasMore && (
+        <LoadMore remaining={remaining} onClick={loadMore} style={{ marginTop: 4 }} />
+      )}
 
       {!loading && filtered.length === 0 && !error && query && (
         <div style={{

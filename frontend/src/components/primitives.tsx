@@ -1,4 +1,30 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+
+/**
+ * Full-width "load more" button for render-paginated lists (see useIncremental).
+ * Shows how many items are still hidden. Pass `style` to override width/spacing
+ * when embedding in a grid (e.g. width:'auto' + gridColumn:'1/-1').
+ */
+export function LoadMore({ remaining, onClick, style }: {
+  remaining: number; onClick: () => void; style?: CSSProperties;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="u3d-pressable"
+      style={{
+        width: '100%', background: 'var(--bg-card)',
+        border: '1px solid var(--border)', borderRadius: 6, padding: '10px',
+        fontSize: 12, fontWeight: 600, color: 'var(--fg-2)', cursor: 'pointer',
+        fontFamily: 'var(--font-display)',
+        ...style,
+      }}
+    >{t('common.loadMoreCount', { count: remaining })}</button>
+  );
+}
 
 export function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (

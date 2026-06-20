@@ -18,6 +18,8 @@ export const en = {
     ok: 'OK',
     error: 'Error',
     language: 'Language',
+    loadMore: 'Load more',
+    loadMoreCount: 'Load more ({{count}} left)',
   },
   topbar: {
     queue: 'Upload Queue',
