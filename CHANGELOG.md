@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-06-21
+
 ### Added
 - Dettaglio serie: accanto a ogni stagione compare un'etichetta **Completa** / **In corso**
   (in base a TMDB — se la serie è conclusa o se sono previsti altri episodi per quella stagione)
