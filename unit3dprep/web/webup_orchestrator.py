@@ -32,7 +32,12 @@ from typing import Any, AsyncGenerator
 
 from .config import runtime_setting
 from .webup_client import WebupClient, compute_job_id
-from .webup_job_fix import maybe_force_can_upload, maybe_inject_season
+from .webup_job_fix import (
+    DEFAULT_TRACKER_SIGNATURE,
+    maybe_force_can_upload,
+    maybe_inject_season,
+    maybe_replace_signature,
+)
 from .webup_logclass import classify_msg, is_terminal_failure, is_terminal_success
 from .webup_ws import WILDCARD, WebupWSManager
 
@@ -486,6 +491,26 @@ async def stream_webup(
                 "data": f"webup: season inject skipped ({exc!r})",
             }
 
+        # Swap webup's hardcoded "by Unit3DwebUp <ver>" description footer for
+        # our own credit. Webup builds the description (with its footer) at /scan
+        # and persists it in Redis; /upload reloads it and sends it to the
+        # tracker. Patch the Redis record here, before /upload. Controlled by the
+        # W_TRACKER_SIGNATURE runtime setting (empty = keep webup's footer).
+        try:
+            signature = runtime_setting("W_TRACKER_SIGNATURE", DEFAULT_TRACKER_SIGNATURE)
+            sig = await maybe_replace_signature(job_id, signature)
+            if sig.get("patched"):
+                yield {
+                    "type": "log", "kind": "ok",
+                    "data": f"webup: {sig['reason']}",
+                    "event": "upload.signature",
+                }
+        except Exception as exc:
+            yield {
+                "type": "log", "kind": "warn",
+                "data": f"webup: signature patch skipped ({exc!r})",
+            }
+
         yield _progress_event("scan", 100)
 
         # ---- Maketorrent ----
@@ -720,6 +745,24 @@ async def stream_webup_batch(
         path_by_job = {str(it.get("job_id")): str(Path(it.get("folder") or "") / (it.get("subfolder") or ""))
                        for it in items if it.get("job_id")}
         yield {"type": "log", "data": f"webup: scan found {len(job_ids)} items"}
+
+        # Swap webup's "by Unit3DwebUp" description footer for ours on every job
+        # before upload (same mechanism as the single-path flow).
+        signature = runtime_setting("W_TRACKER_SIGNATURE", DEFAULT_TRACKER_SIGNATURE)
+        for jid in job_ids:
+            try:
+                sig = await maybe_replace_signature(jid, signature)
+                if sig.get("patched"):
+                    yield {
+                        "type": "log", "kind": "ok",
+                        "data": f"webup: {jid[:8]} {sig['reason']}",
+                        "event": "upload.signature",
+                    }
+            except Exception as exc:
+                yield {
+                    "type": "log", "kind": "warn",
+                    "data": f"webup: signature patch skipped for {jid[:8]} ({exc!r})",
+                }
 
         from .webup_client import compute_job_list_id
         job_list_id = compute_job_list_id(str(target))

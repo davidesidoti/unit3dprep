@@ -31,6 +31,29 @@ log = logging.getLogger("unit3dprep.webup_job_fix")
 # Webup hardcodes Redis on localhost:6379 — see CLAUDE.md.
 _REDIS_URL = "redis://127.0.0.1:6379/0"
 
+# Webup appends a hardcoded BBCode footer to every tracker description
+# (`services/video_service.py::BuildService.sign`):
+#
+#   [url=https://github.com/31December99/Unit3DWebUp][code][color=#00BFFF]
+#   [size=12]by Unit3DwebUp <version>[/size][/color][/code][/url]
+#
+# We swap it for our own credit. The block is anchored on the `Unit3DWebUp`
+# URL (unique in the description — screenshots/trailer links never contain it)
+# and matched non-greedily up to its own closing `[/url]`. Version-agnostic.
+_WEBUP_SIGN_RX = re.compile(
+    r"\[url=[^\]]*Unit3DWebUp[^\]]*\].*?\[/url\]",
+    re.IGNORECASE | re.DOTALL,
+)
+
+# Default footer shipped by the bridge. Overridable at runtime via the
+# `W_TRACKER_SIGNATURE` setting (env / shared .env) — the orchestrator reads
+# it and passes it to `maybe_replace_signature`. Mirrors webup's BBCode style
+# so it renders identically on the tracker. Empty string disables replacement.
+DEFAULT_TRACKER_SIGNATURE = (
+    "[url=https://github.com/davidesidoti/unit3dprep][code][color=#00BFFF]"
+    "[size=12]Caricato con unit3dprep[/size][/color][/code][/url]"
+)
+
 # Season/episode token as written by the bridge's `build_name`: S01, S01E01,
 # S01E01-E12, S01E01-12, S01E01E12.
 _SEASON_TOKEN = re.compile(r"S\d{2}(?:E\d{2}(?:-?E?\d{2})?)?", re.IGNORECASE)
@@ -223,6 +246,79 @@ async def maybe_inject_season(job_id: str) -> dict[str, Any]:
         result["patched"] = True
         result["display_name"] = new_display
         result["reason"] = f"inserted season '{label}' into display_name"
+        return result
+    finally:
+        try:
+            await client.aclose()
+        except Exception:
+            pass
+
+
+async def maybe_replace_signature(job_id: str, signature: str) -> dict[str, Any]:
+    """Replace webup's hardcoded ``by Unit3DwebUp`` description footer with ours.
+
+    Webup builds ``media.description`` (screenshots + trailer + its own credit
+    footer) during ``/scan`` and persists it in the Redis job (``data`` field,
+    ``description`` key); ``/upload`` reloads it via ``Media.from_dict`` and
+    sends it to the tracker verbatim. We patch the Redis record between ``/scan``
+    and ``/upload`` — same HGET→mutate→HSET pattern as :func:`maybe_inject_season`.
+
+    Behaviour:
+      * Empty/blank ``signature`` → no-op (keep webup's footer).
+      * Webup footer found → replaced with ``signature``.
+      * Footer absent (format drift / already custom) → ``signature`` appended,
+        unless it is already present.
+
+    Never raises — returns ``{"patched": bool, "reason": str}``.
+    """
+    result: dict[str, Any] = {"patched": False, "reason": ""}
+    sign = (signature or "").strip()
+    if not sign:
+        result["reason"] = "signature disabled (empty)"
+        return result
+    try:
+        client = aioredis.from_url(_REDIS_URL, decode_responses=True)
+    except Exception as e:
+        result["reason"] = f"redis connect failed: {e!r}"
+        return result
+    try:
+        try:
+            raw = await client.hget(job_id, "data")
+        except Exception as e:
+            result["reason"] = f"redis hget failed: {e!r}"
+            return result
+        if not raw:
+            result["reason"] = "no job data in redis"
+            return result
+        try:
+            data = json.loads(raw)
+        except Exception as e:
+            result["reason"] = f"json parse failed: {e!r}"
+            return result
+        desc = data.get("description")
+        if not isinstance(desc, str) or not desc:
+            result["reason"] = "no description to patch"
+            return result
+        new_desc, n = _WEBUP_SIGN_RX.subn(sign, desc)
+        if n:
+            reason = f"replaced webup footer ({n}x)"
+        elif sign in desc:
+            result["reason"] = "custom signature already present"
+            return result
+        else:
+            new_desc = desc.rstrip() + "\n" + sign
+            reason = "webup footer not found — appended custom signature"
+        if new_desc == desc:
+            result["reason"] = "no change"
+            return result
+        data["description"] = new_desc
+        try:
+            await client.hset(job_id, mapping={"data": json.dumps(data)})
+        except Exception as e:
+            result["reason"] = f"redis hset failed: {e!r}"
+            return result
+        result["patched"] = True
+        result["reason"] = reason
         return result
     finally:
         try:
