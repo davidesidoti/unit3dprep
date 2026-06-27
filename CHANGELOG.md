@@ -6,10 +6,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-06-27
+
 ### Changed
 - La firma in coda alla descrizione dei torrent caricati sul tracker non è più "by Unit3DwebUp",
   ma una firma di ItaTorrents che linka al progetto e include la versione di unit3dprep
-  (es. `Caricato con unit3dprep 1.1.4`). Viene sostituita automaticamente prima dell'upload.
+  (es. `Caricato con unit3dprep 1.1.5`). Viene sostituita automaticamente prima dell'upload.
   È personalizzabile (o disattivabile) tramite l'impostazione `W_TRACKER_SIGNATURE` nel file
   `.env`: una stringa BBCode la usa come firma (con il segnaposto `{version}` per la versione),
   una stringa vuota lascia quella di webup.
