@@ -47,12 +47,31 @@ _WEBUP_SIGN_RX = re.compile(
 
 # Default footer shipped by the bridge. Overridable at runtime via the
 # `W_TRACKER_SIGNATURE` setting (env / shared .env) — the orchestrator reads
-# it and passes it to `maybe_replace_signature`. Mirrors webup's BBCode style
-# so it renders identically on the tracker. Empty string disables replacement.
+# it, renders the `{version}` placeholder, and passes it to
+# `maybe_replace_signature`. Mirrors webup's BBCode style so it renders
+# identically on the tracker. Empty string disables replacement.
 DEFAULT_TRACKER_SIGNATURE = (
     "[url=https://github.com/davidesidoti/unit3dprep][code][color=#00BFFF]"
-    "[size=12]Caricato con unit3dprep[/size][/color][/code][/url]"
+    "[size=12]Caricato con unit3dprep {version}[/size][/color][/code][/url]"
 )
+
+
+def render_signature(template: str, version: str = "") -> str:
+    """Substitute the ``{version}`` placeholder in a signature template.
+
+    The orchestrator supplies unit3dprep's own version. A template without the
+    placeholder is returned unchanged. An unknown (empty) version collapses
+    ``unit3dprep {version}`` to ``unit3dprep`` rather than leaving a dangling
+    space before the next BBCode tag.
+    """
+    if not template:
+        return template
+    ver = (version or "").strip()
+    out = template.replace("{version}", ver)
+    if not ver:
+        # drop the space that preceded the now-empty placeholder
+        out = out.replace(" [/", "[/").replace("  ", " ")
+    return out
 
 # Season/episode token as written by the bridge's `build_name`: S01, S01E01,
 # S01E01-E12, S01E01-12, S01E01E12.

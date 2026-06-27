@@ -37,6 +37,7 @@ from .webup_job_fix import (
     maybe_force_can_upload,
     maybe_inject_season,
     maybe_replace_signature,
+    render_signature,
 )
 from .webup_logclass import classify_msg, is_terminal_failure, is_terminal_success
 from .webup_ws import WILDCARD, WebupWSManager
@@ -297,6 +298,21 @@ def _ensure_str(v: Any) -> str:
     return "" if v is None else str(v)
 
 
+def _render_tracker_signature() -> str:
+    """Resolve the tracker description footer, rendering the ``{version}``
+    placeholder with unit3dprep's own version. Empty setting → no replacement.
+    """
+    template = runtime_setting("W_TRACKER_SIGNATURE", DEFAULT_TRACKER_SIGNATURE)
+    if "{version}" not in (template or ""):
+        return template
+    try:
+        from .api.version import _current_app_version
+        version = _current_app_version()
+    except Exception:
+        version = ""
+    return render_signature(template, version)
+
+
 def _media_for_path(scan_results: dict[str, Any], target: Path) -> dict[str, Any] | None:
     """Find the Media dict in /scan response that matches the requested path.
 
@@ -497,7 +513,7 @@ async def stream_webup(
         # tracker. Patch the Redis record here, before /upload. Controlled by the
         # W_TRACKER_SIGNATURE runtime setting (empty = keep webup's footer).
         try:
-            signature = runtime_setting("W_TRACKER_SIGNATURE", DEFAULT_TRACKER_SIGNATURE)
+            signature = _render_tracker_signature()
             sig = await maybe_replace_signature(job_id, signature)
             if sig.get("patched"):
                 yield {
@@ -748,7 +764,7 @@ async def stream_webup_batch(
 
         # Swap webup's "by Unit3DwebUp" description footer for ours on every job
         # before upload (same mechanism as the single-path flow).
-        signature = runtime_setting("W_TRACKER_SIGNATURE", DEFAULT_TRACKER_SIGNATURE)
+        signature = _render_tracker_signature()
         for jid in job_ids:
             try:
                 sig = await maybe_replace_signature(jid, signature)
