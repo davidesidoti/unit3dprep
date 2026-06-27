@@ -1,0 +1,1591 @@
+
+<!doctype html>
+<html lang="it" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web UI + CLI di pre-flight per tracker Unit3D (companion di unit3dup)">
+      
+      
+      
+        <link rel="canonical" href="https://davidesidoti.github.io/unit3dprep/uso-web/">
+      
+      
+        <link rel="prev" href="../uso-cli/">
+      
+      
+        <link rel="next" href="../docker/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="it">
+        
+          <link rel="alternate" href="../en/uso-web/" hreflang="en">
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Web UI - unit3dprep</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#uso-web-ui" class="md-skip">
+          Vai al contenuto
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Intestazione">
+    <a href=".." title="unit3dprep" class="md-header__button md-logo" aria-label="unit3dprep" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            unit3dprep
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Web UI
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Tema scuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Tema scuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Tema chiaro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Tema chiaro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Seleziona la lingua">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="it" class="md-select__link">
+              Italiano
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../en/uso-web/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Cerca" placeholder="Cerca" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Cerca">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Cancella" aria-label="Cancella" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inizializza la ricerca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/davidesidoti/unit3dprep" title="Apri repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    davidesidoti/unit3dprep
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installazione/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installazione
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configurazione/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configurazione
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../integrazione-webup/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Integrazione Unit3DWebUp
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../uso-cli/" class="md-tabs__link">
+          
+  
+  
+  Uso
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../docker/" class="md-tabs__link">
+          
+  
+  
+  Deploy
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../nomenclatura/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Nomenclatura
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../troubleshooting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigazione" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="unit3dprep" class="md-nav__button md-logo" aria-label="unit3dprep" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    unit3dprep
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/davidesidoti/unit3dprep" title="Apri repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    davidesidoti/unit3dprep
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installazione/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installazione
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configurazione/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configurazione
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrazione-webup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrazione Unit3DWebUp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Uso
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uso-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web UI
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Indice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Indice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#login" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Login
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#media-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Media Library
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upload-wizard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload Wizard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upload Wizard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controllo-duplicati-pre-upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controllo duplicati pre-upload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick upload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry-run
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upload-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload Queue
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uploaded-storico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uploaded (storico)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#search-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Search Tracker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versione-e-auto-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versione e auto-update
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#health-unit3dwebup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health Unit3DWebUp
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#note-mobile-768px" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Note mobile (≤768px)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bisogni-accesso-programmatico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bisogni accesso programmatico?
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Deploy
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy-vps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPS (sudo/Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy-ultracc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ultra.cc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nomenclatura/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nomenclatura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Indice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Indice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#login" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Login
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#media-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Media Library
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upload-wizard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload Wizard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upload Wizard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#controllo-duplicati-pre-upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controllo duplicati pre-upload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quick-upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick upload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dry-run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dry-run
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upload-queue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upload Queue
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#uploaded-storico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Uploaded (storico)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#search-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Search Tracker
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#versione-e-auto-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Versione e auto-update
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#health-unit3dwebup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health Unit3DWebUp
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#note-mobile-768px" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Note mobile (≤768px)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bisogni-accesso-programmatico" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bisogni accesso programmatico?
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/davidesidoti/unit3dprep/edit/main/docs/uso-web.md" title="Modifica" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="uso-web-ui">Uso › Web UI<a class="headerlink" href="#uso-web-ui" title="Permanent link">&para;</a></h1>
+<p>La Web UI è una SPA React servita da FastAPI. Copre l'intero workflow di pre-flight Unit3D dal browser: scansione libreria, upload guidato, coda torrent, storico, configurazione, log in tempo reale, integrazione live con Unit3DWebUp. Disponibile in <strong>italiano e inglese</strong> (selettore nella TopBar).</p>
+<p>Avvio:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>unit3dprep-web
+</code></pre></div>
+<p>Apri l'URL risultante (<code>http://&lt;U3DP_HOST&gt;:&lt;U3DP_PORT&gt;&lt;U3DP_ROOT_PATH&gt;</code>, default <code>http://127.0.0.1:8765</code>). Assicurati che <a href="../integrazione-webup/">Unit3DWebUp</a> sia in ascolto su <code>WEBUP_URL</code> (default <code>127.0.0.1:8000</code>).</p>
+<hr />
+<h2 id="login">Login<a class="headerlink" href="#login" title="Permanent link">&para;</a></h2>
+<p>Schermata iniziale: campo password. Credenziali validate contro <code>U3DP_PASSWORD_HASH</code> (bcrypt). La sessione è firmata con <code>U3DP_SECRET</code> (itsdangerous) e dura finché il browser mantiene il cookie.</p>
+<div class="admonition note">
+<p class="admonition-title">Middleware order</p>
+<p>Dietro le quinte: <code>SessionMiddleware</code> deve essere aggiunto <strong>dopo</strong> il middleware auth (LIFO = l'ultimo è l'outermost). Se vedi <code>AssertionError: SessionMiddleware must be installed</code>, è un bug — apri un issue.</p>
+</div>
+<hr />
+<h2 id="media-library">Media Library<a class="headerlink" href="#media-library" title="Permanent link">&para;</a></h2>
+<p><img alt="Media Library con poster TMDB, badge lingue audio e panel dettaglio" src="../assets/screenshots/media_library.png" /></p>
+<p>Lista le categorie (sottocartelle di <code>U3DP_MEDIA_ROOT</code>) e gli item al loro interno.</p>
+<p>Funzionalità:</p>
+<ul>
+<li><strong>Dropdown categoria</strong> — auto-scoperte (<code>GET /api/library/categories</code>). Non hardcoded.</li>
+<li><strong>Lista item</strong> — ogni riga mostra titolo, anno (se da TMDB), dimensione totale, lingue audio rilevate.</li>
+<li><strong>Ordinamento</strong> — nome, anno, dimensione.</li>
+<li><strong>Ricerca</strong> — filtro live sul nome.</li>
+<li><strong>Nascondi uploadati</strong> — toggle controllato da <code>W_HIDE_UPLOADED</code>.</li>
+<li><strong>Nascondi senza ITA</strong> — toggle controllato da <code>W_HIDE_NO_ITALIAN</code>.</li>
+<li><strong>Detail panel</strong> — click su un item apre un panel laterale (mobile: overlay a tutto schermo) con file list, match TMDB, azioni.</li>
+<li><strong>Rescan lingue audio</strong> — bottone che stream-a via SSE la scansione <code>pymediainfo</code> aggiornando la cache.</li>
+<li><strong>Match TMDB manuale</strong> — campo per inserire un ID, bottone cerca con preview risultati.</li>
+<li><strong>Selezione multipla</strong> — checkbox su ogni item; action bar con "Seleziona tutto", "Deseleziona", "Marca come caricato" per operazioni in blocco.</li>
+<li><strong>Filtro tipo</strong> — toggle per mostrare solo film (<code>kind === 'movie'</code>), nascondendo serie e stagioni.</li>
+<li><strong>Mark uploaded a tutti i livelli</strong> — per le serie: intera serie, singola stagione, singolo episodio.</li>
+</ul>
+<p>Endpoint coinvolti: <code>GET /api/library/categories</code>, <code>GET /api/library/{category}</code>, <code>GET /api/library/{category}/{item}</code>, <code>POST /api/library/{category}/{item}/langs</code>, <code>POST /api/tmdb/search</code>, <code>POST /api/tmdb/fetch</code>.</p>
+<hr />
+<h2 id="upload-wizard">Upload Wizard<a class="headerlink" href="#upload-wizard" title="Permanent link">&para;</a></h2>
+<p><img alt="Upload Wizard — step TMDB con preview titolo e metadati" src="../assets/screenshots/upload_wizard.png" /></p>
+<p>Flusso guidato in step. Alternativa alla CLI con storico persistente, progress bar grafica e log live SSE.</p>
+<p>Step tipici:</p>
+<ol>
+<li><strong>Seleziona sorgente</strong> — file o cartella sotto <code>U3DP_MEDIA_ROOT</code>.</li>
+<li><strong>Check audio</strong> — se <code>W_AUDIO_CHECK</code>, scansiona le tracce.</li>
+<li><strong>TMDB</strong> — ricerca o inserimento ID. Se <code>W_AUTO_TMDB</code>, auto-fetch da ID esistente.</li>
+<li><strong>Preview nome</strong> — editabile; se <code>W_CONFIRM_NAMES</code> è OFF, salta la conferma.</li>
+<li><strong>Controllo duplicati</strong> — se <code>W_DUPLICATE_CHECK</code> (default ON), interroga l'API ITT prima dell'hardlink. Se trova un torrent con la stessa dimensione esatta, mostra un pannello giallo (vedi sotto). Saltato per i season pack.</li>
+<li><strong>Hardlink</strong> — in <code>U3DP_SEEDINGS_DIR/.unit3dprep/&lt;jobid&gt;/...</code> (sandbox per-upload, vedi <a href="../integrazione-webup/#semantica-scan_path-sandbox-per-upload">Integrazione Unit3DWebUp</a>). Se <code>W_HARDLINK_ONLY</code>, termina qui e registra exit code <code>0</code>.</li>
+<li><strong>Upload</strong> — il bridge HTTP esegue <code>setenv → scan → maketorrent → upload → seed</code> su Unit3DWebUp e stream-a log + progress al frontend via SSE (<code>GET /api/wizard/{tok}/upload</code>). Phase weights mostrati in barra: setenv 3% / scan 27% / maketorrent 45% / upload 15% / seed 10%.</li>
+<li><strong>Registrazione storico</strong> — <code>update_exit_code(seeding_path, code)</code> scrive in <code>U3DP_DB_PATH</code> (anche su <code>wizard_finish</code> quando <code>W_HARDLINK_ONLY=1</code>, exit code 0).</li>
+</ol>
+<h3 id="controllo-duplicati-pre-upload">Controllo duplicati pre-upload<a class="headerlink" href="#controllo-duplicati-pre-upload" title="Permanent link">&para;</a></h3>
+<p>Replica il comportamento del vecchio <code>unit3dup</code> CLI: prima di creare il <code>.torrent</code>, il bridge chiama <code>GET &lt;ITT_URL&gt;/api/torrents/filter?tmdbId=&lt;id&gt;&amp;api_token=&lt;key&gt;</code> e confronta <code>data[].attributes.size</code> byte-per-byte con la dimensione del file locale. Match esatto → pannello giallo con:</p>
+<ul>
+<li><strong>Nome</strong>, <strong>dimensione</strong>, <strong>tipo/risoluzione</strong>, <strong>uploader</strong>, <strong>seeders/leechers</strong>, <strong>data creazione</strong>;</li>
+<li><strong>Link "Apri sul tracker"</strong> alla pagina dei dettagli;</li>
+<li><strong>"Carica comunque"</strong> → procede con hardlink + upload (utile se si tratta di una re-release legittima o di un'altra fonte);</li>
+<li><strong>"Annulla"</strong> → registra una entry nello storico con status <code>⏭ duplicato skippato</code>, nasconde l'item dalla Media Library (<code>source_path</code> finisce in <code>uploaded_paths</code>), e termina il wizard senza creare l'hardlink.</li>
+</ul>
+<p>Webup 0.0.25 NON implementa duplicate detection (<code>DUPLICATE_ON</code>/<code>SKIP_DUPLICATE</code> sono <code># Todo Not yet implemented</code> upstream): il check è eseguito dal bridge unit3dprep e funziona solo su <code>kind=movie</code> e <code>kind=episode</code>. Per i season pack la somma totale dei byte non corrisponde a nessun singolo torrent sul tracker, quindi il check viene saltato.</p>
+<p>Best-effort: se l'API ITT è irraggiungibile o ritorna un errore, il check viene saltato silenziosamente e l'upload prosegue normalmente. Disabilitabile globalmente da <strong>Settings → Default wizard → Controllo duplicati sul tracker</strong>.</p>
+<h3 id="quick-upload">Quick upload<a class="headerlink" href="#quick-upload" title="Permanent link">&para;</a></h3>
+<p><code>POST /api/upload/quick</code> salta gran parte del wizard per utenti esperti: ricevi direttamente un job ID e consumi <code>GET /api/upload/{job}/stream</code>. Usalo se hai già file rinominati in <code>~/seedings/</code>. Il flow chiama <code>stream_webup</code> direttamente, senza pre-flight di unit3dprep.</p>
+<h3 id="dry-run">Dry-run<a class="headerlink" href="#dry-run" title="Permanent link">&para;</a></h3>
+<p>Se <code>U3DP_DRY_RUN_TRACKER=1</code>, il wizard salta <code>/upload</code> ma esegue tutto il resto. Utile in dev/WSL.</p>
+<hr />
+<h2 id="upload-queue">Upload Queue<a class="headerlink" href="#upload-queue" title="Permanent link">&para;</a></h2>
+<p><img alt="Upload Queue — coda qBittorrent con progress bar e stato seeding" src="../assets/screenshots/queue.png" /></p>
+<p>Mostra i torrent attivi nel client configurato (<code>TORRENT_CLIENT</code> nel <code>.env</code>: <code>qbittorrent</code>, <code>transmission</code>, <code>rtorrent</code>).</p>
+<ul>
+<li>Filtro per nome e per stato (downloading, seeding, paused, error).</li>
+<li>Refresh automatico.</li>
+<li>Link ai file locali.</li>
+</ul>
+<p>Endpoint: <code>GET /api/queue</code>. Credenziali client lette dalle chiavi <code>QBIT_*</code> / <code>TRASM_*</code> / <code>RTORR_*</code> del <code>.env</code> condiviso.</p>
+<hr />
+<h2 id="uploaded-storico">Uploaded (storico)<a class="headerlink" href="#uploaded-storico" title="Permanent link">&para;</a></h2>
+<p>Tabella degli upload completati (<code>GET /api/uploaded</code>). Campi:</p>
+<ul>
+<li>Path locale in <code>~/seedings/</code>.</li>
+<li>Stato del record:<ul>
+<li><code>✓ exit 0</code> — upload completato regolarmente.</li>
+<li><code>✗ exit N</code> — fallito col codice indicato.</li>
+<li><code>pending</code> — exit code mai registrato (vedi nota qui sotto).</li>
+<li><code>manual</code> — <code>W_HARDLINK_ONLY=1</code> (solo hardlink, niente upload).</li>
+<li><code>⏭ duplicato skippato</code> — l'utente ha annullato dopo che il <a href="#controllo-duplicati-pre-upload">controllo duplicati</a> ha trovato un torrent con la stessa dimensione esatta. Il <code>duplicate_info</code> (id, nome, link tracker, ecc.) è persistito nel DB per audit.</li>
+</ul>
+</li>
+<li>Tracker di destinazione.</li>
+<li>Timestamp.</li>
+<li>Dimensione.</li>
+<li>Ricerca e filtro.</li>
+</ul>
+<p>Stat card in cima: <strong>Totale</strong>, <strong>Completati</strong>, <strong>Falliti</strong>, <strong>Hardlink only</strong>, <strong>Duplicati skippati</strong>.</p>
+<p>Su mobile la tabella ha <code>overflow-x:auto</code> con <code>min-width:820px</code> per garantire leggibilità su schermi stretti.</p>
+<div class="admonition bug">
+<p class="admonition-title">Record <code>pending</code> che non si chiudono</p>
+<p>Se un record rimane <code>pending</code> dopo un upload riuscito, significa che l'endpoint non ha chiamato <code>update_exit_code</code>. È un bug noto in caso di modifiche a <code>quickupload.py</code> o <code>wizard.py</code> — vedi <a href="../troubleshooting/#record-pending-bloccati">Troubleshooting</a>.</p>
+</div>
+<hr />
+<h2 id="search-tracker">Search Tracker<a class="headerlink" href="#search-tracker" title="Permanent link">&para;</a></h2>
+<p><img alt="Search Tracker — risultati ITT con tag tipo/risoluzione e conteggio seeders" src="../assets/screenshots/search.png" /></p>
+<p>Ricerca un torrent su ITT (sempre) e su PTT/SIS (se configurati con URL + API key valide nel <code>.env</code>).</p>
+<ul>
+<li>Tab per tracker.</li>
+<li>Mostra link, dimensione, seeders, freeleech, data upload.</li>
+<li>Utile per duplicate-check prima di caricare.</li>
+</ul>
+<p>Endpoint: <code>GET /api/trackers</code> (status) + <code>GET /api/search?q=...</code>. Sotto il cofano <code>POST /api/webup/filter</code> proxia <code>Unit3DWebUp /filter</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Stato tracker</p>
+<p>Un tracker appare "Online" solo se URL e API key sono entrambi settati <em>e</em> la API key non è il placeholder <code>"no_key"</code>. I tracker nella sidebar sono tutti elencati, anche quelli non configurati (badge grigio "Not set").</p>
+</div>
+<hr />
+<h2 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h2>
+<p><img alt="Settings — pannello Preferenze con toggle comportamento upload e screenshot" src="../assets/screenshots/settings.png" /></p>
+<p>Editor completo del <code>.env</code> condiviso direttamente dal browser. Ogni Save:</p>
+<ol>
+<li>scrive atomico in <code>$ENVPATH/.env</code> (nomenclatura canonica <code>TRACKER__* / TORRENT__* / PREFS__*</code> su disco);</li>
+<li>propaga le chiavi modificate a Unit3DWebUp via <code>POST /setenv</code> (no restart richiesto).</li>
+</ol>
+<p>Sezioni:</p>
+<ul>
+<li><strong>Tracker</strong> — URL, API key, PID per ITT / PTT / SIS; lista <code>MULTI_TRACKER</code>.</li>
+<li><strong>Metadata</strong> — TMDB, TVDB, IGDB, YouTube.</li>
+<li><strong>Torrent client</strong> — tipo + credenziali (qBit / Transmission / rTorrent).</li>
+<li><strong>Image host</strong> — ordine preferenza + API key per PTSCREENS, PASSIMA, IMGBB, IMGFI, ecc. L'ordine nella lista è proiettato in <code>PREFS__&lt;HOST&gt;_PRIORITY</code> (1, 2, …, 99 per host non in lista).</li>
+<li><strong>Opzioni upload</strong> — <code>ANON</code>, <code>PERSONAL_RELEASE</code>, <code>NUMBER_OF_SCREENSHOTS</code>, <code>COMPRESS_SCSHOT</code>, <code>TAG_ORDER_*</code>, ecc.</li>
+<li><strong>Seeding Flow</strong> — <code>U3DP_*</code> con valori effettivi (env vs file) via <code>env_runtime()</code>. Read-only per <code>UNIT3DUP_CONFIG</code>.</li>
+<li><strong>Versione</strong> — vedi <a href="#versione-e-auto-update">sezione dedicata</a>.</li>
+<li><strong>App Auto-Update</strong> — <code>U3DP_SYSTEMD_UNIT</code>, nome systemd user unit usata dal bottone "Update app" per il restart post-aggiornamento. Default <code>unit3dprep-web.service</code>; override solo se la tua unit ha un nome diverso.</li>
+<li><strong>Wizard Defaults</strong> — tutte le <code>W_*</code>.</li>
+<li><strong>Interface</strong> — selettore lingua (IT / EN); preferenza salvata in <code>localStorage</code> e sincronizzata con <code>U3DP_LANG</code> via <code>PUT /api/settings</code>.</li>
+</ul>
+<p>Secret mascherati come <code>__SET__</code> — il campo appare riempito. Modificare altre chiavi non cancella i secret.</p>
+<p>Endpoint: <code>GET /api/settings</code>, <code>PUT /api/settings</code>, <code>GET /api/settings/fs-check</code>.</p>
+<p>Mobile: la nav a sinistra diventa una riga orizzontale scrollabile; le griglie 2-col collassano in 1-col.</p>
+<hr />
+<h2 id="versione-e-auto-update">Versione e auto-update<a class="headerlink" href="#versione-e-auto-update" title="Permanent link">&para;</a></h2>
+<p>In <strong>Settings › Versione</strong> trovi due card affiancate:</p>
+<ul>
+<li><strong>App</strong> — versione corrente (<code>importlib.metadata</code> o <code>pyproject.toml</code> in modalità git) vs ultima <a href="https://github.com/davidesidoti/unit3dprep/releases">release GitHub</a>.</li>
+<li><strong>Unit3DWebUp</strong> — versione installata nel venv di webup vs ultima su <a href="https://pypi.org/project/Unit3DwebUp/">PyPI</a>.</li>
+</ul>
+<p>Ogni card espone:</p>
+<ul>
+<li>Pulsante <strong>Controlla aggiornamenti</strong> (force <code>POST /api/version/refresh</code> — bypassa cache 10 min).</li>
+<li>Pulsante <strong>Installa aggiornamento</strong> (visibile solo se <code>newer == true</code>).</li>
+<li>Accordion <strong>Changelog</strong> con il body della release GitHub (per app) o link a PyPI (per webup).</li>
+</ul>
+<p>Click su Installa:</p>
+<ol>
+<li>Modal <code>UpdateProgressModal</code> con log <code>pip</code> / <code>git</code> live-streamed via SSE (<code>GET /api/version/update/{app|webup}/stream</code>).</li>
+<li>Backend invalida <code>_cache</code> di <code>/api/version/info</code> su <code>done</code>, riavvia systemd in scope transient (<code>systemd-run --user --on-active=3s</code>).</li>
+<li>Countdown 5s + reload del browser; popup post-reload con il changelog (chiave <code>unit3dprep.pendingChangelog</code> in localStorage).</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">EventSource auto-riconnette</p>
+<p>Se un endpoint SSE chiude la connessione (es. dopo <code>systemctl restart</code>), il browser ripete la richiesta → re-esecuzione dell'endpoint. Il modal chiama <code>closeSSE()</code> su <code>done</code>/<code>error</code> per evitare il loop. Se modifichi il modal, mantieni questo invariante.</p>
+</div>
+<p>Endpoint: <code>GET /api/version/info</code>, <code>GET /api/version/changelog?v=X</code>, <code>GET /api/version/update/{app|webup}/stream</code> (SSE), <code>POST /api/version/refresh</code>.</p>
+<hr />
+<h2 id="health-unit3dwebup">Health Unit3DWebUp<a class="headerlink" href="#health-unit3dwebup" title="Permanent link">&para;</a></h2>
+<p>In <strong>Settings › Tracker</strong> (o sezione Integrazioni a seconda del rendering) compare la card <strong>Unit3DWebUp</strong>:</p>
+<ul>
+<li>Stato <code>online</code> / <code>offline</code> (cache 5s, ping a <code>WEBUP_URL/setting</code>).</li>
+<li>Versione installata.</li>
+<li>Latenza ping in ms.</li>
+<li>Indicatore WebSocket (connessione attiva al canale eventi del bot).</li>
+<li>Pulsante <strong>"Spingi config"</strong> — esegue <code>POST /api/webup/sync</code> (push di tutto il payload <code>.env</code> mappato a webup, utile dopo ripristino backup o se sospetti drift).</li>
+<li>Pulsante <strong>"Aggiorna"</strong> — link rapido alla card Versione.</li>
+</ul>
+<p>Endpoint: <code>GET /api/webup/health</code>, <code>POST /api/webup/sync</code>, <code>GET /api/webup/setting</code>.</p>
+<hr />
+<h2 id="logs">Logs<a class="headerlink" href="#logs" title="Permanent link">&para;</a></h2>
+<p>Stream log in tempo reale via SSE. Tutto ciò che <code>uvicorn</code> / l'app scrive su <code>logbuf</code> (<code>unit3dprep/web/logbuf.py</code>) arriva qui, classificato per:</p>
+<ul>
+<li><strong>source</strong> — <code>app</code>, <code>wizard</code>, <code>quickupload</code>, <code>webup</code> (rimpiazza <code>unit3dup</code> legacy), <code>system</code>.</li>
+<li><strong>kind</strong> — <code>info</code> / <code>ok</code> / <code>warn</code> / <code>error</code> / <code>progress</code>.</li>
+</ul>
+<p>Filtri persistiti in <code>localStorage</code> (chiavi <code>unit3dprep.logs.{hiddenSources,hiddenKinds,autoScroll}</code>).</p>
+<p>Utile per debugging senza aprire una shell sul VPS.</p>
+<hr />
+<h2 id="note-mobile-768px">Note mobile (≤768px)<a class="headerlink" href="#note-mobile-768px" title="Permanent link">&para;</a></h2>
+<p>La UI è responsive:</p>
+<ul>
+<li><strong>Sidebar</strong> — si chiude in <code>translateX(-100%)</code>, scrim overlay quando aperta.</li>
+<li><strong>Modal</strong> — full-bleed con padding 14px.</li>
+<li><strong>Library detail</strong> — overlay <code>position:fixed; inset:0</code> invece del panel laterale da 360px.</li>
+<li><strong>Settings nav</strong> — riga orizzontale scrollabile.</li>
+<li><strong>Tabelle</strong> — <code>overflow-x:auto</code>.</li>
+</ul>
+<p>Breakpoint gestito da <code>isMobile</code> (App.tsx → Sidebar / TopBar / Library / Settings via props).</p>
+<hr />
+<h2 id="bisogni-accesso-programmatico">Bisogni accesso programmatico?<a class="headerlink" href="#bisogni-accesso-programmatico" title="Permanent link">&para;</a></h2>
+<p>Tutte le view della UI consumano l'API JSON sotto <code>{U3DP_ROOT_PATH}/api/*</code>. Puoi chiamarla direttamente con cookie di sessione valido. Vedi <code>unit3dprep/web/api/*.py</code> per la lista completa dei router (settings, version, webup, library, queue, uploaded, search, tmdb, fs).</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Torna su
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/davidesidoti/unit3dprep" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiato", "clipboard.copy": "Copia", "search.result.more.one": "1 altro in questa pagina", "search.result.more.other": "# altri in questa pagina", "search.result.none": "Nessun documento trovato", "search.result.one": "1 documento trovato", "search.result.other": "# documenti trovati", "search.result.placeholder": "Scrivi per iniziare a cercare", "search.result.term.missing": "Non presente", "select.version": "Seleziona la versione"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

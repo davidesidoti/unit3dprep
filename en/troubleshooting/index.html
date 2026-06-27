@@ -1,0 +1,2415 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web UI + CLI di pre-flight per tracker Unit3D (companion di unit3dup)">
+      
+      
+      
+        <link rel="canonical" href="https://davidesidoti.github.io/unit3dprep/en/troubleshooting/">
+      
+      
+        <link rel="prev" href="../nomenclatura/">
+      
+      
+      
+        
+          <link rel="alternate" href="../../troubleshooting/" hreflang="it">
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Troubleshooting - unit3dprep</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#troubleshooting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../" title="unit3dprep" class="md-header__button md-logo" aria-label="unit3dprep" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            unit3dprep
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Troubleshooting
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Tema scuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Tema scuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Tema chiaro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Tema chiaro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../troubleshooting/" hreflang="it" class="md-select__link">
+              Italiano
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/davidesidoti/unit3dprep" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    davidesidoti/unit3dprep
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installazione/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configurazione/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../integrazione-webup/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Unit3DWebUp integration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../uso-cli/" class="md-tabs__link">
+          
+  
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../docker/" class="md-tabs__link">
+          
+  
+  
+  Deploy
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../nomenclatura/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Naming convention
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../" title="unit3dprep" class="md-nav__button md-logo" aria-label="unit3dprep" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    unit3dprep
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/davidesidoti/unit3dprep" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    davidesidoti/unit3dprep
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installazione/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configurazione/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrazione-webup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unit3DWebUp integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uso-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uso-web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Deploy
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy-vps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPS (sudo/Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy-ultracc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ultra.cc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nomenclatura/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Naming convention
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hardlinks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hardlinks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hardlinks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oserror-errno-18-invalid-cross-device-link" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OSError: [Errno 18] Invalid cross-device link
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hardlink-succeeds-but-the-upload-takes-double-the-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hardlink succeeds but the upload takes double the space
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mediainfo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MediaInfo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MediaInfo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pymediainfo-installs-but-crashes-at-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pymediainfo installs but crashes at runtime
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unit3dwebup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit3DWebUp
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unit3DWebUp">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#every-webup-request-returns-500" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Every webup request returns 500
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webup-version-shows-current-update-button-always-visible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webup version shows Current: - / Update button always visible
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scan-returns-0-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /scan returns 0 items
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi_tracker-or-tag_position_-rejected-by-setenv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MULTI_TRACKER or TAG_POSITION_* rejected by /setenv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upload-returns-200-but-the-torrent-never-appears-on-the-tracker-qbit-says-infohash-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /upload returns 200 but the torrent never appears on the tracker — qBit says "InfoHash not found"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webup-upload-hangs-no-progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webup /upload hangs / no progress
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redis-cannot-be-moved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redis cannot be moved
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stale-redis-job_list_id-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stale Redis job_list_id cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auto-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auto-update
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Auto-update">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#update-loops-eventsource-keeps-reconnecting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update loops / EventSource keeps reconnecting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version-and-update-button-stale-after-reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version and Update button stale after reload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permanent-can_update_app-false" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permanent can_update_app: false
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#status203exec-on-systemctl-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        status=203/EXEC on systemctl status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webup-update-fails-with-could-not-open-requirements-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webup update fails with "Could not open requirements file"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web-ui-fastapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web UI / FastAPI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Web UI / FastAPI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#assertionerror-sessionmiddleware-must-be-installed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AssertionError: SessionMiddleware must be installed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#silent-401-login" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Silent 401 login
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#404-on-every-route-under-unit3dprep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        404 on every route under /unit3dprep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blank-page-with-404-on-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blank page with 404 on assets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-cookie-not-persisting-behind-https" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session cookie not persisting behind HTTPS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sse-server-sent-events-closes-immediately" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSE (Server-Sent Events) closes immediately
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unit3dprep-webup-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unit3dprep ↔ webup bridge
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="unit3dprep ↔ webup bridge">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#settings-unit3dwebup-card-red-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings → Unit3DWebUp card red (offline)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-ui-save-does-not-update-webup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings UI Save does not update webup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wizard-upload-no-media-for-x-0-items-or-got-n-items-with-your-file-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wizard upload "no Media for X (0 items)" or "(got N items)" with your file missing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tmdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TMDB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TMDB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tmdb-api-error-401-unauthorized" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TMDB API error: 401 Unauthorized
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tmdb-search-returns-zero-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TMDB search returns zero results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#legacy-changelog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy CHANGELOG
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Legacy CHANGELOG">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stuck-pending-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stuck pending records
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development / Windows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Development / Windows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#env-var-u3dp_root_pathunit3dprep-gets-turned-into-a-windows-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Env var U3DP_ROOT_PATH=/unit3dprep gets turned into a Windows path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wsl-dev-pip-install-error-externally-managed-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WSL dev: pip install error externally-managed-environment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wsl-dev-systemd-unit-not-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WSL dev: systemd unit not available
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend-build-fails-on-python-314" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend build fails on Python 3.14
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#envpath-leaks-cross-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENVPATH leaks cross-shell
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#json-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON history
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="JSON history">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-file-grows-large" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The file grows large
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sqlite3-broken-on-pyenv-313-ultracc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _sqlite3 broken on pyenv 3.13 / Ultra.cc
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#if-nothing-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        If nothing works
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#hardlinks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hardlinks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hardlinks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oserror-errno-18-invalid-cross-device-link" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OSError: [Errno 18] Invalid cross-device link
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hardlink-succeeds-but-the-upload-takes-double-the-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hardlink succeeds but the upload takes double the space
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mediainfo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MediaInfo
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MediaInfo">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#pymediainfo-installs-but-crashes-at-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pymediainfo installs but crashes at runtime
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unit3dwebup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit3DWebUp
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Unit3DWebUp">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#every-webup-request-returns-500" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Every webup request returns 500
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webup-version-shows-current-update-button-always-visible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webup version shows Current: - / Update button always visible
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scan-returns-0-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /scan returns 0 items
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi_tracker-or-tag_position_-rejected-by-setenv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MULTI_TRACKER or TAG_POSITION_* rejected by /setenv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#upload-returns-200-but-the-torrent-never-appears-on-the-tracker-qbit-says-infohash-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        /upload returns 200 but the torrent never appears on the tracker — qBit says "InfoHash not found"
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webup-upload-hangs-no-progress" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webup /upload hangs / no progress
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#redis-cannot-be-moved" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Redis cannot be moved
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stale-redis-job_list_id-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stale Redis job_list_id cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#auto-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Auto-update
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Auto-update">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#update-loops-eventsource-keeps-reconnecting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update loops / EventSource keeps reconnecting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#version-and-update-button-stale-after-reload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version and Update button stale after reload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#permanent-can_update_app-false" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permanent can_update_app: false
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#status203exec-on-systemctl-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        status=203/EXEC on systemctl status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webup-update-fails-with-could-not-open-requirements-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webup update fails with "Could not open requirements file"
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#web-ui-fastapi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web UI / FastAPI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Web UI / FastAPI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#assertionerror-sessionmiddleware-must-be-installed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AssertionError: SessionMiddleware must be installed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#silent-401-login" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Silent 401 login
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#404-on-every-route-under-unit3dprep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        404 on every route under /unit3dprep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blank-page-with-404-on-assets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blank page with 404 on assets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-cookie-not-persisting-behind-https" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session cookie not persisting behind HTTPS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sse-server-sent-events-closes-immediately" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSE (Server-Sent Events) closes immediately
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unit3dprep-webup-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        unit3dprep ↔ webup bridge
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="unit3dprep ↔ webup bridge">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#settings-unit3dwebup-card-red-offline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings → Unit3DWebUp card red (offline)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#settings-ui-save-does-not-update-webup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings UI Save does not update webup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wizard-upload-no-media-for-x-0-items-or-got-n-items-with-your-file-missing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wizard upload "no Media for X (0 items)" or "(got N items)" with your file missing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tmdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TMDB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TMDB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tmdb-api-error-401-unauthorized" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TMDB API error: 401 Unauthorized
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tmdb-search-returns-zero-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TMDB search returns zero results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#legacy-changelog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy CHANGELOG
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Legacy CHANGELOG">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stuck-pending-records" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stuck pending records
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development / Windows
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Development / Windows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#env-var-u3dp_root_pathunit3dprep-gets-turned-into-a-windows-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Env var U3DP_ROOT_PATH=/unit3dprep gets turned into a Windows path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wsl-dev-pip-install-error-externally-managed-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WSL dev: pip install error externally-managed-environment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wsl-dev-systemd-unit-not-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WSL dev: systemd unit not available
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backend-build-fails-on-python-314" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend build fails on Python 3.14
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#envpath-leaks-cross-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ENVPATH leaks cross-shell
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#json-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JSON history
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="JSON history">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-file-grows-large" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The file grows large
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_sqlite3-broken-on-pyenv-313-ultracc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _sqlite3 broken on pyenv 3.13 / Ultra.cc
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#if-nothing-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        If nothing works
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/davidesidoti/unit3dprep/edit/main/docs/troubleshooting.en.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h1>
+<p>Common problems and their known causes.</p>
+<hr />
+<h2 id="hardlinks">Hardlinks<a class="headerlink" href="#hardlinks" title="Permanent link">&para;</a></h2>
+<h3 id="oserror-errno-18-invalid-cross-device-link"><code>OSError: [Errno 18] Invalid cross-device link</code><a class="headerlink" href="#oserror-errno-18-invalid-cross-device-link" title="Permanent link">&para;</a></h3>
+<p><code>U3DP_MEDIA_ROOT</code> and <code>U3DP_SEEDINGS_DIR</code> live on different filesystems. Check:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>df<span class="w"> </span>&lt;media&gt;<span class="w"> </span>&lt;seedings&gt;
+</code></pre></div>
+<p>If the device numbers differ, move <code>~/seedings/</code> under the same mount as your media, or point <code>U3DP_SEEDINGS_DIR</code> to a valid path.</p>
+<p>The UI exposes <code>GET /api/settings/fs-check</code> for the same check from the browser.</p>
+<h3 id="hardlink-succeeds-but-the-upload-takes-double-the-space">Hardlink succeeds but the upload takes double the space<a class="headerlink" href="#hardlink-succeeds-but-the-upload-takes-double-the-space" title="Permanent link">&para;</a></h3>
+<p>This should not happen: hardlinks share inodes. If you see <code>du</code> reporting double, verify the FS really is the same (<code>stat -c %i &lt;media_file&gt; &lt;seedings_file&gt;</code> → same inode).</p>
+<hr />
+<h2 id="mediainfo">MediaInfo<a class="headerlink" href="#mediainfo" title="Permanent link">&para;</a></h2>
+<h3 id="pymediainfo-installs-but-crashes-at-runtime"><code>pymediainfo</code> installs but crashes at runtime<a class="headerlink" href="#pymediainfo-installs-but-crashes-at-runtime" title="Permanent link">&para;</a></h3>
+<p><code>libmediainfo</code> is missing. Install the system package:</p>
+<ul>
+<li>Debian/Ubuntu: <code>sudo apt install libmediainfo0v5</code></li>
+<li>Arch: <code>sudo pacman -S libmediainfo</code></li>
+<li>macOS: <code>brew install mediainfo</code></li>
+<li>Alpine: <code>apk add mediainfo</code></li>
+</ul>
+<p>On Ultra.cc it should already be present; if missing, open a ticket.</p>
+<hr />
+<h2 id="unit3dwebup">Unit3DWebUp<a class="headerlink" href="#unit3dwebup" title="Permanent link">&para;</a></h2>
+<h3 id="every-webup-request-returns-500">Every webup request returns 500<a class="headerlink" href="#every-webup-request-returns-500" title="Permanent link">&para;</a></h3>
+<p>Three common causes:</p>
+<ol>
+<li><strong><code>DOCKER</code> env var set</strong> → webup <code>config/settings.py</code> does <code>env_file=ENV_FILE if not os.getenv("DOCKER") else None</code> (truthy check). Any non-empty value (including <code>false</code>) blocks <code>.env</code> reading → every <code>TRACKER__/PREFS__</code> reports "Field required". <strong>Fix</strong>: remove <code>DOCKER</code> from the unit/shell. Use <code>DOCKER=true</code> ONLY when actually in Docker.</li>
+<li><strong>Empty values on <code>str</code> fields in <code>.env</code></strong> → e.g. <code>TRACKER__APIKEY=</code> (empty) on pydantic validators with <code>empty_to_none</code> → <code>None</code> → <code>SystemExit(1)</code> on the next <code>setenv</code>. <strong>Fix</strong>: the unit3dprep bridge already skips empty values, but if you edited <code>.env</code> manually, remove empty <code>KEY=</code> lines.</li>
+<li><strong><code>PREFS__TORRENT_ARCHIVE_PATH</code> missing / empty / non-existent</strong> → webup's <code>get_settings()</code> fails. The bridge inserts <code>.</code> as fallback; if you removed the key by hand, reopen Settings → Save in the UI to re-apply the fallback.</li>
+</ol>
+<h3 id="webup-version-shows-current-update-button-always-visible">Webup version shows <code>Current: -</code> / Update button always visible<a class="headerlink" href="#webup-version-shows-current-update-button-always-visible" title="Permanent link">&para;</a></h3>
+<p>The lookup chain is: HTTP <code>/setting</code> → <code>pip metadata</code> (venv) → parse <code>.env</code>. If all three fail, the card stays at <code>-</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Verify the right venv</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>ls<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$WEBUP_VENV_BIN</span><span class="s2">/python&quot;</span><span class="w">   </span><span class="c1"># default ~/dev/Unit3DWebUp/.venv/bin/python</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nv">$WEBUP_VENV_BIN</span>/python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import importlib.metadata as m; print(m.version(&#39;Unit3DwebUp&#39;))&quot;</span>
+</code></pre></div>
+<p>If <code>PackageNotFoundError</code>, install:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nv">$WEBUP_VENV_BIN</span>/pip<span class="w"> </span>install<span class="w"> </span>Unit3DwebUp
+</code></pre></div>
+<h3 id="scan-returns-0-items"><code>/scan</code> returns <code>0 items</code><a class="headerlink" href="#scan-returns-0-items" title="Permanent link">&para;</a></h3>
+<p>Three causes:</p>
+<ol>
+<li><strong>ffmpeg missing</strong> — webup generates screenshots via ffmpeg, fails silently. Check <code>which ffmpeg</code>.</li>
+<li><strong>Invalid TMDB/TVDB API keys</strong> — webup logs but <code>/scan</code> still returns <code>[]</code>. Check <code>TRACKER__TMDB_APIKEY</code> / <code>TRACKER__TVDB_APIKEY</code> in the <code>.env</code>.</li>
+<li><strong>Image host not configured</strong> — webup tries to upload screenshots before responding. If no host has a valid key, the pipeline fails. Configure at least one host in <strong>Settings → Image hosts</strong>.</li>
+</ol>
+<h3 id="multi_tracker-or-tag_position_-rejected-by-setenv"><code>MULTI_TRACKER</code> or <code>TAG_POSITION_*</code> rejected by <code>/setenv</code><a class="headerlink" href="#multi_tracker-or-tag_position_-rejected-by-setenv" title="Permanent link">&para;</a></h3>
+<p>Webup expects lists as <strong>JSON arrays</strong> (not CSV). pydantic-settings v2 runs <code>json.loads()</code> on <code>os.environ</code> after <code>/setenv</code>. Correct example: <code>TRACKER__MULTI_TRACKER=["itt"]</code>.</p>
+<p>The unit3dprep bridge serializes correctly: if the issue persists, check there are no manual edits to the <code>.env</code> with CSV (<code>itt,ptt</code>).</p>
+<h3 id="upload-returns-200-but-the-torrent-never-appears-on-the-tracker-qbit-says-infohash-not-found"><code>/upload</code> returns 200 but the torrent never appears on the tracker — qBit says "InfoHash not found"<a class="headerlink" href="#upload-returns-200-but-the-torrent-never-appears-on-the-tracker-qbit-says-infohash-not-found" title="Permanent link">&para;</a></h3>
+<p>Symptom: qBit seeds locally, <code>/upload</code> HTTP returns 200 OK within milliseconds, <code>/seed</code> succeeds, but the tracker doesn't see the upload and qBit's announce status reads <strong>"InfoHash not found"</strong>. No webup log lines between <code>POST /upload 200 OK</code> and <code>POST /seed</code>, no upload <code>posterLogMessage</code> in the Web UI.</p>
+<p><strong>Cause</strong>: <code>PREFS__PREFERRED_LANG</code> is an ISO <strong>639-2</strong> code (<code>"ita"</code>, <code>"eng"</code>, <code>"fre"</code>) instead of <strong>639-1</strong> (<code>"it"</code>, <code>"en"</code>, <code>"fr"</code>). Webup 0.0.25 in <code>tags_service.mediainfo_audio</code> compares <code>PREFERRED_LANG</code> against each audio track's <code>language</code> field (mediainfo emits the 2-letter code). Mismatch → <code>media.can_upload = False</code> → <code>UploadUseCase.execute()</code> filters the media out (<code>tasks = [... if media.can_upload]</code>) → returns 200 OK with <code>tasks=[]</code> → no tracker submission, no WS message.</p>
+<p><strong>Fix</strong>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;s/^PREFS__PREFERRED_LANG=.*/PREFS__PREFERRED_LANG=it/&#39;</span><span class="w"> </span>~/.config/unit3dprep/.env
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>systemctl<span class="w"> </span>--user<span class="w"> </span>restart<span class="w"> </span>unit3dwebup
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Remove the stale .torrent from the archive (otherwise webup reuses it and skips maketorrent):</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>rm<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>grep<span class="w"> </span>^PREFS__TORRENT_ARCHIVE_PATH<span class="w"> </span>~/.config/unit3dprep/.env<span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="o">=</span><span class="w"> </span>-f2-<span class="k">)</span><span class="s2">/ITT/&lt;file&gt;.mkv.torrent&quot;</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Remove the torrent from qBit (UI or CLI) to avoid an infohash conflict, then retry from the Web UI.</span>
+</code></pre></div>
+<p>Since v0.6.4+ the <code>DEFAULT_CONFIG</code> default is <code>"it"</code>; this only affects existing installs whose <code>.env</code> was migrated from v0.6.3.</p>
+<h3 id="webup-upload-hangs-no-progress">Webup <code>/upload</code> hangs / no progress<a class="headerlink" href="#webup-upload-hangs-no-progress" title="Permanent link">&para;</a></h3>
+<p>Webup emits <code>posterLogMessage</code> like <code>[New torrent] FILE - N%</code> during maketorrent, <strong>not</strong> "torrent created/exists". The unit3dprep orchestrator uses <code>HTTP 200 = phase complete</code> + ~1.5–2s buffered log drain. If you see hangs:</p>
+<ul>
+<li>Increase <code>PHASE_TIMEOUT</code> (default 1800s) in <code>webup_orchestrator.py</code>.</li>
+<li>Verify WebSocket is connected: Settings → Unit3DWebUp card must show WS <code>connected</code>.</li>
+<li>Restart the bot: <code>systemctl --user restart unit3dwebup.service</code>.</li>
+</ul>
+<h3 id="redis-cannot-be-moved">Redis cannot be moved<a class="headerlink" href="#redis-cannot-be-moved" title="Permanent link">&para;</a></h3>
+<p><code>Unit3DWebUp</code> hardcodes Redis at <code>localhost:6379</code>. <code>REDIS_HOST</code> / <code>REDIS_PORT</code> are ignored. If your Redis runs on a non-standard port, also bind it to 6379 or use <code>iptables</code>/<code>socat</code> redirect.</p>
+<h3 id="stale-redis-job_list_id-cleanup">Stale Redis <code>job_list_id</code> cleanup<a class="headerlink" href="#stale-redis-job_list_id-cleanup" title="Permanent link">&para;</a></h3>
+<p>If <code>/processall</code> (batch upload) acts strange after crash or repeated tests:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>redis-cli<span class="w"> </span>FLUSHDB
+</code></pre></div>
+<p>Wipes all cached <code>job_list_id</code> keys and lets the bot start fresh.</p>
+<hr />
+<h2 id="auto-update">Auto-update<a class="headerlink" href="#auto-update" title="Permanent link">&para;</a></h2>
+<h3 id="update-loops-eventsource-keeps-reconnecting">Update loops / EventSource keeps reconnecting<a class="headerlink" href="#update-loops-eventsource-keeps-reconnecting" title="Permanent link">&para;</a></h3>
+<p>The browser's <code>EventSource</code> auto-reconnects when an SSE endpoint closes the connection (e.g. after <code>systemctl restart</code>). The <code>UpdateProgressModal</code> must call <code>closeSSE()</code> on <code>done</code>/<code>error</code>. If you see a loop, that's a regression: the fix is already in v0.6.x — verify you don't have mixed installs with stale frontend.</p>
+<h3 id="version-and-update-button-stale-after-reload">Version and Update button stale after reload<a class="headerlink" href="#version-and-update-button-stale-after-reload" title="Permanent link">&para;</a></h3>
+<p><code>/api/version/info</code> cache TTL = 10 min. After a successful update, the <code>update/{webup,app}/stream</code> endpoint must zero <code>_cache</code> BEFORE emitting <code>done</code>. If you see the old version + Update button after reload:</p>
+<ol>
+<li>Force refresh: "Check for updates" button → <code>POST /api/version/refresh</code>.</li>
+<li>If it persists: hard-reload the browser (<code>Ctrl+Shift+R</code>).</li>
+<li>If it still persists: verify <code>_cache["data"] = None</code> is called in <code>update_unit3dup</code> / <code>_update_app_from_pip</code> / <code>_update_app_from_git</code> BEFORE <code>yield _sse("done", ...)</code>.</li>
+</ol>
+<h3 id="permanent-can_update_app-false">Permanent <code>can_update_app: false</code><a class="headerlink" href="#permanent-can_update_app-false" title="Permanent link">&para;</a></h3>
+<p>Three causes:</p>
+<ol>
+<li><code>systemctl</code> not in the process PATH.</li>
+<li><code>U3DP_SYSTEMD_UNIT</code> points to a unit that doesn't exist. <strong>Fix</strong>: set <code>U3DP_SYSTEMD_UNIT=unit3dprep-web.service</code> in <code>[Service] Environment=...</code> (or save it from Settings → App Auto-Update).</li>
+<li>The unit exists but is not accessible to <code>systemctl --user cat</code>. Verify with <code>systemctl --user cat &lt;unit&gt;</code> from the process shell.</li>
+</ol>
+<h3 id="status203exec-on-systemctl-status"><code>status=203/EXEC</code> on <code>systemctl status</code><a class="headerlink" href="#status203exec-on-systemctl-status" title="Permanent link">&para;</a></h3>
+<p>Path in <code>ExecStart</code> does not exist (NOT a Python error). Verify:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>ls<span class="w"> </span>-la<span class="w"> </span><span class="k">$(</span>grep<span class="w"> </span>-oP<span class="w"> </span><span class="s1">&#39;ExecStart=\K\S+&#39;</span><span class="w"> </span>~/.config/systemd/user/&lt;unit&gt;.service<span class="k">)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>which<span class="w"> </span>unit3dprep-web
+</code></pre></div>
+<h3 id="webup-update-fails-with-could-not-open-requirements-file">Webup update fails with "Could not open requirements file"<a class="headerlink" href="#webup-update-fails-with-could-not-open-requirements-file" title="Permanent link">&para;</a></h3>
+<p>You're using an old install that runs <code>pip install -r requirements.txt</code>. Webup <code>0.0.x</code> no longer ships <code>requirements.txt</code>. The fix is in v0.6+: ensure the app is updated.</p>
+<hr />
+<h2 id="web-ui-fastapi">Web UI / FastAPI<a class="headerlink" href="#web-ui-fastapi" title="Permanent link">&para;</a></h2>
+<h3 id="assertionerror-sessionmiddleware-must-be-installed"><code>AssertionError: SessionMiddleware must be installed</code><a class="headerlink" href="#assertionerror-sessionmiddleware-must-be-installed" title="Permanent link">&para;</a></h3>
+<p>Middleware order is wrong. <code>SessionMiddleware</code> must be added <strong>after</strong> the auth middleware (FastAPI applies middlewares LIFO → last added is outermost). If auth tries to read <code>request.session</code> before SessionMiddleware is installed, it crashes.</p>
+<p>If you see this after touching <code>unit3dprep/web/app.py</code>, restore the order: <code>add_middleware(auth)</code> <strong>before</strong> <code>add_middleware(SessionMiddleware, ...)</code>.</p>
+<h3 id="silent-401-login">Silent 401 login<a class="headerlink" href="#silent-401-login" title="Permanent link">&para;</a></h3>
+<p>Mutilated bcrypt hash. The <code>.env</code> file or systemd <code>Environment=</code> has <code>U3DP_PASSWORD_HASH="$2b$12$..."</code> with double quotes: bash expands <code>$2b</code>/<code>$12</code> as empty variables → truncated hash → silent login failure.</p>
+<p><strong>Fix</strong>: use single quotes or escapes:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">U3DP_PASSWORD_HASH</span><span class="o">=</span><span class="s1">&#39;$2b$12$...&#39;</span><span class="w">    </span><span class="c1"># single quotes</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="c1"># OR</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="nv">U3DP_PASSWORD_HASH</span><span class="o">=</span><span class="se">\$</span>2b<span class="se">\$</span><span class="m">12</span><span class="se">\$</span>...<span class="w">   </span><span class="c1"># escape</span>
+</code></pre></div>
+<h3 id="404-on-every-route-under-unit3dprep">404 on every route under <code>/unit3dprep</code><a class="headerlink" href="#404-on-every-route-under-unit3dprep" title="Permanent link">&para;</a></h3>
+<p>Mismatch between <code>U3DP_ROOT_PATH</code> and the nginx in front. Two valid combos:</p>
+<table>
+<thead>
+<tr>
+<th>nginx <code>proxy_pass</code></th>
+<th><code>U3DP_ROOT_PATH</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>http://127.0.0.1:8765</code> (no trailing slash)</td>
+<td><code>/unit3dprep</code></td>
+</tr>
+<tr>
+<td><code>http://127.0.0.1:8765/</code> (trailing slash)</td>
+<td><code>""</code></td>
+</tr>
+</tbody>
+</table>
+<p>If you are on Ultra.cc, go with the first. <code>app-nginx restart</code> after each change.</p>
+<h3 id="blank-page-with-404-on-assets">Blank page with 404 on assets<a class="headerlink" href="#blank-page-with-404-on-assets" title="Permanent link">&para;</a></h3>
+<p>The frontend requests assets at <code>{ROOT_PATH}/assets/...</code>. The app mounts them via <code>app.mount(f"{ROOT_PATH}/assets", ...)</code>. If you see 404 on assets:</p>
+<ol>
+<li>Verify <code>unit3dprep/web/dist/</code> contains <code>index.html</code> + <code>assets/</code>.</li>
+<li>Verify <code>index.html</code> contains <code>window.__ROOT_PATH__ = "/unit3dprep"</code> (injected at serve-time).</li>
+<li>Restart the service after changing <code>U3DP_ROOT_PATH</code>.</li>
+</ol>
+<h3 id="session-cookie-not-persisting-behind-https">Session cookie not persisting behind HTTPS<a class="headerlink" href="#session-cookie-not-persisting-behind-https" title="Permanent link">&para;</a></h3>
+<p>Set <code>U3DP_HTTPS_ONLY=1</code> and verify nginx forwards <code>X-Forwarded-Proto: https</code>. Otherwise Starlette sets <code>Secure</code> on the cookie but the browser sees HTTP → cookie dropped.</p>
+<h3 id="sse-server-sent-events-closes-immediately">SSE (Server-Sent Events) closes immediately<a class="headerlink" href="#sse-server-sent-events-closes-immediately" title="Permanent link">&para;</a></h3>
+<p>Classic nginx issue: buffering. Add to the server block:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">proxy_buffering</span><span class="w"> </span><span class="no">off</span><span class="p">;</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">proxy_read_timeout</span><span class="w"> </span><span class="s">1h</span><span class="p">;</span>
+</code></pre></div>
+<p>On Ultra.cc this is already recommended in the <a href="../deploy-ultracc/#8-nginx-user-proxy">nginx guide</a>.</p>
+<hr />
+<h2 id="unit3dprep-webup-bridge">unit3dprep ↔ webup bridge<a class="headerlink" href="#unit3dprep-webup-bridge" title="Permanent link">&para;</a></h2>
+<h3 id="settings-unit3dwebup-card-red-offline">Settings → Unit3DWebUp card <strong>red</strong> (offline)<a class="headerlink" href="#settings-unit3dwebup-card-red-offline" title="Permanent link">&para;</a></h3>
+<p>Check in order:</p>
+<ol>
+<li>Bot running? <code>systemctl --user status unit3dwebup.service</code> or <code>curl http://127.0.0.1:8000/setting -X POST -d '{}' -H 'Content-Type: application/json'</code>.</li>
+<li>Does <code>WEBUP_URL</code> point to the right place? <code>echo $WEBUP_URL</code> (default <code>http://127.0.0.1:8000</code>).</li>
+<li>Redis up? <code>redis-cli ping</code> → <code>PONG</code>.</li>
+<li>Logs: <code>journalctl --user -u unit3dwebup -f</code> shows startup errors?</li>
+</ol>
+<h3 id="settings-ui-save-does-not-update-webup">Settings UI Save does not update webup<a class="headerlink" href="#settings-ui-save-does-not-update-webup" title="Permanent link">&para;</a></h3>
+<p>Every <code>PUT /api/settings</code> cascades into <code>webup_client.setenv(key, value)</code> for every changed canonical key. If <code>setenv</code> fails, the UI Save still succeeds (atomic write to <code>.env</code> + best-effort propagation).</p>
+<p>Verify:</p>
+<ol>
+<li>Health card green — webup reachable?</li>
+<li>Logs tab → filter source <code>webup</code> — see <code>setenv: ...</code> errors?</li>
+<li><strong>"Push config"</strong> button in Settings forces a <code>POST /api/webup/sync</code> (full push of the mapped <code>.env</code>). Use it after backup restore or if you suspect drift.</li>
+</ol>
+<h3 id="wizard-upload-no-media-for-x-0-items-or-got-n-items-with-your-file-missing">Wizard upload "no Media for X (0 items)" or "(got N items)" with your file missing<a class="headerlink" href="#wizard-upload-no-media-for-x-0-items-or-got-n-items-with-your-file-missing" title="Permanent link">&para;</a></h3>
+<p>The bridge creates a dedicated sandbox per upload at <code>&lt;seedings&gt;/.unit3dprep/&lt;jobid&gt;/</code> and uses that as <code>SCAN_PATH</code>, so webup only sees the target item. See <a href="../integrazione-webup/#scan_path-semantics-per-upload-sandbox">Unit3DWebUp integration › per-upload sandbox</a>.</p>
+<p>If you still see the error:</p>
+<ul>
+<li><strong>ffmpeg missing</strong> → webup <code>/scan</code> silently fails on screenshots. <code>which ffmpeg</code>.</li>
+<li><strong>Invalid or empty TMDB/TVDB API keys</strong> → webup logs <code>[ERROR] AsyncHttpClient: ... value should be str, int or float, got None</code>. Set it in <strong>Settings → Metadata</strong> (both <code>TMDB_APIKEY</code> for webup and <code>TMDB_API_KEY</code> env for unit3dprep — same value).</li>
+<li><strong>Image host not configured</strong> → webup tries to upload screenshots before responding. Configure at least one key in <strong>Settings → Image hosts</strong>.</li>
+<li><strong>Legacy flat layout in <code>~/seedings/&lt;file&gt;.mkv</code> (no sandbox)</strong> → pre-sandbox install. Re-upload from the UI to generate the sandbox, or move by hand to <code>&lt;seedings&gt;/.unit3dprep/&lt;random&gt;/&lt;file&gt;.mkv</code>.</li>
+<li><strong>Race with other active sandboxes</strong> → <code>app.state.webup_scan_lock</code> serializes uploads inside the unit3dprep process. If multiple unit3dprep instances talk to the same webup, suspend one.</li>
+</ul>
+<hr />
+<h2 id="tmdb">TMDB<a class="headerlink" href="#tmdb" title="Permanent link">&para;</a></h2>
+<h3 id="tmdb-api-error-401-unauthorized"><code>TMDB API error: 401 Unauthorized</code><a class="headerlink" href="#tmdb-api-error-401-unauthorized" title="Permanent link">&para;</a></h3>
+<p><code>TMDB_API_KEY</code> missing or wrong. Check on <a href="https://www.themoviedb.org/settings/api">https://www.themoviedb.org/settings/api</a>.</p>
+<p>The CLI prompts on every run. The Web UI uses both <code>TMDB_API_KEY</code> (unit3dprep env) and <code>TRACKER__TMDB_APIKEY</code> (webup key in the shared <code>.env</code>) — both must hold the same valid value.</p>
+<h3 id="tmdb-search-returns-zero-results">TMDB search returns zero results<a class="headerlink" href="#tmdb-search-returns-zero-results" title="Permanent link">&para;</a></h3>
+<p>Check <code>U3DP_TMDB_LANG</code>. If it is <code>it-IT</code> and the title does not exist in Italian, try <code>en-US</code>.</p>
+<hr />
+<h2 id="legacy-changelog">Legacy CHANGELOG<a class="headerlink" href="#legacy-changelog" title="Permanent link">&para;</a></h2>
+<h3 id="stuck-pending-records">Stuck <code>pending</code> records<a class="headerlink" href="#stuck-pending-records" title="Permanent link">&para;</a></h3>
+<p>The record stays <code>pending</code> when the endpoint never called <code>update_exit_code</code>. Known cases:</p>
+<ul>
+<li><code>quickupload.py</code> must call <code>await update_exit_code(state["path"], code)</code> on the <code>done</code> event.</li>
+<li><code>wizard.py</code> → <code>wizard_finish</code> must call <code>await update_exit_code(seeding_path, 0)</code> (the in-memory state does not suffice).</li>
+</ul>
+<p>If it happens after an update, verify these calls still exist in the code. They are regression markers: never remove them.</p>
+<hr />
+<h2 id="development-windows">Development / Windows<a class="headerlink" href="#development-windows" title="Permanent link">&para;</a></h2>
+<h3 id="env-var-u3dp_root_pathunit3dprep-gets-turned-into-a-windows-path">Env var <code>U3DP_ROOT_PATH=/unit3dprep</code> gets turned into a Windows path<a class="headerlink" href="#env-var-u3dp_root_pathunit3dprep-gets-turned-into-a-windows-path" title="Permanent link">&para;</a></h3>
+<p>MSYS2 / Git Bash on Windows automatically convert strings that start with <code>/</code>. To bypass:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nv">MSYS_NO_PATHCONV</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="nv">MSYS2_ARG_CONV_EXCL</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>env<span class="w"> </span><span class="nv">U3DP_ROOT_PATH</span><span class="o">=</span>/unit3dprep<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>uvicorn<span class="w"> </span>unit3dprep.web.app:app
+</code></pre></div>
+<p>Or use PowerShell (<code>$env:U3DP_ROOT_PATH = "/unit3dprep"</code>).</p>
+<h3 id="wsl-dev-pip-install-error-externally-managed-environment">WSL dev: <code>pip install</code> error <code>externally-managed-environment</code><a class="headerlink" href="#wsl-dev-pip-install-error-externally-managed-environment" title="Permanent link">&para;</a></h3>
+<p>You're running uvicorn with <code>/usr/bin/python3</code> instead of the venv. The auto-update calls <code>sys.executable -m pip</code> → PEP 668 blocks. <strong>Fix</strong>: run uvicorn from <code>.venv/bin/uvicorn</code> (or with venv active).</p>
+<h3 id="wsl-dev-systemd-unit-not-available">WSL dev: <code>systemd unit not available</code><a class="headerlink" href="#wsl-dev-systemd-unit-not-available" title="Permanent link">&para;</a></h3>
+<p>Normal in WSL dev. The update flow needs systemd <code>--user</code>. Test the full update flow only on Ultra.cc or a real VPS.</p>
+<h3 id="backend-build-fails-on-python-314">Backend build fails on Python 3.14<a class="headerlink" href="#backend-build-fails-on-python-314" title="Permanent link">&para;</a></h3>
+<p>Use <code>setuptools.build_meta</code>, not <code>setuptools.backends.legacy</code> (already correct in <code>pyproject.toml</code>).</p>
+<h3 id="envpath-leaks-cross-shell"><code>ENVPATH</code> leaks cross-shell<a class="headerlink" href="#envpath-leaks-cross-shell" title="Permanent link">&para;</a></h3>
+<p><code>ENVPATH</code> is a convention documented by upstream webup and propagates easily between shells. For maintenance commands use the explicit prefix:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nv">U3DP_ENV_PATH</span><span class="o">=</span><span class="nv">$HOME</span>/.config/unit3dprep/.env<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;from unit3dprep.web import config; config.save(config.load())&quot;</span>
+</code></pre></div>
+<p>otherwise <code>config_path()</code> may resolve to <code>$ENVPATH/.env</code> (e.g. <code>/home/&lt;user&gt;/.env</code>) and write in the wrong place.</p>
+<hr />
+<h2 id="json-history">JSON history<a class="headerlink" href="#json-history" title="Permanent link">&para;</a></h2>
+<h3 id="the-file-grows-large">The file grows large<a class="headerlink" href="#the-file-grows-large" title="Permanent link">&para;</a></h3>
+<p><code>~/.unit3dprep_db.json</code> grows linearly with uploads. If you worry:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>jq<span class="w"> </span><span class="s1">&#39;.[:1000]&#39;</span><span class="w"> </span>~/.unit3dprep_db.json<span class="w"> </span>&gt;<span class="w"> </span>~/.unit3dprep_db.json.trim
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>mv<span class="w"> </span>~/.unit3dprep_db.json.trim<span class="w"> </span>~/.unit3dprep_db.json
+</code></pre></div>
+<p>Always back up first.</p>
+<h3 id="_sqlite3-broken-on-pyenv-313-ultracc"><code>_sqlite3</code> broken on pyenv 3.13 / Ultra.cc<a class="headerlink" href="#_sqlite3-broken-on-pyenv-313-ultracc" title="Permanent link">&para;</a></h3>
+<p>Known. The project <strong>does not use</strong> SQLite for this exact reason: history + caches are JSON files. If you see <code>_sqlite3 undefined symbol</code> errors, they come from a different library. Install Python 3.12 via pyenv (the minimum required by Unit3DWebUp 0.0.25) and point the venv there.</p>
+<hr />
+<h2 id="if-nothing-works">If nothing works<a class="headerlink" href="#if-nothing-works" title="Permanent link">&para;</a></h2>
+<ol>
+<li><code>journalctl --user -u unit3dprep-web -u unit3dwebup -f</code> (Ultra.cc) or <code>journalctl -u unit3dprep-web -u unit3dwebup -f</code> (VPS).</li>
+<li>Live logs in the Web UI → Logs panel (filter source <code>webup</code> for bot issues).</li>
+<li>Open an issue: <a href="https://github.com/davidesidoti/unit3dprep/issues">https://github.com/davidesidoti/unit3dprep/issues</a> with:</li>
+<li>Python version (<code>python3 --version</code>)</li>
+<li><code>pip show unit3dprep</code> and <code>pip show Unit3DwebUp</code> outputs</li>
+<li>Relevant env vars (without secrets)</li>
+<li>Last ~50 lines of <code>journalctl</code> for both units</li>
+<li>Output of <code>GET /api/settings/fs-check</code> and <code>GET /api/webup/health</code></li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/davidesidoti/unit3dprep" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

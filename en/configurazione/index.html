@@ -1,0 +1,2035 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web UI + CLI di pre-flight per tracker Unit3D (companion di unit3dup)">
+      
+      
+      
+        <link rel="canonical" href="https://davidesidoti.github.io/unit3dprep/en/configurazione/">
+      
+      
+        <link rel="prev" href="../installazione/">
+      
+      
+        <link rel="next" href="../integrazione-webup/">
+      
+      
+        
+          <link rel="alternate" href="../../configurazione/" hreflang="it">
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Configuration - unit3dprep</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#configuration" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../" title="unit3dprep" class="md-header__button md-logo" aria-label="unit3dprep" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            unit3dprep
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Configuration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Tema scuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Tema scuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Tema chiaro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Tema chiaro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../configurazione/" hreflang="it" class="md-select__link">
+              Italiano
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/davidesidoti/unit3dprep" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    davidesidoti/unit3dprep
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installazione/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configuration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../integrazione-webup/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Unit3DWebUp integration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../uso-cli/" class="md-tabs__link">
+          
+  
+  
+  Usage
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../docker/" class="md-tabs__link">
+          
+  
+  
+  Deploy
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../nomenclatura/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Naming convention
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../troubleshooting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../" title="unit3dprep" class="md-nav__button md-logo" aria-label="unit3dprep" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    unit3dprep
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/davidesidoti/unit3dprep" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    davidesidoti/unit3dprep
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installazione/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment variables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Environment variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#required-by-the-web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required by the Web UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tmdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TMDB
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-re-read-on-every-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime (re-read on every access)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unit3dwebup-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit3DWebUp bridge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shared-env-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared .env storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#web-ui-wizard-w_" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web UI wizard (W_*)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shared-env-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared .env file
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shared .env file">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#short-canonical-mapping-extract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Short ↔ canonical mapping (extract)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#preferred_lang-iso-639-1-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PREFERRED_LANG — ISO 639-1 format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skip-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#automatic-migration-from-legacy-unit3dbotjson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic migration from legacy Unit3Dbot.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secret-masking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret masking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#atomic-writes-live-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Atomic writes + live sync
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#u3dp_root_path-and-nginx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        U3DP_ROOT_PATH and nginx
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-app-auto-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In-app auto-update
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="In-app auto-update">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#app-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        App prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webup-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webup prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-mode-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install mode (app)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Complete examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-deploy-just-you-on-a-trusted-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local deploy (just you, on a trusted machine)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behind-nginx-with-https-and-a-subpath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behind nginx with HTTPS and a subpath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#media-on-a-separate-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Media on a separate disk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wsl-dev-dry-run-without-polluting-the-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WSL dev — dry-run without polluting the tracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrazione-webup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unit3DWebUp integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Usage
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uso-cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uso-web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Deploy
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy-vps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPS (sudo/Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy-ultracc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ultra.cc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nomenclatura/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Naming convention
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#environment-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment variables
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Environment variables">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#required-by-the-web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required by the Web UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tmdb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TMDB
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runtime-re-read-on-every-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime (re-read on every access)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unit3dwebup-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit3DWebUp bridge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#shared-env-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared .env storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#web-ui-wizard-w_" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Web UI wizard (W_*)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#shared-env-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Shared .env file
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Shared .env file">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#short-canonical-mapping-extract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Short ↔ canonical mapping (extract)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#preferred_lang-iso-639-1-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PREFERRED_LANG — ISO 639-1 format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skip-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skip rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#automatic-migration-from-legacy-unit3dbotjson" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatic migration from legacy Unit3Dbot.json
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secret-masking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret masking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#atomic-writes-live-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Atomic writes + live sync
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#u3dp_root_path-and-nginx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        U3DP_ROOT_PATH and nginx
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#in-app-auto-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        In-app auto-update
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="In-app auto-update">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#app-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        App prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webup-prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webup prerequisites
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-mode-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install mode (app)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#complete-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Complete examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#local-deploy-just-you-on-a-trusted-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Local deploy (just you, on a trusted machine)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#behind-nginx-with-https-and-a-subpath" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behind nginx with HTTPS and a subpath
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#media-on-a-separate-disk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Media on a separate disk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wsl-dev-dry-run-without-polluting-the-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WSL dev — dry-run without polluting the tracker
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/davidesidoti/unit3dprep/edit/main/docs/configurazione.en.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h1>
+<p><code>unit3dprep</code> reads configuration from three layers, in priority order:</p>
+<ol>
+<li><strong>Environment variables</strong> — always win.</li>
+<li><strong>Shared <code>.env</code> file</strong> — single file read by both <code>unit3dprep</code> and the <code>Unit3DWebUp</code> 0.0.20+ bot. Editable from the Web UI through Settings.</li>
+<li><strong>Built-in defaults</strong> — used when neither env nor file sets a value.</li>
+</ol>
+<p><code>U3DP_*</code> and <code>W_*</code> keys are <strong>re-read on every access</strong> via <code>config.runtime_setting()</code>: changing them from the Web UI takes effect immediately, no restart. Exceptions are <code>U3DP_HOST</code>, <code>U3DP_PORT</code>, <code>U3DP_ROOT_PATH</code>, and <code>U3DP_HTTPS_ONLY</code>, which are read once at uvicorn startup.</p>
+<hr />
+<h2 id="environment-variables">Environment variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h2>
+<h3 id="required-by-the-web-ui">Required by the Web UI<a class="headerlink" href="#required-by-the-web-ui" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>U3DP_PASSWORD_HASH</code></td>
+<td>Bcrypt hash of the web password. Generated by <code>generate_hash.py</code>. <strong>Always single-quoted</strong> in <code>.env</code>/bash files (see <a href="../installazione/#3-generate-password-hash-and-secret">Installation</a>).</td>
+</tr>
+<tr>
+<td><code>U3DP_SECRET</code></td>
+<td>Hex secret signing session cookies. Generated by <code>generate_hash.py</code>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tmdb">TMDB<a class="headerlink" href="#tmdb" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TMDB_API_KEY</code></td>
+<td>—</td>
+<td>TMDB v3 API key. Used by unit3dprep's TMDB lookup and metadata fetch. The CLI prompts the user if missing. The same value must also exist as <code>TMDB_APIKEY</code> in the shared <code>.env</code> (Unit3DWebUp requires it).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="runtime-re-read-on-every-access">Runtime (re-read on every access)<a class="headerlink" href="#runtime-re-read-on-every-access" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>U3DP_HOST</code></td>
+<td><code>127.0.0.1</code></td>
+<td>uvicorn bind address. <em>(read-once at startup)</em></td>
+</tr>
+<tr>
+<td><code>U3DP_PORT</code></td>
+<td><code>8765</code></td>
+<td>Listening port. On Ultra.cc pick a reserved port (<code>app-ports free</code>). <em>(read-once)</em></td>
+</tr>
+<tr>
+<td><code>U3DP_ROOT_PATH</code></td>
+<td><code>""</code></td>
+<td>Nginx prefix (e.g. <code>/unit3dprep</code>). <em>(read-once)</em> See <a href="#u3dp_root_path-and-nginx">ROOT_PATH notes</a>.</td>
+</tr>
+<tr>
+<td><code>U3DP_HTTPS_ONLY</code></td>
+<td><code>0</code></td>
+<td><code>1</code> sets the <code>https_only</code> flag on the session cookie (required behind HTTPS). <em>(read-once)</em></td>
+</tr>
+<tr>
+<td><code>U3DP_MEDIA_ROOT</code></td>
+<td><code>~/media</code></td>
+<td>Base media folder. Subfolders become categories.</td>
+</tr>
+<tr>
+<td><code>U3DP_SEEDINGS_DIR</code></td>
+<td><code>~/seedings</code></td>
+<td>Hardlink destination. Must live on the same FS as <code>U3DP_MEDIA_ROOT</code>.</td>
+</tr>
+<tr>
+<td><code>U3DP_TMDB_LANG</code></td>
+<td><code>it-IT</code></td>
+<td>TMDB response language (internal lookup). Examples: <code>en-US</code>, <code>es-ES</code>.</td>
+</tr>
+<tr>
+<td><code>U3DP_LANG</code></td>
+<td><code>it</code></td>
+<td>UI language (<code>it</code>/<code>en</code>). Persisted in <code>localStorage</code> + <code>.env</code>.</td>
+</tr>
+<tr>
+<td><code>U3DP_DB_PATH</code></td>
+<td><code>~/.unit3dprep_db.json</code></td>
+<td>Upload history (JSON).</td>
+</tr>
+<tr>
+<td><code>U3DP_TMDB_CACHE_PATH</code></td>
+<td><code>~/.unit3dprep_tmdb_cache.json</code></td>
+<td>TMDB query cache.</td>
+</tr>
+<tr>
+<td><code>U3DP_LANG_CACHE_PATH</code></td>
+<td><code>~/.unit3dprep_lang_cache.json</code></td>
+<td>Audio language detection cache.</td>
+</tr>
+<tr>
+<td><code>U3DP_SYSTEMD_UNIT</code></td>
+<td><code>unit3dprep-web.service</code></td>
+<td>App systemd user unit name, used by the "Update app" button for <code>systemctl --user cat/restart</code>. Override only if your unit has a different name.</td>
+</tr>
+<tr>
+<td><code>U3DP_DRY_RUN_TRACKER</code></td>
+<td><code>0</code></td>
+<td>When <code>1</code> (or <code>true</code>/<code>yes</code>) the wizard skips the <code>/upload</code> call to Unit3DWebUp: useful in dev/WSL to exercise the pipeline (<code>setenv→scan→maketorrent→seed</code>) without polluting the live tracker.</td>
+</tr>
+<tr>
+<td><code>U3DP_GITHUB_REPO</code></td>
+<td><code>davidesidoti/unit3dprep</code></td>
+<td><code>owner/repo</code> slug used to poll the app's GitHub releases (env-only, read at import).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="unit3dwebup-bridge">Unit3DWebUp bridge<a class="headerlink" href="#unit3dwebup-bridge" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>WEBUP_URL</code></td>
+<td><code>http://127.0.0.1:8000</code></td>
+<td>Base address of the Unit3DWebUp bot.</td>
+</tr>
+<tr>
+<td><code>WEBUP_REPO_PATH</code></td>
+<td><code>~/dev/Unit3DWebUp</code></td>
+<td>Path to the Unit3DWebUp clone (legacy). Only used by the "git" mode of the webup auto-update.</td>
+</tr>
+<tr>
+<td><code>WEBUP_VENV_BIN</code></td>
+<td><em>auto</em></td>
+<td><code>bin</code> folder of the venv that holds <code>Unit3DwebUp</code>. Auto-detect: if unset, try <code>&lt;WEBUP_REPO_PATH&gt;/.venv/bin/python</code>, fall back to <code>sys.executable</code> (canonical PyPI install in the same venv as unit3dprep). Set it explicitly when webup lives in a separate venv.</td>
+</tr>
+<tr>
+<td><code>WEBUP_SYSTEMD_UNIT</code></td>
+<td><code>unit3dwebup.service</code></td>
+<td>Unit3DWebUp systemd user unit, restarted after SSE auto-update.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="shared-env-storage">Shared <code>.env</code> storage<a class="headerlink" href="#shared-env-storage" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>U3DP_ENV_PATH</code></td>
+<td>—</td>
+<td>Full file path of the shared <code>.env</code>. Explicit unit3dprep override.</td>
+</tr>
+<tr>
+<td><code>ENVPATH</code></td>
+<td>—</td>
+<td><strong>Directory</strong> containing the <code>.env</code> (file = <code>&lt;dir&gt;/.env</code>). Same convention used by <code>Unit3DWebUp</code>: pass the same value to the bot's <code>uvicorn</code>.</td>
+</tr>
+<tr>
+<td><code>UNIT3DUP_CONFIG</code></td>
+<td><code>~/Unit3Dup_config/Unit3Dbot.json</code></td>
+<td>Path of the <strong>legacy</strong> <code>Unit3Dbot.json</code> to read during the one-shot migration at first startup. Not used afterwards.</td>
+</tr>
+</tbody>
+</table>
+<p>Precedence for the on-disk <code>.env</code> file: <code>U3DP_ENV_PATH</code> → <code>ENVPATH/.env</code> → <code>~/.config/unit3dprep/.env</code> (XDG default).</p>
+<h3 id="web-ui-wizard-w_">Web UI wizard (W_*)<a class="headerlink" href="#web-ui-wizard-w_" title="Permanent link">&para;</a></h3>
+<p>Control default state of upload wizard toggles. Stored in the shared <code>.env</code>, edit from Settings.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>W_AUDIO_CHECK</code></td>
+<td><code>true</code></td>
+<td>Enable Italian audio check inside the wizard.</td>
+</tr>
+<tr>
+<td><code>W_AUTO_TMDB</code></td>
+<td><code>true</code></td>
+<td>Auto-fetch TMDB metadata if an ID is already present.</td>
+</tr>
+<tr>
+<td><code>W_HIDE_UPLOADED</code></td>
+<td><code>true</code></td>
+<td>Hide already-uploaded items from the Library.</td>
+</tr>
+<tr>
+<td><code>W_HIDE_NO_ITALIAN</code></td>
+<td><code>false</code></td>
+<td>Hide already-scanned items without Italian audio from the Library.</td>
+</tr>
+<tr>
+<td><code>W_HARDLINK_ONLY</code></td>
+<td><code>false</code></td>
+<td>End the wizard after the hardlink, without invoking the Unit3DWebUp upload.</td>
+</tr>
+<tr>
+<td><code>W_CONFIRM_NAMES</code></td>
+<td><code>true</code></td>
+<td>Require confirmation of the final name before hardlinking.</td>
+</tr>
+<tr>
+<td><code>W_DUPLICATE_CHECK</code></td>
+<td><code>true</code></td>
+<td>Before hardlinking, query the ITT API (<code>/api/torrents/filter?tmdbId=&lt;id&gt;</code>) and prompt for confirmation if a torrent with the exact same byte size already exists. See <a href="../uso-web/#pre-upload-duplicate-check">Usage › Wizard › Duplicate check</a>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="shared-env-file">Shared <code>.env</code> file<a class="headerlink" href="#shared-env-file" title="Permanent link">&para;</a></h2>
+<p>Single storage for app + bot, conforming to <code>Unit3DWebUp</code> 0.0.20+. Default path: <code>~/.config/unit3dprep/.env</code> (override via <code>U3DP_ENV_PATH</code> or <code>ENVPATH</code>).</p>
+<p>Keys understood by webup are written on disk with the <strong>canonical</strong> naming the bot expects (prefixes <code>TRACKER__</code>, <code>TORRENT__</code>, <code>PREFS__</code>); in memory and in the <code>/api/settings</code> API the short historical names (<code>ITT_APIKEY</code>, <code>QBIT_HOST</code>, …) are kept. Translation is confined to <code>unit3dprep/web/config.py</code> (<code>WEBUP_KEY_MAP</code>).</p>
+<p>To run the bot alongside, just point it at the same <code>ENVPATH</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nv">ENVPATH</span><span class="o">=</span>~/.config/unit3dprep<span class="w"> </span>uvicorn<span class="w"> </span>unit3dwup.start:app
+</code></pre></div>
+<h3 id="short-canonical-mapping-extract">Short ↔ canonical mapping (extract)<a class="headerlink" href="#short-canonical-mapping-extract" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Short name (API/UI)</th>
+<th>Canonical name (on disk / <code>.env</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ITT_APIKEY</code></td>
+<td><code>TRACKER__ITT_APIKEY</code></td>
+</tr>
+<tr>
+<td><code>ITT_URL</code></td>
+<td><code>TRACKER__ITT_URL</code></td>
+</tr>
+<tr>
+<td><code>ITT_PID</code></td>
+<td><code>TRACKER__ITT_PID</code></td>
+</tr>
+<tr>
+<td><code>MULTI_TRACKER</code></td>
+<td><code>TRACKER__MULTI_TRACKER=["itt", ...]</code> (JSON array)</td>
+</tr>
+<tr>
+<td><code>TMDB_APIKEY</code></td>
+<td><code>TRACKER__TMDB_APIKEY</code></td>
+</tr>
+<tr>
+<td><code>TVDB_APIKEY</code></td>
+<td><code>TRACKER__TVDB_APIKEY</code></td>
+</tr>
+<tr>
+<td><code>QBIT_HOST</code> / <code>QBIT_PORT</code> / <code>QBIT_USER</code> / <code>QBIT_PASS</code></td>
+<td><code>TORRENT__QBIT_HOST</code> / <code>…_PORT</code> / <code>…_USER</code> / <code>…_PASS</code></td>
+</tr>
+<tr>
+<td><code>IMGFI_KEY</code></td>
+<td><code>TRACKER__IMGFI_KEY</code></td>
+</tr>
+<tr>
+<td><code>IMAGE_HOST_ORDER</code></td>
+<td>projected to <code>PREFS__&lt;HOST&gt;_PRIORITY</code> (1, 2, …, 99 for hosts not in the list)</td>
+</tr>
+<tr>
+<td><code>TAG_ORDER_MOVIE</code> / <code>TAG_ORDER_SERIE</code></td>
+<td><code>PREFS__TAG_POSITION_MOVIE</code> / <code>…_SERIE</code></td>
+</tr>
+<tr>
+<td><code>NUMBER_OF_SCREENSHOTS</code>, <code>ANON</code>, <code>PERSONAL_RELEASE</code>, …</td>
+<td><code>PREFS__&lt;KEY&gt;</code></td>
+</tr>
+</tbody>
+</table>
+<p>The full list lives in <code>unit3dprep/web/config.py</code> (<code>WEBUP_KEY_MAP</code>).</p>
+<h3 id="preferred_lang-iso-639-1-format"><code>PREFERRED_LANG</code> — ISO 639-1 format<a class="headerlink" href="#preferred_lang-iso-639-1-format" title="Permanent link">&para;</a></h3>
+<p><code>PREFS__PREFERRED_LANG</code> (short name <code>PREFERRED_LANG</code>) must be a 2-letter <strong>ISO 639-1</strong> code: <code>"it"</code>, <code>"en"</code>, <code>"fr"</code>, <code>"es"</code>, etc. Webup 0.0.25 compares this value against each audio track's <code>language</code> field in the mediainfo, which mediainfo emits as the 2-letter code. Using ISO 639-2 (<code>"ita"</code>, <code>"eng"</code>) the match silently fails, <code>media.can_upload</code> becomes <code>False</code>, and <code>UploadUseCase.execute()</code> skips the tracker submission without emitting any WebSocket log — qBit seeds locally but the tracker responds "InfoHash not found" on announce.</p>
+<p>Default in <code>DEFAULT_CONFIG</code>: <code>"it"</code> (since v0.6.4+). Editable from <strong>Settings → Behavior → Preferred language</strong>. See <a href="../troubleshooting/#upload-returns-200-but-the-torrent-never-appears-on-the-tracker-qbit-says-infohash-not-found">Troubleshooting › silent /upload</a>.</p>
+<h3 id="skip-rules">Skip rules<a class="headerlink" href="#skip-rules" title="Permanent link">&para;</a></h3>
+<p><code>_to_webup_env_payload</code> skips empty values (<code>""</code>, <code>None</code>) and the placeholders <code>no_key</code> / <code>no_pass</code> / <code>no_path</code> / <code>no_comment</code> from the push to Unit3DWebUp: the bot keeps its own defaults and its pydantic validator (<code>empty_to_none</code>) does not hit <code>None</code>-to-<code>str</code> conversion errors that would <code>SystemExit(1)</code> on the next <code>setenv</code>.</p>
+<p>Three keys are exceptions: <code>PREFS__TORRENT_ARCHIVE_PATH</code>, <code>PREFS__WATCHER_PATH</code>, <code>PREFS__WATCHER_DESTINATION_PATH</code>, <code>PREFS__SCAN_PATH</code> are materialized with a <code>.</code> fallback when our config has them empty, because webup requires a "Path-able" value that exists (otherwise <code>get_settings()</code> calls <code>SystemExit</code>).</p>
+<h3 id="automatic-migration-from-legacy-unit3dbotjson">Automatic migration from legacy <code>Unit3Dbot.json</code><a class="headerlink" href="#automatic-migration-from-legacy-unit3dbotjson" title="Permanent link">&para;</a></h3>
+<p>On the first startup, if <code>~/Unit3Dup_config/Unit3Dbot.json</code> (or whatever <code>$UNIT3DUP_CONFIG</code> points to) exists:</p>
+<ol>
+<li>the file is read;</li>
+<li>rewritten as <code>.env</code> with the canonical naming;</li>
+<li>renamed to <code>Unit3Dbot.json.migrated-bak</code>.</li>
+</ol>
+<p>The migration is idempotent. The backup is never deleted by the app — the user can remove it manually after confirming everything works.</p>
+<h3 id="secret-masking">Secret masking<a class="headerlink" href="#secret-masking" title="Permanent link">&para;</a></h3>
+<p>Secrets (API keys, passwords, PIDs) are <strong>masked</strong> as <code>"__SET__"</code> in <code>GET /api/settings</code> responses. On <code>PUT</code>, if the client sends back <code>"__SET__"</code> the server preserves the original value. This avoids leaks in browser logs while letting you edit other keys without re-entering every secret.</p>
+<p>Masked keys are defined in <code>unit3dprep/web/config.py</code> (<code>MASKED_KEYS</code>):
+<code>ITT_APIKEY</code>, <code>ITT_PID</code>, <code>PTT_APIKEY</code>, <code>PTT_PID</code>, <code>SIS_APIKEY</code>, <code>SIS_PID</code>, <code>TMDB_APIKEY</code>, <code>TVDB_APIKEY</code>, <code>YOUTUBE_KEY</code>, <code>IGDB_CLIENT_ID</code>, <code>IGDB_ID_SECRET</code>, <code>QBIT_PASS</code>, <code>TRASM_PASS</code>, <code>RTORR_PASS</code>, <code>FTPX_PASS</code>, <code>PTSCREENS_KEY</code>, <code>PASSIMA_KEY</code>, <code>IMGBB_KEY</code>, <code>IMGFI_KEY</code>, <code>FREE_IMAGE_KEY</code>, <code>LENSDUMP_KEY</code>, <code>IMARIDE_KEY</code>.</p>
+<h3 id="atomic-writes-live-sync">Atomic writes + live sync<a class="headerlink" href="#atomic-writes-live-sync" title="Permanent link">&para;</a></h3>
+<p>Writes to the <code>.env</code> go through <code>tempfile.mkstemp</code> + <code>os.replace</code> → neither <code>unit3dprep</code> nor <code>Unit3DWebUp</code> ever sees a half-written file.</p>
+<p>Every <code>PUT /api/settings</code> cascades into <code>webup_client.setenv(key, value)</code> (POST <code>/setenv</code> to the bot) for each canonical key changed: the bot rebuilds <code>Settings()</code> internally without restart. A Save in the UI does not require <code>systemctl restart unit3dwebup.service</code>.</p>
+<p>Exceptions that need a bot restart: <code>REDIS_*</code> (anyway hardcoded to localhost:6379), changes to process env-vars not in <code>.env</code> (e.g. <code>DOCKER</code>, <code>PYTHONUNBUFFERED</code>), and obviously upgrading the webup package (handled automatically by the SSE auto-update).</p>
+<hr />
+<h2 id="u3dp_root_path-and-nginx"><code>U3DP_ROOT_PATH</code> and nginx<a class="headerlink" href="#u3dp_root_path-and-nginx" title="Permanent link">&para;</a></h2>
+<p>When you serve the Web UI behind a reverse proxy at a subpath (e.g. <code>/unit3dprep</code>), set:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_ROOT_PATH</span><span class="o">=</span><span class="s2">&quot;/unit3dprep&quot;</span>
+</code></pre></div>
+<p><strong>Important</strong> — on Ultra.cc the nginx user-proxy <strong>does not strip</strong> the prefix: requests arrive at uvicorn with <code>/unit3dprep</code> still in place. That is why the app mounts routes under the prefix with <code>app.include_router(r, prefix=ROOT_PATH)</code> instead of <code>FastAPI(root_path=...)</code> (the latter is only for proxies that <em>do</em> strip).</p>
+<p>The SPA reads <code>window.__ROOT_PATH__</code> injected at serve-time into <code>index.html</code>, so assets and API calls automatically hit the right prefix with no rebuild.</p>
+<p>On a generic VPS where nginx strips the prefix (<code>proxy_pass http://127.0.0.1:8765/;</code> with trailing slash), set <code>U3DP_ROOT_PATH=""</code> instead and handle the path from the server block.</p>
+<hr />
+<h2 id="in-app-auto-update">In-app auto-update<a class="headerlink" href="#in-app-auto-update" title="Permanent link">&para;</a></h2>
+<p>The Web UI ships an integrated update system for <strong>two distinct artifacts</strong>:</p>
+<ul>
+<li><strong>App</strong> (<code>unit3dprep</code>) — installed version (<code>importlib.metadata.version("unit3dprep")</code> or <code>pyproject.toml</code> in git mode) compared against <a href="https://github.com/davidesidoti/unit3dprep/releases">GitHub Releases</a>.</li>
+<li><strong>Unit3DWebUp</strong> — version installed in the bot's venv (detected via subprocess <code>python -c "import importlib.metadata; print(importlib.metadata.version('Unit3DwebUp'))"</code>) compared against <a href="https://pypi.org/project/Unit3DwebUp/">PyPI</a>.</li>
+</ul>
+<p>Cards rendered in <strong>Settings › Version</strong>. Click "Install update":</p>
+<ol>
+<li>Modal with <code>pip install --upgrade Unit3DwebUp</code> or <code>git pull + pip install -e .</code> live-streamed via SSE (<code>/api/version/update/{webup,app}/stream</code>).</li>
+<li>Once done, <code>/api/version/info</code> <code>_cache</code> is cleared and systemd <code>&lt;unit&gt;</code> is restarted in a transient scope (<code>systemd-run --user --on-active=3s</code>) to survive the parent process SIGTERM.</li>
+<li>5s countdown + browser reload; release-body popup post-reload.</li>
+</ol>
+<h3 id="app-prerequisites">App prerequisites<a class="headerlink" href="#app-prerequisites" title="Permanent link">&para;</a></h3>
+<p>The "Update app" button stays disabled (<code>can_update_app: false</code>) when:</p>
+<ul>
+<li><code>systemctl</code> is not in <code>PATH</code>, or</li>
+<li>the configured unit does not exist (<code>systemctl --user cat &lt;unit&gt;</code> fails).</li>
+</ul>
+<p>The default for <code>U3DP_SYSTEMD_UNIT</code> is already <code>unit3dprep-web.service</code> (the name used on both Ultra.cc and the VPS deploy). If your unit has a different name, set it:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># ~/.config/systemd/user/unit3dprep-web.service</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">[Service]</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="na">Environment</span><span class="o">=</span><span class="s">U3DP_SYSTEMD_UNIT=unit3dprep-web.service</span>
+</code></pre></div>
+<p>or save the key through <strong>Settings › App Auto-Update</strong>. The key is read at runtime, so a Save takes effect immediately. <code>daemon-reload</code> + restart are only needed when you add a fresh <code>Environment=</code> entry to the unit file.</p>
+<h3 id="webup-prerequisites">Webup prerequisites<a class="headerlink" href="#webup-prerequisites" title="Permanent link">&para;</a></h3>
+<p>Likewise, the "Update" button on the webup card requires:</p>
+<ul>
+<li>a python interpreter with <code>Unit3DwebUp</code> installed accessible. Auto-detect: <code>WEBUP_VENV_BIN/python</code> if set, then <code>&lt;WEBUP_REPO_PATH&gt;/.venv/bin/python</code> (legacy), finally <code>sys.executable</code> (canonical PyPI install in the same venv as unit3dprep). Set <code>WEBUP_VENV_BIN</code> explicitly only when webup lives in a separate venv;</li>
+<li>the <code>unit3dwebup.service</code> systemd user unit existing (override with <code>WEBUP_SYSTEMD_UNIT</code>).</li>
+</ul>
+<h3 id="install-mode-app">Install mode (app)<a class="headerlink" href="#install-mode-app" title="Permanent link">&para;</a></h3>
+<p><code>_install_mode()</code> picks the flow based on the install layout:</p>
+<ul>
+<li><strong>git</strong> — Python source has reachable <code>.git</code> (typical for <code>pip install -e .</code> from a checkout). Runs <code>git pull --ff-only origin main</code> + <code>pip install -e .</code>.</li>
+<li><strong>pip</strong> — installed via <code>pip install git+https://...@vX</code> (no <code>.git</code>). Runs <code>pip install --upgrade --force-reinstall git+URL@vX</code>.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Editable install + service WorkingDirectory</p>
+<p>If the systemd <code>[Service]</code> has <code>WorkingDirectory=&lt;repo&gt;</code> and that folder contains <code>.git</code>, Python imports <code>unit3dprep</code> from the local source (editable) even when you installed via <code>pip install git+...</code>. The flow becomes "git" as a consequence. To force the pip flow, use <code>WorkingDirectory=%h</code> and remove/rename the checkout.</p>
+</div>
+<hr />
+<h2 id="complete-examples">Complete examples<a class="headerlink" href="#complete-examples" title="Permanent link">&para;</a></h2>
+<h3 id="local-deploy-just-you-on-a-trusted-machine">Local deploy (just you, on a trusted machine)<a class="headerlink" href="#local-deploy-just-you-on-a-trusted-machine" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_PASSWORD_HASH</span><span class="o">=</span><span class="s1">&#39;$2b$12$...&#39;</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_SECRET</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">TMDB_API_KEY</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_HOST</span><span class="o">=</span><span class="s2">&quot;127.0.0.1&quot;</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_PORT</span><span class="o">=</span><span class="s2">&quot;8765&quot;</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ENVPATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$HOME</span><span class="s2">/.config/unit3dprep&quot;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># bot in background</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nv">ENVPATH</span><span class="o">=</span><span class="nv">$HOME</span>/.config/unit3dprep<span class="w"> </span>uvicorn<span class="w"> </span>unit3dwup.start:app<span class="w"> </span>--host<span class="w"> </span><span class="m">127</span>.0.0.1<span class="w"> </span>--port<span class="w"> </span><span class="m">8000</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>unit3dprep-web
+</code></pre></div>
+<h3 id="behind-nginx-with-https-and-a-subpath">Behind nginx with HTTPS and a subpath<a class="headerlink" href="#behind-nginx-with-https-and-a-subpath" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_PASSWORD_HASH</span><span class="o">=</span><span class="s1">&#39;$2b$12$...&#39;</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_SECRET</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">TMDB_API_KEY</span><span class="o">=</span><span class="s2">&quot;...&quot;</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_HOST</span><span class="o">=</span><span class="s2">&quot;127.0.0.1&quot;</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_PORT</span><span class="o">=</span><span class="s2">&quot;45678&quot;</span><span class="w">                  </span><span class="c1"># backend port, not exposed</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_ROOT_PATH</span><span class="o">=</span><span class="s2">&quot;/unit3dprep&quot;</span><span class="w">      </span><span class="c1"># public subpath</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_HTTPS_ONLY</span><span class="o">=</span><span class="s2">&quot;1&quot;</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="nb">export</span><span class="w"> </span><span class="nv">ENVPATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$HOME</span><span class="s2">/.config/unit3dprep&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>unit3dprep-web
+</code></pre></div>
+<h3 id="media-on-a-separate-disk">Media on a separate disk<a class="headerlink" href="#media-on-a-separate-disk" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_MEDIA_ROOT</span><span class="o">=</span><span class="s2">&quot;/mnt/storage/media&quot;</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_SEEDINGS_DIR</span><span class="o">=</span><span class="s2">&quot;/mnt/storage/seedings&quot;</span>
+</code></pre></div>
+<div class="admonition danger">
+<p class="admonition-title">Same filesystem</p>
+<p><code>U3DP_SEEDINGS_DIR</code> <strong>must</strong> live on the same device as <code>U3DP_MEDIA_ROOT</code>, otherwise hardlink creation fails with <code>OSError: [Errno 18] Invalid cross-device link</code>. Check with <code>df &lt;media&gt; &lt;seedings&gt;</code>.</p>
+</div>
+<h3 id="wsl-dev-dry-run-without-polluting-the-tracker">WSL dev — dry-run without polluting the tracker<a class="headerlink" href="#wsl-dev-dry-run-without-polluting-the-tracker" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">U3DP_DRY_RUN_TRACKER</span><span class="o">=</span><span class="m">1</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>unit3dprep-web
+</code></pre></div>
+<p>The wizard runs <code>setenv → scan → maketorrent → seed</code> end-to-end but skips <code>/upload</code>. Useful for testing pre-flight + bridge changes without creating real uploads.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/davidesidoti/unit3dprep" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

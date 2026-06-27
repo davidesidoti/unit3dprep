@@ -1,0 +1,1543 @@
+
+<!doctype html>
+<html lang="it" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Web UI + CLI di pre-flight per tracker Unit3D (companion di unit3dup)">
+      
+      
+      
+        <link rel="canonical" href="https://davidesidoti.github.io/unit3dprep/uso-cli/">
+      
+      
+        <link rel="prev" href="../integrazione-webup/">
+      
+      
+        <link rel="next" href="../uso-web/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="it">
+        
+          <link rel="alternate" href="../en/uso-cli/" hreflang="en">
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>CLI - unit3dprep</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#uso-cli" class="md-skip">
+          Vai al contenuto
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Intestazione">
+    <a href=".." title="unit3dprep" class="md-header__button md-logo" aria-label="unit3dprep" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            unit3dprep
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Tema scuro"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Tema scuro" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Tema chiaro"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Tema chiaro" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Seleziona la lingua">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="it" class="md-select__link">
+              Italiano
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../en/uso-cli/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Cerca" placeholder="Cerca" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Cerca">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Cancella" aria-label="Cancella" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Inizializza la ricerca
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/davidesidoti/unit3dprep" title="Apri repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    davidesidoti/unit3dprep
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../installazione/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installazione
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../configurazione/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Configurazione
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../integrazione-webup/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Integrazione Unit3DWebUp
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Uso
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../docker/" class="md-tabs__link">
+          
+  
+  
+  Deploy
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../nomenclatura/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Nomenclatura
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../troubleshooting/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigazione" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="unit3dprep" class="md-nav__button md-logo" aria-label="unit3dprep" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    unit3dprep
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/davidesidoti/unit3dprep" title="Apri repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    davidesidoti/unit3dprep
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../installazione/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installazione
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configurazione/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configurazione
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../integrazione-webup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrazione Unit3DWebUp
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Uso
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Uso
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Indice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Indice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sintassi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sintassi
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flusso-u-singolo-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flusso -u (singolo file)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flusso -u (singolo file)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#output-atteso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output atteso
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flusso-f-serie-stagione" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flusso -f (serie / stagione)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flusso -f (serie / stagione)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#puntare-a-una-singola-stagione" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Puntare a una singola stagione
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variabili-dambiente-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variabili d'ambiente CLI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-unit3dwebup-eseguita" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline Unit3DWebUp eseguita
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scelte-possibili-ai-prompt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scelte possibili ai prompt
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#differenza-dal-wizard-web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differenza dal wizard Web UI
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uso-web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web UI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deploy
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Deploy
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../docker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy-vps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VPS (sudo/Docker)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deploy-ultracc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ultra.cc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../nomenclatura/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nomenclatura
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Indice">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Indice
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#sintassi" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sintassi
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flusso-u-singolo-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flusso -u (singolo file)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flusso -u (singolo file)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#output-atteso" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output atteso
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flusso-f-serie-stagione" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flusso -f (serie / stagione)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flusso -f (serie / stagione)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#puntare-a-una-singola-stagione" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Puntare a una singola stagione
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#variabili-dambiente-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variabili d'ambiente CLI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pipeline-unit3dwebup-eseguita" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pipeline Unit3DWebUp eseguita
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scelte-possibili-ai-prompt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scelte possibili ai prompt
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit code
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#differenza-dal-wizard-web-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Differenza dal wizard Web UI
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/davidesidoti/unit3dprep/edit/main/docs/uso-cli.md" title="Modifica" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="uso-cli">Uso › CLI<a class="headerlink" href="#uso-cli" title="Permanent link">&para;</a></h1>
+<p>La CLI <code>unit3dprep</code> è pensata per l'uso interattivo via SSH o terminale locale. Workflow file → audio check → TMDB → rinomina → hardlink → upload via Unit3DWebUp HTTP.</p>
+<p>Entry point: <code>unit3dprep</code> (registrato da <code>pip install -e .</code>).</p>
+<div class="admonition info">
+<p class="admonition-title">Backend di upload</p>
+<p>Dalla v0.7.0 la CLI <strong>non lancia più <code>unit3dup</code> come subprocess</strong>. Anche il flusso CLI passa attraverso il bridge HTTP verso <code>Unit3DWebUp</code> (stesso del wizard Web UI), riusando <code>webup_client</code> + <code>webup_orchestrator</code>. Conseguenza pratica: Unit3DWebUp deve essere up e raggiungibile (<code>WEBUP_URL</code>, default <code>127.0.0.1:8000</code>) prima di lanciare la CLI.</p>
+</div>
+<hr />
+<h2 id="sintassi">Sintassi<a class="headerlink" href="#sintassi" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>unit3dprep<span class="w"> </span>-u<span class="w"> </span>&lt;FILE&gt;<span class="w">       </span><span class="c1"># film o singolo episodio</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>unit3dprep<span class="w"> </span>-f<span class="w"> </span>&lt;CARTELLA&gt;<span class="w">   </span><span class="c1"># serie o intera stagione</span>
+</code></pre></div>
+<p><code>-u</code> e <code>-f</code> sono mutuamente esclusivi. Nessun altro flag: tutto il resto avviene tramite prompt interattivi (richiedono TTY — la CLI usa <code>readline</code>).</p>
+<hr />
+<h2 id="flusso-u-singolo-file">Flusso <code>-u</code> (singolo file)<a class="headerlink" href="#flusso-u-singolo-file" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>unit3dprep<span class="w"> </span>-u<span class="w"> </span>/mnt/media/movies/Dune.Part.Two.2024.mkv
+</code></pre></div>
+<ol>
+<li><strong>Check audio</strong> — <code>pymediainfo</code> elenca le tracce. Se non c'è italiano, esce con errore.</li>
+<li><strong>Conferma</strong> — <em>"Lingua italiana trovata. Proseguo con hardlink e rinomina? [y/n]"</em>.</li>
+<li><strong>TMDB ID</strong> — prompt <em>"Inserisci TMDB ID per movie (guessit: 'Dune Part Two')"</em>. Cerca su <a href="https://www.themoviedb.org">https://www.themoviedb.org</a>, copia l'ID numerico dall'URL (<code>/movie/693134</code> → <code>693134</code>) e incollalo. Serve <code>TMDB_API_KEY</code>.</li>
+<li><strong>Nome finale</strong> — <code>guessit</code> + <code>extract_specs</code> compongono un nome secondo la <a href="../nomenclatura/">nomenclatura</a>. Editabile inline (readline precarica il default).</li>
+<li><strong>Collision check</strong> — se il target esiste in <code>~/seedings/</code>, prompt <em>sovrascrivi / salta / annulla</em>.</li>
+<li><strong>Hardlink</strong> — creato in <code>~/seedings/.unit3dprep/&lt;jobid&gt;/&lt;nome finale&gt;.&lt;ext&gt;</code> (sandbox dedicata per evitare race del <code>/scan</code> webup; vedi <a href="../integrazione-webup/#semantica-scan_path-sandbox-per-upload">Integrazione Unit3DWebUp</a>).</li>
+<li><strong>Conferma upload</strong> — <em>"Uploadare '<nome>' tramite Unit3DWebUp? [y/n]"</em>.</li>
+<li><strong>Bridge HTTP</strong> — se accetti, <code>run_webup_sync()</code> invoca il pipeline <code>setenv → scan → maketorrent → upload → seed</code> su Unit3DWebUp e stampa i log live in stdout (<code>[progress]</code>, errori in stderr). Exit code restituito al shell.</li>
+</ol>
+<h3 id="output-atteso">Output atteso<a class="headerlink" href="#output-atteso" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Analisi tracce audio: Dune.Part.Two.2024.mkv ...
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Lingua italiana trovata. Proseguo con hardlink e rinomina? [y/n]: y
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>Inserisci TMDB ID per movie (guessit: &#39;Dune Part Two&#39;): 693134
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>Nome finale: Dune Parte Due (2024) 2160p UHD BluRay TrueHD 7.1 HDR10 H.265 - ItaTorrentsBot
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>Hardlink creato: /home/user/seedings/Dune Parte Due (2024) ... .mkv
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>Uploadare &#39;Dune Parte Due ... .mkv&#39; tramite Unit3DWebUp? [y/n]: y
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>[progress] {&#39;phase&#39;: &#39;setenv&#39;, &#39;pct&#39;: 1.5, ...}
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>webup: setting SCAN_PATH=/home/user/seedings
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>webup: /scan…
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>[progress] {&#39;phase&#39;: &#39;scan&#39;, &#39;pct&#39;: 30.0, ...}
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>webup: job_id=abcdef… title=&#39;Dune Parte Due (2024)&#39;
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>webup: /maketorrent…
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>[New torrent] Dune Parte Due... - 100.0
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>webup: /upload…
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>webup: torrent seeded
+</code></pre></div>
+<hr />
+<h2 id="flusso-f-serie-stagione">Flusso <code>-f</code> (serie / stagione)<a class="headerlink" href="#flusso-f-serie-stagione" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>unit3dprep<span class="w"> </span>-f<span class="w"> </span>/mnt/media/series/Severance/Season<span class="se">\ </span><span class="m">02</span>/
+</code></pre></div>
+<ol>
+<li><strong>Scansione</strong> — tutti i file video nella cartella vengono analizzati.</li>
+<li><strong>Check audio su TUTTI</strong> — se anche uno solo manca l'italiano, esce.</li>
+<li><strong>TMDB ID</strong> — prompt per la <strong>serie</strong>, non per la stagione.</li>
+<li><strong>Parsing episodi</strong> — <code>guessit</code> estrae <code>S##E##</code> da ogni filename. Episodi senza S/E vengono segnalati e saltati.</li>
+<li><strong>Nome cartella</strong> — generato dal primo episodio come campione. Editabile.</li>
+<li><strong>Hardlink tree</strong> — <code>~/seedings/.unit3dprep/&lt;jobid&gt;/&lt;nome cartella&gt;/&lt;nome episodio N&gt;.&lt;ext&gt;</code> per ogni file (sandbox dedicata; vedi <a href="../integrazione-webup/#semantica-scan_path-sandbox-per-upload">Integrazione Unit3DWebUp</a>).</li>
+<li><strong>Conferma upload</strong> — come sopra.</li>
+<li><strong>Bridge HTTP</strong> — <code>run_webup_sync()</code> lancia il pipeline con <code>kind=series</code>. Internamente l'orchestrator imposta <code>SCAN_PATH = parent(seeding_folder)</code> e match per subfolder, così webup riconosce il pack come Media singolo (non episodi separati).</li>
+</ol>
+<h3 id="puntare-a-una-singola-stagione">Puntare a una singola stagione<a class="headerlink" href="#puntare-a-una-singola-stagione" title="Permanent link">&para;</a></h3>
+<p>Puoi puntare direttamente a <code>Serie/Season 01/</code>: <code>guessit</code> opera sui filename dei singoli episodi, non sul nome della cartella. Utile per serie multi-stagione caricate una alla volta.</p>
+<hr />
+<h2 id="variabili-dambiente-cli">Variabili d'ambiente CLI<a class="headerlink" href="#variabili-dambiente-cli" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Variabile</th>
+<th>Effetto</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TMDB_API_KEY</code></td>
+<td>Richiesta per <code>tmdb_fetch</code>. Senza, il prompt TMDB fallisce con errore.</td>
+</tr>
+<tr>
+<td><code>WEBUP_URL</code></td>
+<td>Indirizzo Unit3DWebUp (default <code>http://127.0.0.1:8000</code>).</td>
+</tr>
+<tr>
+<td><code>ENVPATH</code> / <code>U3DP_ENV_PATH</code></td>
+<td>Path del <code>.env</code> condiviso (vedi <a href="../configurazione/">Configurazione</a>).</td>
+</tr>
+<tr>
+<td><code>U3DP_MEDIA_ROOT</code></td>
+<td>Non usata dalla CLI direttamente, ma utile se vuoi path assoluti brevi via completion.</td>
+</tr>
+<tr>
+<td><code>U3DP_SEEDINGS_DIR</code></td>
+<td>Cambia dove vengono creati gli hardlink.</td>
+</tr>
+<tr>
+<td><code>U3DP_DRY_RUN_TRACKER</code></td>
+<td>Se <code>1</code>, salta <code>/upload</code>. Test della pipeline senza polluire tracker.</td>
+</tr>
+</tbody>
+</table>
+<p>La CLI legge <code>U3DP_SEEDINGS_DIR</code> attraverso <code>core.seedings_dir()</code>, quindi rispetta anche il valore salvato nel <code>.env</code>.</p>
+<hr />
+<h2 id="pipeline-unit3dwebup-eseguita">Pipeline Unit3DWebUp eseguita<a class="headerlink" href="#pipeline-unit3dwebup-eseguita" title="Permanent link">&para;</a></h2>
+<p><code>run_webup_sync()</code> avvia un loop asyncio temporaneo che consuma il generator <code>stream_webup</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Endpoint webup</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>POST /setenv {PREFS__SCAN_PATH: &lt;parent&gt;}</code></td>
+<td>Film: parent(file). Serie: parent(folder).</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>POST /scan</code></td>
+<td>Webup esegue lookup TMDB/TVDB + screenshot ffmpeg.</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>POST /settmdbid</code></td>
+<td>Solo se l'ID che hai inserito differisce da quello risolto da webup.</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>POST /maketorrent</code></td>
+<td>HTTP 200 = build completata; log finali drenati ~0.8s.</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>POST /upload</code></td>
+<td>HTTP 200 = upload completato; drenaggio log 2s per detectare success/failure.</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>POST /seed</code></td>
+<td>200=ok, 503/409/404 mappati a warning, altri = warning.</td>
+</tr>
+</tbody>
+</table>
+<p>Vedi <a href="../integrazione-webup/">Integrazione Unit3DWebUp</a> per il dettaglio architetturale.</p>
+<hr />
+<h2 id="scelte-possibili-ai-prompt">Scelte possibili ai prompt<a class="headerlink" href="#scelte-possibili-ai-prompt" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Prompt</th>
+<th>Risposte valide</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Conferma binaria</td>
+<td><code>y</code> / <code>yes</code> / <code>s</code> / <code>si</code> / <code>sì</code> → sì; tutto il resto → no</td>
+</tr>
+<tr>
+<td>Collision</td>
+<td><code>o</code> sovrascrivi / <code>s</code> salta / <code>c</code> annulla</td>
+</tr>
+<tr>
+<td>Nome finale</td>
+<td>editabile inline con readline (frecce ←→), invio per confermare</td>
+</tr>
+</tbody>
+</table>
+<p><code>Ctrl+C</code> durante un prompt termina con exit code 130. Durante il pipeline webup, <code>Ctrl+C</code> viene catturato e propagato come exit code 130.</p>
+<hr />
+<h2 id="exit-code">Exit code<a class="headerlink" href="#exit-code" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Codice</th>
+<th>Significato</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>Successo (upload completato, oppure annullato dall'utente dopo hardlink).</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>File/cartella non valido, no italiano, nome vuoto, errore irrecuperabile in TMDB o nel bridge webup.</td>
+</tr>
+<tr>
+<td><code>130</code></td>
+<td><code>Ctrl+C</code> (durante prompt o durante streaming).</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="differenza-dal-wizard-web-ui">Differenza dal wizard Web UI<a class="headerlink" href="#differenza-dal-wizard-web-ui" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Aspetto</th>
+<th>CLI</th>
+<th>Wizard Web</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rilevamento italiano</td>
+<td>Blocca se manca</td>
+<td>Configurabile (<code>W_AUDIO_CHECK</code>)</td>
+</tr>
+<tr>
+<td>TMDB</td>
+<td>Sempre manuale (ID)</td>
+<td>Ricerca + match automatico</td>
+</tr>
+<tr>
+<td>Nome finale</td>
+<td>Editabile inline</td>
+<td>Editabile con preview</td>
+</tr>
+<tr>
+<td>Backend upload</td>
+<td>Bridge HTTP a Unit3DWebUp</td>
+<td>Stesso bridge HTTP</td>
+</tr>
+<tr>
+<td>Storico (<code>U3DP_DB_PATH</code>)</td>
+<td><strong>Non</strong> scrive</td>
+<td>Scrive</td>
+</tr>
+<tr>
+<td>Progress UI</td>
+<td>Log testuali in stdout</td>
+<td>Barra grafica + log live SSE</td>
+</tr>
+<tr>
+<td>Multi-job batch</td>
+<td>Un file/cartella per volta</td>
+<td>Quick upload + multi-select</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Nessuna scrittura nello storico</p>
+<p>La CLI non aggiorna <code>~/.unit3dprep_db.json</code>. Se vuoi che l'upload appaia nel pannello "Uploaded" della Web UI, passa attraverso il wizard.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Torna su
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/davidesidoti/unit3dprep" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link", "content.action.edit"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copiato", "clipboard.copy": "Copia", "search.result.more.one": "1 altro in questa pagina", "search.result.more.other": "# altri in questa pagina", "search.result.none": "Nessun documento trovato", "search.result.one": "1 documento trovato", "search.result.other": "# documenti trovati", "search.result.placeholder": "Scrivi per iniziare a cercare", "search.result.term.missing": "Non presente", "select.version": "Seleziona la versione"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
