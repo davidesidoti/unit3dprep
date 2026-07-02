@@ -33,6 +33,7 @@ from ...upload import (
 from ...i18n import get_request_lang, t as _i18n_t
 from .. import config as web_config
 from ..db import record_upload, update_exit_code
+from ..tocheck import add_flag
 from ..duplicate_check import find_duplicate
 from ..logbuf import emit as log_emit
 from ..webup_orchestrator import stream_webup
@@ -123,6 +124,7 @@ async def wizard_start(request: Request, body: StartBody):
         "step": "audio",
         "audio_ok": False,
         "audio_override": False,
+        "non_ita_paths": [],
         "tmdb_id": body.tmdb_id.strip(),
         "tmdb_kind": body.tmdb_kind or ("tv" if body.kind != "movie" else "movie"),
         "tmdb_title": "",
@@ -156,6 +158,7 @@ async def wizard_audio(tok: str):
     async def generate() -> AsyncGenerator[dict, None]:
         loop = asyncio.get_event_loop()
         all_ok = True
+        non_ita: list[str] = []
         for f in files:
             try:
                 ok = await loop.run_in_executor(None, has_italian_audio, f)
@@ -165,9 +168,11 @@ async def wizard_audio(tok: str):
                 payload = {"file": f.name, "ok": False, "error": str(e)}
             if not ok:
                 all_ok = False
+                non_ita.append(str(f))
             yield {"event": "file_result", "data": json.dumps(payload)}
             await asyncio.sleep(0)
         state["audio_ok"] = all_ok
+        state["non_ita_paths"] = non_ita
         state["step"] = "tmdb" if all_ok else "audio_failed"
         yield {"event": "done", "data": json.dumps({"all_ok": all_ok, "total": len(files)})}
 
@@ -181,6 +186,27 @@ async def wizard_audio_override(tok: str):
     state["audio_override"] = True
     state["step"] = "tmdb"
     return JSONResponse({"ok": True})
+
+
+@router.post("/wizard/{tok}/audio-to-check")
+async def wizard_audio_to_check(tok: str):
+    """Flag the non-Italian files found during the audio scan as "to-check"
+    (deferred), then the wizard is closed by the FE. Movie → flag the movie
+    root (matches the library item path); series/episode → flag each non-ITA
+    episode file."""
+    state = _get(tok)
+    non_ita = state.get("non_ita_paths", [])
+    if not non_ita:
+        return JSONResponse({"ok": True, "flagged": 0})
+    category = state["category"]
+    if state["kind"] == "movie":
+        await add_flag(str(Path(state["path"]).resolve()), category, "movie")
+        flagged = 1
+    else:
+        for p in non_ita:
+            await add_flag(str(Path(p).resolve()), category, "episode")
+        flagged = len(non_ita)
+    return JSONResponse({"ok": True, "flagged": flagged})
 
 
 @router.post("/wizard/{tok}/tmdb")

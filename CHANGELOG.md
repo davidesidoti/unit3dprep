@@ -18,6 +18,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
   click. Le card e le stagioni segnate mostrano un badge giallo "da controllare" e un nuovo
   filtro **"Solo da controllare"** nella barra dei filtri mostra a colpo d'occhio tutti i
   media marcati della categoria.
+- Nel primo step del wizard (**Controllo Audio**), quando la scansione trova file senza traccia
+  italiana, compare accanto a "Ignora e continua comunque" un pulsante **"Segna da controllare e
+  chiudi"**: marca automaticamente come "da controllare" gli episodi (o il film) privi di audio
+  italiano e chiude il wizard, così li ritrovi facilmente in seguito senza doverli segnare a mano.
 
 ### Fixed
 - I media pesanti (pacchetti stagione, file di grandi dimensioni) non falliscono più durante la

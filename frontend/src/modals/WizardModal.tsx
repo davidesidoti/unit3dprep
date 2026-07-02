@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Flag } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { WizardCtx } from '../types';
 
@@ -138,6 +139,7 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: (comple
               token={token}
               onNext={() => setStep('tmdb')}
               onOverride={() => setStep('tmdb')}
+              onCheckLater={() => onClose(true)}
             />
           )}
           {token && step === 'tmdb' && (
@@ -190,13 +192,14 @@ export function WizardModal({ ctx, onClose }: { ctx: WizardCtx; onClose: (comple
 
 // -------------------------------------------------------------------- Steps
 
-function AudioStep({ token, onNext, onOverride }: {
-  token: string; onNext: () => void; onOverride: () => void;
+function AudioStep({ token, onNext, onOverride, onCheckLater }: {
+  token: string; onNext: () => void; onOverride: () => void; onCheckLater: () => void;
 }) {
   const { t } = useTranslation();
   const [files, setFiles] = useState<{ name: string; ok?: boolean; error?: string }[]>([]);
   const [done, setDone] = useState(false);
   const [allOk, setAllOk] = useState(false);
+  const [checkingLater, setCheckingLater] = useState(false);
 
   useEffect(() => {
     const close = openSSE(`/api/wizard/${token}/audio`, {
@@ -218,6 +221,13 @@ function AudioStep({ token, onNext, onOverride }: {
   const override = async () => {
     await api.post(`/api/wizard/${token}/audio-override`);
     onOverride();
+  };
+
+  const checkLater = async () => {
+    if (checkingLater) return;
+    setCheckingLater(true);
+    try { await api.post(`/api/wizard/${token}/audio-to-check`); } catch { /* ignore */ }
+    onCheckLater();
   };
 
   return (
@@ -258,17 +268,32 @@ function AudioStep({ token, onNext, onOverride }: {
           <div style={{ padding: 14, color: 'var(--fg-3)' }}>{t('wizard.audioScanning')}</div>
         )}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, gap: 10 }}>
         {done && !allOk ? (
-          <button
-            onClick={override}
-            style={{
-              background: 'transparent', border: '1px solid var(--yellow)',
-              color: 'var(--yellow)', padding: '8px 14px', borderRadius: 6,
-              fontSize: 11, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'var(--font-display)',
-            }}
-          >{t('wizard.audioOverride')}</button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              onClick={override}
+              style={{
+                background: 'transparent', border: '1px solid var(--yellow)',
+                color: 'var(--yellow)', padding: '8px 14px', borderRadius: 6,
+                fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                fontFamily: 'var(--font-display)',
+              }}
+            >{t('wizard.audioOverride')}</button>
+            <button
+              onClick={checkLater}
+              disabled={checkingLater}
+              title={t('wizard.audioCheckLaterHint')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'var(--yellow-dim)', border: '1px solid var(--yellow)',
+                color: 'var(--yellow)', padding: '8px 14px', borderRadius: 6,
+                fontSize: 11, fontWeight: 600,
+                cursor: checkingLater ? 'default' : 'pointer',
+                fontFamily: 'var(--font-display)',
+              }}
+            ><Flag size={12} />{checkingLater ? t('wizard.audioCheckingLater') : t('wizard.audioCheckLater')}</button>
+          </div>
         ) : <span />}
         <button
           onClick={onNext}
