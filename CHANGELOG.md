@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.7] - 2026-07-03
+
 ### Added
 - Nell'**Upload rapido** (modalità File singolo e Cartella/Stagione) è ora possibile **rinominare**
   l'item prima dell'upload tramite un nuovo campo, precompilato con il nome del file/cartella
