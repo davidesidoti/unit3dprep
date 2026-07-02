@@ -341,6 +341,8 @@ export const it: Catalog = {
     toCheckMarked: '⚑ Da controllare',
     toCheckClear: 'Togli il flag da controllare',
     toCheckBadge: 'da controllare',
+    toCheckCount_one: '{{count}} da controllare',
+    toCheckCount_other: '{{count}} da controllare',
     toCheckShort: 'Contr.',
     rescanLangs: 'Rianalizza lingue audio',
     rescanDone: '✓ Lingue audio rianalizzate',

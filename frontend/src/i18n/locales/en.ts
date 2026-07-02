@@ -339,6 +339,8 @@ export const en = {
     toCheckMarked: '⚑ Flagged to-check',
     toCheckClear: 'Remove to-check flag',
     toCheckBadge: 'to check',
+    toCheckCount_one: '{{count}} to check',
+    toCheckCount_other: '{{count}} to check',
     toCheckShort: 'Check',
     rescanLangs: 'Rescan audio languages',
     rescanDone: '✓ Audio languages rescanned',

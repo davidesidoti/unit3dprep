@@ -1066,6 +1066,9 @@ function SeasonRow({
   // full season pack yet; flag the count so the user notices.
   const tmdbEp = statusMeta?.episode_count ?? 0;
   const incompletePack = !!statusMeta?.complete && tmdbEp > 0 && season.episode_count < tmdbEp;
+  // Season header "to-check" flag: whole season flagged OR at least one episode.
+  const toCheckEpCount = season.video_files?.filter((vf) => vf.to_check).length ?? 0;
+  const seasonToCheck = !!season.to_check || toCheckEpCount > 0;
   return (
     <div style={{
       padding: '8px 10px', background: 'var(--bg-card)',
@@ -1101,11 +1104,13 @@ function SeasonRow({
           {season.already_uploaded && (
             <span style={{ marginLeft: 6 }}><Badge>uploaded ✓</Badge></span>
           )}
-          {season.to_check && (
+          {seasonToCheck && (
             <span style={{ marginLeft: 6 }}>
               <Badge color="var(--yellow)" bg="var(--yellow-dim)">
                 <Flag size={8} fill="var(--yellow)" style={{ marginRight: 2, verticalAlign: '-1px' }} />
-                {t('library.toCheckBadge')}
+                {season.to_check
+                  ? t('library.toCheckBadge')
+                  : t('library.toCheckCount', { count: toCheckEpCount })}
               </Badge>
             </span>
           )}
