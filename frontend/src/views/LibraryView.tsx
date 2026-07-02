@@ -4,7 +4,7 @@ import {
   Film, Tv, Sparkles, RefreshCw, Database, Headphones,
   Pencil, X, Search as SearchIcon, Star,
   ChevronDown, Folder, BookOpen, Music, Library as LibraryIcon,
-  CheckSquare, Square, Flag,
+  CheckSquare, Square, Flag, Upload, Check,
 } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { Category, LibraryItem, Season, SeasonStatus, SeriesStatus, WizardCtx } from '../types';
@@ -23,6 +23,14 @@ const sizeToBytes = (s: string): number => {
   const mult: Record<string, number> = { TB: 1e12, GB: 1e9, MB: 1e6, KB: 1e3, B: 1 };
   return n * (mult[u] || 1);
 };
+
+// Compact square icon button used in the season header action toolbar.
+const seasonIconBtn = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  width: 26, height: 22, borderRadius: 4, cursor: 'pointer',
+  border: '1px solid var(--border)', background: 'transparent',
+  padding: 0, flexShrink: 0,
+} as const;
 
 interface TmdbSearchResult {
   id: number | string;
@@ -1107,19 +1115,15 @@ function SeasonRow({
             <>
               <button
                 onClick={() => onStart('series', season.path, season)}
-                style={{
-                  background: 'var(--blue)', border: 'none', borderRadius: 4,
-                  padding: '3px 7px', fontSize: 10, fontWeight: 600,
-                  color: '#fff', cursor: 'pointer',
-                  fontFamily: 'var(--font-display)',
-                }}
-              >{t('library.bulkUploadSeason')}</button>
+                title={t('library.bulkUploadSeason')}
+                aria-label={t('library.bulkUploadSeason')}
+                style={{ ...seasonIconBtn, background: 'var(--blue)', border: 'none', color: '#fff' }}
+              ><Upload size={12} /></button>
               <MarkUploadedBtn
                 category={category}
                 name={item.name}
                 seasonPath={season.path}
-                variant="inline-sm"
-                label={t('library.marked')}
+                variant="icon"
                 onMarked={onMarked}
               />
               <ToCheckBtn
@@ -1127,7 +1131,7 @@ function SeasonRow({
                 name={item.name}
                 seasonPath={season.path}
                 flagged={!!season.to_check}
-                variant="inline-sm"
+                variant="icon"
                 onToggled={onMarked}
               />
             </>
@@ -1258,7 +1262,7 @@ function MarkUploadedBtn({
   name: string;
   seasonPath?: string;
   episodePath?: string;
-  variant?: 'full' | 'inline-sm' | 'chip';
+  variant?: 'full' | 'inline-sm' | 'chip' | 'icon';
   label?: string;
   onMarked?: () => void;
 }) {
@@ -1278,6 +1282,21 @@ function MarkUploadedBtn({
       onMarked?.();
     } catch { /* ignore */ }
   };
+  if (variant === 'icon') {
+    return (
+      <button
+        onClick={mark}
+        disabled={done}
+        title={t('library.markUploaded')}
+        aria-label={t('library.markUploaded')}
+        style={{
+          ...seasonIconBtn,
+          borderColor: done ? 'var(--green)' : 'var(--border)',
+          color: done ? 'var(--green)' : 'var(--fg-3)',
+        }}
+      ><Check size={13} /></button>
+    );
+  }
   if (variant === 'inline-sm') {
     return (
       <button
@@ -1342,7 +1361,7 @@ function ToCheckBtn({
   name: string;
   seasonPath?: string;
   episodePath?: string;
-  variant?: 'full' | 'inline-sm' | 'chip';
+  variant?: 'full' | 'inline-sm' | 'chip' | 'icon';
   label?: string;
   flagged: boolean;
   onToggled?: () => void;
@@ -1371,6 +1390,22 @@ function ToCheckBtn({
   };
   const accent = on ? 'var(--yellow)' : 'var(--fg-3)';
   const title = on ? t('library.toCheckClear') : t('library.markToCheck');
+  if (variant === 'icon') {
+    return (
+      <button
+        onClick={toggle}
+        disabled={busy}
+        title={title}
+        aria-label={title}
+        style={{
+          ...seasonIconBtn,
+          background: on ? 'var(--yellow-dim)' : 'transparent',
+          borderColor: on ? 'var(--yellow)' : 'var(--border)',
+          color: accent,
+        }}
+      ><Flag size={12} fill={on ? 'var(--yellow)' : 'none'} /></button>
+    );
+  }
   if (variant === 'inline-sm') {
     return (
       <button
