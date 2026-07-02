@@ -18,6 +18,8 @@ export function UploadedView() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
   const [checked, setChecked] = useState<Set<number>>(new Set());
+  // Anchor record id for shift-click range selection.
+  const anchorRef = useRef<number | null>(null);
 
   const load = () => api.get<{ records: UploadedRecord[] }>('/api/uploaded')
     .then((r) => setRecords(r.records))
@@ -33,7 +35,7 @@ export function UploadedView() {
 
   // Selection is scoped to the current filter/search view — reset it when the
   // view changes so the bulk bar count never counts hidden rows.
-  useEffect(() => { setChecked(new Set()); }, [filter, search]);
+  useEffect(() => { setChecked(new Set()); anchorRef.current = null; }, [filter, search]);
 
   const { visible, remaining, hasMore, loadMore } = useIncremental(filtered, 50, [filter, search]);
 
@@ -45,6 +47,29 @@ export function UploadedView() {
     if (next.has(id)) next.delete(id); else next.add(id);
     return next;
   });
+
+  // Checkbox click: plain click toggles + moves the anchor; shift-click selects
+  // the whole range (in displayed order) between the anchor and the clicked row.
+  const onCbClick = (e: React.MouseEvent, id: number) => {
+    if (e.shiftKey && anchorRef.current !== null) {
+      const ids = visible.map((v) => v.id);
+      const a = ids.indexOf(anchorRef.current);
+      const b = ids.indexOf(id);
+      if (a !== -1 && b !== -1) {
+        const [lo, hi] = a <= b ? [a, b] : [b, a];
+        const rangeIds = ids.slice(lo, hi + 1);
+        setChecked((prev) => {
+          const next = new Set(prev);
+          for (const rid of rangeIds) next.add(rid);
+          return next;
+        });
+        anchorRef.current = id;
+        return;
+      }
+    }
+    toggleOne(id);
+    anchorRef.current = id;
+  };
 
   const toggleAll = () => setChecked(allChecked ? new Set() : new Set(filtered.map((r) => r.id)));
 
@@ -210,7 +235,9 @@ export function UploadedView() {
                   <input
                     type="checkbox"
                     checked={checked.has(r.id)}
-                    onChange={() => toggleOne(r.id)}
+                    onMouseDown={(e) => { if (e.shiftKey) e.preventDefault(); }}
+                    onClick={(e) => onCbClick(e, r.id)}
+                    onChange={() => { /* handled in onClick to read shiftKey */ }}
                     style={cbStyle}
                   />
                 </div>

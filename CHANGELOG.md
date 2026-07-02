@@ -9,7 +9,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ### Added
 - Gestione in **blocco** nella tab **Cronologia Upload**: una casella di selezione per riga
   (più un "seleziona tutti" nell'intestazione) permette di scegliere più voci e cancellarle
-  in un solo colpo tramite la barra "Elimina selezionati". La selezione si azzera quando
+  in un solo colpo tramite la barra "Elimina selezionati". Supporta la selezione a intervallo
+  con **shift+click** (seleziona tutte le righe tra due caselle). La selezione si azzera quando
   cambi filtro o ricerca.
 - Nuovo flag **"Da controllare"** nella Media Library: un bottone (⚑) per marcare film,
   episodi, stagioni e serie intere come da ricontrollare — utile per ricordarsi i media senza
