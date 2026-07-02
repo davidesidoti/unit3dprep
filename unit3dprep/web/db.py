@@ -132,6 +132,17 @@ def _delete_record_sync(seeding_path: str):
         _save(records)
 
 
+def _delete_records_by_ids_sync(ids: list[int]) -> int:
+    id_set = set(ids)
+    with _lock:
+        records = _load()
+        kept = [r for r in records if r.get("id") not in id_set]
+        removed = len(records) - len(kept)
+        if removed:
+            _save(kept)
+        return removed
+
+
 # ---------------------------------------------------------------------------
 # Async wrappers
 # ---------------------------------------------------------------------------
@@ -182,3 +193,7 @@ async def get_upload_by_seeding_path(seeding_path: str) -> dict | None:
 
 async def delete_record(seeding_path: str):
     await _run(_delete_record_sync, seeding_path)
+
+
+async def delete_records_by_ids(ids: list[int]) -> int:
+    return await _run(_delete_records_by_ids_sync, ids)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import type { UploadedRecord } from '../types';
@@ -17,6 +17,7 @@ export function UploadedView() {
   const [filter, setFilter] = useState<'all' | 'movies' | 'series' | 'anime'>('all');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<number | null>(null);
+  const [checked, setChecked] = useState<Set<number>>(new Set());
 
   const load = () => api.get<{ records: UploadedRecord[] }>('/api/uploaded')
     .then((r) => setRecords(r.records))
@@ -30,7 +31,33 @@ export function UploadedView() {
     return true;
   }), [records, filter, search]);
 
+  // Selection is scoped to the current filter/search view — reset it when the
+  // view changes so the bulk bar count never counts hidden rows.
+  useEffect(() => { setChecked(new Set()); }, [filter, search]);
+
   const { visible, remaining, hasMore, loadMore } = useIncremental(filtered, 50, [filter, search]);
+
+  const allChecked = filtered.length > 0 && filtered.every((r) => checked.has(r.id));
+  const someChecked = !allChecked && filtered.some((r) => checked.has(r.id));
+
+  const toggleOne = (id: number) => setChecked((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+
+  const toggleAll = () => setChecked(allChecked ? new Set() : new Set(filtered.map((r) => r.id)));
+
+  const bulkDelete = async () => {
+    const ids = [...checked];
+    if (ids.length === 0) return;
+    if (!confirm(t('uploaded.confirmBulkDelete', { count: ids.length }))) return;
+    try {
+      await api.post('/api/uploaded/bulk-delete', { ids });
+      setChecked(new Set());
+      load();
+    } catch { /* ignore */ }
+  };
 
   const stats = {
     total: records.length,
@@ -106,15 +133,54 @@ export function UploadedView() {
         />
       </div>
 
+      {checked.size > 0 && (
+        <div className="u3d-animate-in" style={{
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          padding: '8px 12px', background: 'var(--bg-card)',
+          border: '1px solid var(--border)', borderRadius: 8,
+        }}>
+          <span style={{
+            fontSize: 12, fontWeight: 700, color: 'var(--fg-1)',
+            fontFamily: 'var(--font-display)',
+          }}>{t('uploaded.selectedCount', { count: checked.size })}</span>
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={() => setChecked(new Set())}
+            style={{
+              background: 'var(--bg-base)', border: '1px solid var(--border)',
+              color: 'var(--fg-2)', padding: '6px 12px', fontSize: 11,
+              fontWeight: 600, borderRadius: 6, cursor: 'pointer',
+              fontFamily: 'var(--font-display)',
+            }}
+          >{t('uploaded.clearSelection')}</button>
+          <button
+            onClick={bulkDelete}
+            style={{
+              background: 'var(--red)', border: 'none', color: '#fff',
+              padding: '6px 12px', fontSize: 11, fontWeight: 700,
+              borderRadius: 6, cursor: 'pointer', fontFamily: 'var(--font-display)',
+            }}
+          >{t('uploaded.deleteSelected')}</button>
+        </div>
+      )}
+
       <div style={{
         background: '#0a0c12', border: '1px solid var(--border-subtle)',
         borderRadius: 8, overflowX: 'auto', overflowY: 'auto',
       }}>
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '80px minmax(240px, 1fr) 90px 180px 100px 140px',
-          minWidth: 820,
+          gridTemplateColumns: '40px 80px minmax(240px, 1fr) 90px 180px 100px 140px',
+          minWidth: 860,
         }}>
+          <div style={{ ...th, display: 'flex', alignItems: 'center' }}>
+            <TriCheckbox
+              checked={allChecked}
+              indeterminate={someChecked}
+              onChange={toggleAll}
+              title={t('uploaded.selectAll')}
+            />
+          </div>
           {colHeaders.map((h) => (
             <div key={h} style={th}>{h}</div>
           ))}
@@ -130,13 +196,24 @@ export function UploadedView() {
                 className={expanded ? undefined : 'u3d-row'}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '80px minmax(240px, 1fr) 90px 180px 100px 140px',
-                  minWidth: 820,
+                  gridTemplateColumns: '40px 80px minmax(240px, 1fr) 90px 180px 100px 140px',
+                  minWidth: 860,
                   cursor: 'pointer',
                   borderBottom: '1px solid var(--border-subtle)',
-                  background: expanded ? '#14192a' : 'transparent',
+                  background: checked.has(r.id) ? 'var(--blue-dim)' : expanded ? '#14192a' : 'transparent',
                 }}
               >
+                <div
+                  style={{ ...td, display: 'flex', alignItems: 'center' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked.has(r.id)}
+                    onChange={() => toggleOne(r.id)}
+                    style={cbStyle}
+                  />
+                </div>
                 <div style={td}>
                   <span style={{
                     fontSize: 9, fontWeight: 700, padding: '2px 6px',
@@ -272,6 +349,25 @@ function KV({ k, v, color = 'var(--fg-1)' }: {
   );
 }
 
+function TriCheckbox({ checked, indeterminate, onChange, title }: {
+  checked: boolean; indeterminate: boolean; onChange: () => void; title?: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      title={title}
+      style={cbStyle}
+    />
+  );
+}
+
 const th: React.CSSProperties = {
   padding: '10px 14px', fontSize: 10, fontWeight: 700,
   textTransform: 'uppercase', letterSpacing: 'var(--tracking-wider)',
@@ -284,4 +380,8 @@ const td: React.CSSProperties = {
   padding: '10px 14px', fontSize: 11,
   fontFamily: 'var(--font-mono)', color: 'var(--fg-1)',
   verticalAlign: 'top',
+};
+
+const cbStyle: React.CSSProperties = {
+  width: 15, height: 15, accentColor: 'var(--blue)', cursor: 'pointer',
 };
