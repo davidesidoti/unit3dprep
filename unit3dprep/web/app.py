@@ -13,6 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from ._env import env as _env, migrate_dotfiles
 from .auth import SECRET_KEY
 from .db import init_db
+from .tocheck import init_tocheck
 from . import logbuf
 from .webup_client import get_client as get_webup_client, shutdown_client as shutdown_webup_client
 from .webup_ws import WebupWSManager
@@ -82,6 +83,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def _startup():
     await init_db()
+    await init_tocheck()
     logbuf.install(asyncio.get_event_loop())
     logging.getLogger("unit3dprep").info("unit3dprep-web started")
 

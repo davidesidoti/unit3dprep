@@ -45,6 +45,9 @@ class Season:
     video_files: list[Path] = field(default_factory=list)
     already_uploaded: bool = False
     uploaded_episode_paths: set[str] = field(default_factory=set)
+    # "To-check" flag fields (populated by routes)
+    to_check: bool = False
+    to_check_episode_paths: set[str] = field(default_factory=set)
     # Lang cache fields (populated by routes)
     available_langs: list = field(default_factory=list)
     lang_scanned: bool = False
@@ -98,6 +101,9 @@ class MediaItem:
     # Upload status (populated by routes)
     already_uploaded: bool = False
     uploaded_season_numbers: list = field(default_factory=list)
+    # "To-check" flag status (populated by routes)
+    to_check: bool = False
+    any_to_check: bool = False
     # Lang cache fields (populated by routes)
     available_langs: list = field(default_factory=list)
     episode_langs: dict = field(default_factory=dict)  # str(filepath) -> [langs]

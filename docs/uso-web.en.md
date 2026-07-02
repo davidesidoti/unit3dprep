@@ -35,12 +35,14 @@ Features:
 - **Search** — live filter on name.
 - **Hide uploaded** — toggle controlled by `W_HIDE_UPLOADED`.
 - **Hide non-Italian** — toggle controlled by `W_HIDE_NO_ITALIAN`.
+- **Only to-check** — toggle that shows only media flagged "to-check" (see below).
 - **Detail panel** — clicking an item opens a side panel (mobile: full-screen overlay) with file list, TMDB match, actions.
 - **Rescan audio languages** — button that streams the `pymediainfo` scan via SSE, updating the cache.
 - **Manual TMDB match** — field to enter an ID, search button with result previews.
 - **Multi-select** — checkbox on each item; action bar with "Select all", "Deselect", "Mark as uploaded" for bulk operations.
 - **Type filter** — toggle to show only movies (`kind === 'movie'`), hiding series and seasons.
 - **Mark uploaded at every level** — for series: full series, single season, single episode.
+- **To-check (⚑)** — button to flag a media for later review (e.g. it lacks an Italian audio track). Persistent and removable with one click; available at every level (movie, episode, season, full series). Flagged media show a yellow "to check" badge and can be filtered with the **Only to-check** toggle. Endpoint: `POST /api/library/{category}/{item}/to-check`.
 
 Relevant endpoints: `GET /api/library/categories`, `GET /api/library/{category}`, `GET /api/library/{category}/{item}`, `POST /api/library/{category}/{item}/langs`, `POST /api/tmdb/search`, `POST /api/tmdb/fetch`.
 

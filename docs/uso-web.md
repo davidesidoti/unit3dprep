@@ -35,12 +35,14 @@ Funzionalità:
 - **Ricerca** — filtro live sul nome.
 - **Nascondi uploadati** — toggle controllato da `W_HIDE_UPLOADED`.
 - **Nascondi senza ITA** — toggle controllato da `W_HIDE_NO_ITALIAN`.
+- **Solo da controllare** — toggle che mostra solo i media marcati "da controllare" (vedi sotto).
 - **Detail panel** — click su un item apre un panel laterale (mobile: overlay a tutto schermo) con file list, match TMDB, azioni.
 - **Rescan lingue audio** — bottone che stream-a via SSE la scansione `pymediainfo` aggiornando la cache.
 - **Match TMDB manuale** — campo per inserire un ID, bottone cerca con preview risultati.
 - **Selezione multipla** — checkbox su ogni item; action bar con "Seleziona tutto", "Deseleziona", "Marca come caricato" per operazioni in blocco.
 - **Filtro tipo** — toggle per mostrare solo film (`kind === 'movie'`), nascondendo serie e stagioni.
 - **Mark uploaded a tutti i livelli** — per le serie: intera serie, singola stagione, singolo episodio.
+- **Da controllare (⚑)** — bottone per marcare un media da ricontrollare (es. manca la traccia audio italiana). Persistente e removibile con un click; disponibile a tutti i livelli (film, episodio, stagione, serie intera). I media segnati mostrano un badge giallo "da controllare" ed è possibile filtrarli con il toggle **Solo da controllare**. Endpoint: `POST /api/library/{category}/{item}/to-check`.
 
 Endpoint coinvolti: `GET /api/library/categories`, `GET /api/library/{category}`, `GET /api/library/{category}/{item}`, `POST /api/library/{category}/{item}/langs`, `POST /api/tmdb/search`, `POST /api/tmdb/fetch`.
 

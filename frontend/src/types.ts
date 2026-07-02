@@ -5,6 +5,7 @@ export interface VideoFile {
   path: string;
   name: string;
   uploaded: boolean;
+  to_check?: boolean;
 }
 
 export interface Season {
@@ -18,6 +19,7 @@ export interface Season {
   already_uploaded: boolean;
   uploaded_episodes: number;
   all_episodes_uploaded: boolean;
+  to_check?: boolean;
   video_files: VideoFile[];
 }
 
@@ -52,6 +54,8 @@ export interface LibraryItem {
   langs: string[];
   lang_scanned: boolean;
   already_uploaded: boolean;
+  to_check?: boolean;
+  any_to_check?: boolean;
   seasons?: Season[];
   all_seasons_uploaded?: boolean;
   video_files?: VideoFile[];

@@ -35,6 +35,7 @@ from ...media import (
 )
 from ...i18n import get_request_lang, t as _i18n_t
 from ..db import list_uploads, record_upload
+from ..tocheck import add_flag, list_flagged_paths, remove_flag
 from ..lang_cache import get_many_langs, set_lang
 from ..tmdb_cache import get_cache, get_many, set_cache, set_series_status
 
@@ -55,11 +56,13 @@ def _season_to_dict(s: Season, uploaded_paths: set[str]) -> dict[str, Any]:
         "already_uploaded": s.already_uploaded,
         "uploaded_episodes": len(s.uploaded_episode_paths),
         "all_episodes_uploaded": s.all_episodes_uploaded,
+        "to_check": s.to_check,
         "video_files": [
             {
                 "path": str(vf),
                 "name": vf.name,
                 "uploaded": str(vf.resolve()) in uploaded_paths,
+                "to_check": str(vf.resolve()) in s.to_check_episode_paths,
             }
             for vf in s.video_files
         ],
@@ -86,6 +89,8 @@ def _item_to_dict(item: MediaItem, uploaded_paths: set[str]) -> dict[str, Any]:
         "langs": list(item.available_langs),
         "lang_scanned": item.lang_scanned,
         "already_uploaded": str(item.path.resolve()) in uploaded_paths,
+        "to_check": item.to_check,
+        "any_to_check": item.any_to_check,
     }
     if item.kind == "series":
         base["seasons"] = [_season_to_dict(s, uploaded_paths) for s in item.seasons]
@@ -96,6 +101,7 @@ def _item_to_dict(item: MediaItem, uploaded_paths: set[str]) -> dict[str, Any]:
                 "path": str(vf),
                 "name": vf.name,
                 "uploaded": str(vf.resolve()) in uploaded_paths,
+                "to_check": item.to_check,
             }
             for vf in item.video_files
         ]
@@ -150,6 +156,7 @@ async def _enrich_items(items: list[MediaItem]) -> tuple[set[str], dict, dict]:
             all_paths.append(str(s.path))
     cache = await get_many(all_paths)
     lang_cache = await get_many_langs(all_paths)
+    to_check_paths = await list_flagged_paths()
 
     for item in items:
         sp = str(item.path)
@@ -168,15 +175,22 @@ async def _enrich_items(items: list[MediaItem]) -> tuple[set[str], dict, dict]:
             all_langs: list[str] = []
             any_scanned = False
             series_root = str(item.path.resolve())
+            item.to_check = series_root in to_check_paths
             for season in item.seasons:
                 ssp = str(season.path)
                 ssp_resolved = str(season.path.resolve())
                 season.already_uploaded = ssp_resolved in uploaded_paths or series_root in uploaded_paths
+                season.to_check = ssp_resolved in to_check_paths or series_root in to_check_paths
                 uploaded_ep: set[str] = set()
+                to_check_ep: set[str] = set()
                 for vf in season.video_files:
-                    if str(vf.resolve()) in uploaded_paths:
-                        uploaded_ep.add(str(vf.resolve()))
+                    vf_resolved = str(vf.resolve())
+                    if vf_resolved in uploaded_paths:
+                        uploaded_ep.add(vf_resolved)
+                    if vf_resolved in to_check_paths:
+                        to_check_ep.add(vf_resolved)
                 season.uploaded_episode_paths = uploaded_ep
+                season.to_check_episode_paths = to_check_ep
                 if season.already_uploaded or season.all_episodes_uploaded:
                     uploaded_season_numbers.append(season.number)
                 if not item.tmdb_id:
@@ -196,12 +210,17 @@ async def _enrich_items(items: list[MediaItem]) -> tuple[set[str], dict, dict]:
                         if lang not in all_langs:
                             all_langs.append(lang)
             item.uploaded_season_numbers = uploaded_season_numbers
+            item.any_to_check = item.to_check or any(
+                s.to_check or s.to_check_episode_paths for s in item.seasons
+            )
             if any_scanned:
                 has_ita = "ITA" in all_langs
                 rest = sorted(c for c in all_langs if c != "ITA")
                 item.available_langs = (["ITA"] + rest) if has_ita else rest
                 item.lang_scanned = True
         else:
+            item.to_check = str(item.path.resolve()) in to_check_paths
+            item.any_to_check = item.to_check
             lang_entry = lang_cache.get(sp)
             if lang_entry:
                 item.available_langs = lang_entry.get("langs", [])
@@ -509,6 +528,39 @@ async def library_mark_uploaded(request: Request, category: str, item_name: str,
         final_name="", exit_code=0, hardlink_only=True,
     )
     return JSONResponse({"ok": True})
+
+
+class ToCheckBody(BaseModel):
+    season_path: str = ""
+    episode_path: str = ""
+    flagged: bool = True  # True = mark "to-check", False = clear the flag
+
+
+@router.post("/library/{category}/{item_name:path}/to-check")
+async def library_to_check(request: Request, category: str, item_name: str, body: ToCheckBody):
+    """Toggle the persistent "to-check" flag for a movie / episode / season /
+    whole series. Mirrors ``mark-uploaded`` path resolution but writes to the
+    separate tocheck store and supports clearing (``flagged=False``)."""
+    lang = get_request_lang(request)
+    if category not in discover_categories():
+        raise HTTPException(404, _i18n_t("err.category_not_found", lang))
+    item = get_item(category, item_name)
+    if item is None:
+        raise HTTPException(404, _i18n_t("err.item_not_found_in_category", lang, name=item_name, category=category))
+    if body.episode_path:
+        source_path = str(Path(body.episode_path).resolve())
+        kind = "episode"
+    elif body.season_path:
+        source_path = str(Path(body.season_path).resolve())
+        kind = "series"
+    else:
+        source_path = str(item.path.resolve())
+        kind = item.kind
+    if body.flagged:
+        await add_flag(source_path, category, kind)
+    else:
+        await remove_flag(source_path)
+    return JSONResponse({"ok": True, "flagged": body.flagged})
 
 
 @router.post("/library/{category}/{item_name:path}/rescan-langs")

@@ -4,7 +4,7 @@ import {
   Film, Tv, Sparkles, RefreshCw, Database, Headphones,
   Pencil, X, Search as SearchIcon, Star,
   ChevronDown, Folder, BookOpen, Music, Library as LibraryIcon,
-  CheckSquare, Square,
+  CheckSquare, Square, Flag,
 } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { Category, LibraryItem, Season, SeasonStatus, SeriesStatus, WizardCtx } from '../types';
@@ -69,6 +69,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const [selected, setSelected] = useState<LibraryItem | null>(null);
   const [hideUploaded, setHideUploaded] = useState(true);
   const [hideNoItalian, setHideNoItalian] = useState(false);
+  const [onlyToCheck, setOnlyToCheck] = useState(false);
   const [search, setSearch] = useState('');
   const [enriching, setEnriching] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -172,6 +173,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       if (search && !it.title.toLowerCase().includes(search.toLowerCase())
           && !it.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (hideNoItalian && it.lang_scanned && !it.langs.includes('ITA')) return false;
+      if (onlyToCheck && !(it.any_to_check || it.to_check)) return false;
       if (!hideUploaded) return true;
       if (it.seasons) return !(it.all_seasons_uploaded);
       return !it.already_uploaded;
@@ -186,10 +188,10 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       }
       return a.title.localeCompare(b.title) * dir;
     });
-  }, [items, search, hideUploaded, hideNoItalian, sortBy, sortDir]);
+  }, [items, search, hideUploaded, hideNoItalian, onlyToCheck, sortBy, sortDir]);
 
   const { visible, remaining, hasMore, loadMore } = useIncremental(
-    filtered, 60, [category, search, hideUploaded, hideNoItalian, sortBy, sortDir],
+    filtered, 60, [category, search, hideUploaded, hideNoItalian, onlyToCheck, sortBy, sortDir],
   );
 
   const needTmdb = filtered.filter((i) => !i.tmdb_id).length;
@@ -476,6 +478,26 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           }}>{hideNoItalian && '✓'}</div>
           {t('library.onlyItalian')}
         </div>
+        <div
+          title={t('library.onlyToCheck')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+            fontSize: 11, fontWeight: 600,
+            color: onlyToCheck ? 'var(--yellow)' : 'var(--fg-2)',
+            fontFamily: 'var(--font-display)',
+          }}
+          onClick={() => setOnlyToCheck(!onlyToCheck)}
+        >
+          <div style={{
+            width: 14, height: 14, borderRadius: 3,
+            border: `1px solid ${onlyToCheck ? 'var(--yellow)' : 'var(--border)'}`,
+            background: onlyToCheck ? 'var(--yellow)' : 'var(--bg-card)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 9, color: '#0a0c12',
+          }}>{onlyToCheck && '✓'}</div>
+          <Flag size={11} fill={onlyToCheck ? 'var(--yellow)' : 'none'} />
+          {t('library.onlyToCheck')}
+        </div>
         {needTmdb > 0 && (
           <span style={warnChip}>⚠ {t('library.withoutTmdb', { n: needTmdb })}</span>
         )}
@@ -598,6 +620,12 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
                     {item.langs.slice(0, 2).map((l) => <LangChip key={l} lang={l} />)}
                     {!item.lang_scanned && !item.langs.length && (
                       <Badge color="var(--yellow)" bg="rgba(245,166,35,0.15)">? langs</Badge>
+                    )}
+                    {(item.any_to_check || item.to_check) && (
+                      <Badge color="var(--yellow)" bg="var(--yellow-dim)">
+                        <Flag size={8} fill="var(--yellow)" style={{ marginRight: 2, verticalAlign: '-1px' }} />
+                        {t('library.toCheckBadge')}
+                      </Badge>
                     )}
                   </div>
                   {!bulkMode && (
@@ -945,6 +973,13 @@ function DetailPanel({
                 label={t('library.markSeries')}
               />
             )}
+            <ToCheckBtn
+              category={category}
+              name={item.name}
+              flagged={!!item.to_check}
+              onToggled={onMarked}
+              label={t('library.markSeriesToCheck')}
+            />
             <RescanLangsBtn category={category} name={item.name} onRescan={onRescan} />
           </>
         ) : (
@@ -971,6 +1006,12 @@ function DetailPanel({
               {item.already_uploaded ? t('library.alreadyUploaded') : t('library.startWizard')}
             </button>
             <MarkUploadedBtn category={category} name={item.name} onMarked={onMarked} />
+            <ToCheckBtn
+              category={category}
+              name={item.name}
+              flagged={!!item.to_check}
+              onToggled={onMarked}
+            />
             <RescanLangsBtn category={category} name={item.name} onRescan={onRescan} />
           </>
         )}
@@ -1052,6 +1093,14 @@ function SeasonRow({
           {season.already_uploaded && (
             <span style={{ marginLeft: 6 }}><Badge>uploaded ✓</Badge></span>
           )}
+          {season.to_check && (
+            <span style={{ marginLeft: 6 }}>
+              <Badge color="var(--yellow)" bg="var(--yellow-dim)">
+                <Flag size={8} fill="var(--yellow)" style={{ marginRight: 2, verticalAlign: '-1px' }} />
+                {t('library.toCheckBadge')}
+              </Badge>
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 4 }} onClick={(e) => e.stopPropagation()}>
           {!season.already_uploaded && (
@@ -1072,6 +1121,14 @@ function SeasonRow({
                 variant="inline-sm"
                 label={t('library.marked')}
                 onMarked={onMarked}
+              />
+              <ToCheckBtn
+                category={category}
+                name={item.name}
+                seasonPath={season.path}
+                flagged={!!season.to_check}
+                variant="inline-sm"
+                onToggled={onMarked}
               />
             </>
           )}
@@ -1163,7 +1220,15 @@ function SeasonRow({
                   }}
                 >{num ? ' - ' : ''}{display}</span>
                 {!vf.uploaded && (
-                  <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0 }}>
+                  <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: 'flex', gap: 3 }}>
+                    <ToCheckBtn
+                      category={category}
+                      name={item.name}
+                      episodePath={vf.path}
+                      flagged={!!vf.to_check}
+                      variant="chip"
+                      onToggled={onMarked}
+                    />
                     <MarkUploadedBtn
                       category={category}
                       name={item.name}
@@ -1262,6 +1327,101 @@ function MarkUploadedBtn({
         fontFamily: 'var(--font-display)', marginBottom: 6,
       }}
     >{done ? t('library.marked') : (label ?? t('library.markUploaded'))}</button>
+  );
+}
+
+function ToCheckBtn({
+  category, name,
+  seasonPath, episodePath,
+  variant = 'full',
+  label,
+  flagged,
+  onToggled,
+}: {
+  category: Category;
+  name: string;
+  seasonPath?: string;
+  episodePath?: string;
+  variant?: 'full' | 'inline-sm' | 'chip';
+  label?: string;
+  flagged: boolean;
+  onToggled?: () => void;
+}) {
+  const { t } = useTranslation();
+  const [on, setOn] = useState(flagged);
+  const [busy, setBusy] = useState(false);
+  // Reflect fresh state after a silent library reload re-renders this row.
+  useEffect(() => { setOn(flagged); }, [flagged]);
+  const toggle = async () => {
+    if (busy) return;
+    const next = !on;
+    setBusy(true);
+    try {
+      await api.post(
+        `/api/library/${category}/${encodeURIComponent(name)}/to-check`,
+        {
+          season_path: seasonPath ?? '',
+          episode_path: episodePath ?? '',
+          flagged: next,
+        },
+      );
+      setOn(next);
+      onToggled?.();
+    } catch { /* ignore */ } finally { setBusy(false); }
+  };
+  const accent = on ? 'var(--yellow)' : 'var(--fg-3)';
+  const title = on ? t('library.toCheckClear') : t('library.markToCheck');
+  if (variant === 'inline-sm') {
+    return (
+      <button
+        onClick={toggle}
+        disabled={busy}
+        title={title}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          background: on ? 'var(--yellow-dim)' : 'transparent',
+          border: `1px solid ${on ? 'var(--yellow)' : 'var(--border)'}`,
+          borderRadius: 4, padding: '3px 7px', fontSize: 10, fontWeight: 600,
+          color: accent, cursor: busy ? 'default' : 'pointer',
+          fontFamily: 'var(--font-display)',
+        }}
+      ><Flag size={10} fill={on ? 'var(--yellow)' : 'none'} />{t('library.toCheckShort')}</button>
+    );
+  }
+  if (variant === 'chip') {
+    return (
+      <button
+        onClick={toggle}
+        disabled={busy}
+        title={title}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: on ? 'var(--yellow-dim)' : 'transparent',
+          border: `1px solid ${on ? 'var(--yellow)' : 'var(--border)'}`,
+          borderRadius: 4, padding: '2px 5px', minWidth: 22,
+          color: accent, cursor: busy ? 'default' : 'pointer',
+        }}
+      ><Flag size={11} fill={on ? 'var(--yellow)' : 'none'} /></button>
+    );
+  }
+  return (
+    <button
+      onClick={toggle}
+      disabled={busy}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center',
+        justifyContent: 'center', gap: 6,
+        background: on ? 'var(--yellow-dim)' : 'transparent',
+        border: `1px solid ${on ? 'var(--yellow)' : 'var(--border)'}`,
+        borderRadius: 6, padding: 8, fontSize: 11, fontWeight: 600,
+        color: on ? 'var(--yellow)' : 'var(--fg-2)',
+        cursor: busy ? 'default' : 'pointer',
+        fontFamily: 'var(--font-display)', marginBottom: 6,
+      }}
+    >
+      <Flag size={12} fill={on ? 'var(--yellow)' : 'none'} />
+      {on ? t('library.toCheckMarked') : (label ?? t('library.markToCheck'))}
+    </button>
   );
 }
 

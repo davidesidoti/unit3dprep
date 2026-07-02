@@ -6,6 +6,14 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Nuovo flag **"Da controllare"** nella Media Library: un bottone (⚑) per marcare film,
+  episodi, stagioni e serie intere come da ricontrollare — utile per ricordarsi i media senza
+  traccia audio italiana da rivedere e recuperare. Il flag è persistente e removibile in un
+  click. Le card e le stagioni segnate mostrano un badge giallo "da controllare" e un nuovo
+  filtro **"Solo da controllare"** nella barra dei filtri mostra a colpo d'occhio tutti i
+  media marcati della categoria.
+
 ### Fixed
 - I media pesanti (pacchetti stagione, file di grandi dimensioni) non falliscono più durante la
   creazione del torrent con un errore vuoto (`/maketorrent failed:`). La chiamata a webup veniva
