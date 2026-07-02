@@ -19,6 +19,20 @@ from .config import runtime_setting
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 _HEALTH_TTL = 5.0
 
+# `/scan`, `/maketorrent` and `/upload` are long-blocking calls: webup holds the
+# HTTP response open until torrent hashing / TMDB lookup / screenshots finish,
+# which for heavy media (season packs, large files) easily exceeds the default
+# 180s read timeout. The real ceiling for these phases lives in the orchestrator
+# (`asyncio.wait_for(..., SCAN_TIMEOUT / PHASE_TIMEOUT)`), so we disable httpx's
+# read timeout here and let those guards bound the call. Otherwise the read
+# timeout fires first and reports a spurious "request failed" while webup keeps
+# going and completes at 100% — see the empty-message ReadTimeout symptom.
+_LONG_OP_TIMEOUT = httpx.Timeout(connect=5.0, read=None, write=30.0, pool=5.0)
+
+# Sentinel so `_post` can distinguish "caller passed no timeout" from an explicit
+# `timeout=None` (which httpx interprets as "disable all timeouts").
+_UNSET: Any = object()
+
 
 def base_url() -> str:
     return runtime_setting("WEBUP_URL", DEFAULT_BASE_URL).rstrip("/")
@@ -60,17 +74,23 @@ class WebupClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def _post(self, path: str, payload: dict | None = None) -> httpx.Response:
+    async def _post(self, path: str, payload: dict | None = None, *, timeout: Any = _UNSET) -> httpx.Response:
         try:
-            return await self._client.post(path, json=payload or {})
+            if timeout is _UNSET:
+                return await self._client.post(path, json=payload or {})
+            return await self._client.post(path, json=payload or {}, timeout=timeout)
         except httpx.HTTPError as e:
-            raise WebupError(f"webup {path} request failed: {e}") from e
+            # ReadTimeout et al. stringify to "" — surface the class name so the
+            # UI never shows a bare "request failed:" with no cause.
+            detail = str(e) or e.__class__.__name__
+            raise WebupError(f"webup {path} request failed: {detail}") from e
 
     async def _get(self, path: str) -> httpx.Response:
         try:
             return await self._client.get(path)
         except httpx.HTTPError as e:
-            raise WebupError(f"webup {path} request failed: {e}") from e
+            detail = str(e) or e.__class__.__name__
+            raise WebupError(f"webup {path} request failed: {detail}") from e
 
     async def health(self, force: bool = False) -> dict[str, Any]:
         """Cheap reachability check + version readout. Cached for 5 s."""
@@ -111,17 +131,17 @@ class WebupClient:
     async def scan(self) -> dict[str, Any]:
         # `path` field is required by the Pydantic model but ignored by the
         # endpoint — it reads `app.state.scan_path` (set via PREFS__SCAN_PATH).
-        r = await self._post("/scan", {"path": "ignored"})
+        r = await self._post("/scan", {"path": "ignored"}, timeout=_LONG_OP_TIMEOUT)
         r.raise_for_status()
         return r.json()
 
     async def maketorrent(self, job_id: str) -> dict[str, Any] | None:
-        r = await self._post("/maketorrent", {"job_id": job_id})
+        r = await self._post("/maketorrent", {"job_id": job_id}, timeout=_LONG_OP_TIMEOUT)
         r.raise_for_status()
         return r.json() if r.text else None
 
     async def upload(self, job_id: str) -> dict[str, Any] | None:
-        r = await self._post("/upload", {"job_id": job_id})
+        r = await self._post("/upload", {"job_id": job_id}, timeout=_LONG_OP_TIMEOUT)
         r.raise_for_status()
         return r.json() if r.text else None
 

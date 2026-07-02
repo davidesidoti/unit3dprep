@@ -6,6 +6,14 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- I media pesanti (pacchetti stagione, file di grandi dimensioni) non falliscono più durante la
+  creazione del torrent con un errore vuoto (`/maketorrent failed:`). La chiamata a webup veniva
+  interrotta dopo 180 secondi di attesa mentre webup continuava a lavorare e completava al 100%;
+  ora il tempo di attesa delle fasi lunghe (scan, creazione torrent, upload) è governato solo dal
+  limite di fase (30 minuti), come previsto. In più, eventuali errori senza messaggio ora mostrano
+  il tipo di errore invece di restare vuoti.
+
 ## [1.1.5] - 2026-06-27
 
 ### Changed
