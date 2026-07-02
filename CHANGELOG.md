@@ -6,6 +6,18 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Nell'**Upload rapido** (modalità File singolo e Cartella/Stagione) è ora possibile **rinominare**
+  l'item prima dell'upload tramite un nuovo campo, precompilato con il nome del file/cartella
+  selezionato.
+
+### Fixed
+- **Upload rapido**: la scansione del tracker prendeva l'intera cartella in cui si trovava il
+  file selezionato, includendo file estranei vicini. Ora l'item scelto viene collegato (hardlink)
+  in una cartella dedicata isolata, così lo scan vede **solo** ciò che hai effettivamente
+  selezionato — stesso comportamento del wizard della Media Library. La scansione ricorsiva
+  (Batch) resta invariata.
+
 ## [1.1.6] - 2026-07-03
 
 ### Added

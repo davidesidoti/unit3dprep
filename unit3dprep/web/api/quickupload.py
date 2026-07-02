@@ -1,8 +1,13 @@
 """Quick upload (UploadModal flow) — wraps Unit3DWebUp without the full wizard.
 
 Takes a path + mode (u|f|scan), drives the webup HTTP API, streams logs via SSE.
-No audio check, no hardlink: for power users who already staged files in
-their seeding path. DB record is created on start; exit code updated on done.
+No audio check, no TMDB lookup. For single-file (``u``) and folder (``f``)
+uploads the selected item is hardlinked into a dedicated per-job sandbox
+(``<seedings>/.unit3dprep/<jobid>/``) — optionally renamed — so webup's
+``/scan`` (which processes the whole SCAN_PATH) only ever sees the item the
+user picked, never its unrelated siblings. Recursive ``scan`` is left as a
+raw batch over the chosen directory. A DB record is created at hardlink time
+and its exit code updated on done.
 """
 from __future__ import annotations
 
@@ -18,8 +23,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
+from ...core import VIDEO_EXTENSIONS, iter_video_files
 from ...i18n import get_request_lang, t
-from ..db import update_exit_code
+from ...upload import do_hardlink_movie, do_hardlink_series
+from ..db import record_upload, update_exit_code
 from ..logbuf import emit as log_emit
 from ..webup_orchestrator import stream_webup, stream_webup_batch
 
@@ -37,11 +44,47 @@ def _cleanup():
         _created.pop(j, None)
 
 
+def _sanitize_base(name: str) -> str:
+    """Normalise a user-typed rename into a base name (strip slashes + ext)."""
+    name = name.strip().strip("/\\")
+    p = Path(name)
+    if p.suffix.lower() in VIDEO_EXTENSIONS:
+        name = p.stem
+    return name.strip()
+
+
+def _prepare_sandbox(path: str, mode: str, final_name: str) -> tuple[str, str, str]:
+    """Hardlink the picked item into its per-job sandbox for an isolated /scan.
+
+    Returns ``(seeding_path, source_path, base_name)``. The sandbox lives at
+    ``<seedings>/.unit3dprep/<jobid>/`` so webup only ever scans this one item.
+    Raises ``ValueError`` on a bad selection.
+    """
+    src = Path(path)
+    if mode == "f":
+        if not src.is_dir():
+            raise ValueError("folder mode requires a directory")
+        base = _sanitize_base(final_name) or src.name
+        target = do_hardlink_series(src, base, {})
+        return str(target), str(src.resolve()), base
+    # mode == "u": single video file
+    if src.is_dir():
+        src_file = next(iter(iter_video_files(src)), None)
+        if src_file is None:
+            raise ValueError("no video file in selected folder")
+    else:
+        src_file = src
+    base = _sanitize_base(final_name) or src_file.stem
+    target = do_hardlink_movie(src_file, base)
+    return str(target), str(src_file.resolve()), base
+
+
 class QuickBody(BaseModel):
     path: str
     mode: str = "u"            # u|f|scan
     tracker: str = "ITT"
     tmdb_id: str = ""
+    final_name: str = ""       # rename target (base name, no ext) for u/f
     skip_tmdb: bool = False
     skip_youtube: bool = False
     anon: bool = False
@@ -63,6 +106,7 @@ async def create(request: Request, body: QuickBody):
         "path": str(p),
         "mode": body.mode,
         "tmdb_id": body.tmdb_id,
+        "final_name": body.final_name.strip(),
     }
     _created[job_id] = time.time()
     return JSONResponse({"job": job_id})
@@ -116,11 +160,30 @@ async def stream(request: Request, job: str):
             return
 
         kind = "series" if mode == "f" else "movie"
+        final_name: str = state.get("final_name", "")
+        loop = asyncio.get_event_loop()
+        try:
+            seeding_path, source_path, base = await loop.run_in_executor(
+                None, _prepare_sandbox, path, mode, final_name
+            )
+        except Exception as e:
+            log_emit("error", f"hardlink failed: {e}", "quickupload")
+            yield {"event": "error", "data": str(e)}
+            yield {"event": "done", "data": json.dumps({"exit_code": 1})}
+            return
+        state["seeding_path"] = seeding_path
+        log_emit("ok", f"Hardlink → {seeding_path}", "quickupload")
+        yield {"event": "log", "data": f"hardlink → {seeding_path}"}
+        await record_upload(
+            category="", kind=kind,
+            source_path=source_path, seeding_path=seeding_path,
+            tmdb_id=tmdb_id, final_name=base,
+        )
         async for ev in stream_webup(
             client=app.state.webup,
             ws=app.state.webup_ws,
             scan_lock=app.state.webup_scan_lock,
-            seeding_path=path,
+            seeding_path=seeding_path,
             kind=kind,
             tmdb_id=tmdb_id,
         ):
@@ -143,7 +206,7 @@ async def stream(request: Request, job: str):
             elif et == "done":
                 code = ev.get("exit_code", -1)
                 state["exit_code"] = code
-                await update_exit_code(state["path"], code)
+                await update_exit_code(seeding_path, code)
                 log_emit(
                     "ok" if code == 0 else "error",
                     f"webup exit {code}", "quickupload",

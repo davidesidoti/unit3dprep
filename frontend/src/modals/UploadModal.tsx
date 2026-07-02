@@ -13,6 +13,7 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [path, setPath] = useState('');
+  const [finalName, setFinalName] = useState('');
   const [mode, setMode] = useState<Mode>('u');
   const [tracker, setTracker] = useState('ITT');
   const [opts, setOpts] = useState({
@@ -32,12 +33,20 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [logs, progress]);
+  // Derive a default rename from the picked path: for a single file drop the
+  // extension, for a folder keep the folder name. Resets on path/mode change.
+  useEffect(() => {
+    if (mode === 'scan') { setFinalName(''); return; }
+    const base = path.replace(/[\\/]+$/, '').split(/[\\/]/).pop() || '';
+    setFinalName(mode === 'u' ? base.replace(/\.[^.]+$/, '') : base);
+  }, [path, mode]);
 
   const startUpload = async () => {
     setStarting(true); setError('');
     try {
       const r = await api.post<{ job: string }>('/api/upload/quick', {
         path, mode, tracker,
+        final_name: mode === 'scan' ? '' : finalName,
         screenshots: opts.screenshots,
         skip_tmdb: opts.skipTmdb,
         skip_youtube: opts.skipYoutube,
@@ -212,6 +221,22 @@ export function UploadModal({ onClose }: { onClose: () => void }) {
                 placeholder="/home/user/ITT/upload/..."
                 style={{ ...inputStyle, marginBottom: 10 }}
               />
+
+              {mode !== 'scan' && (
+                <>
+                  <label style={labelStyle}>{t('upload.renameLabel')}</label>
+                  <input
+                    value={finalName}
+                    onChange={(e) => setFinalName(e.target.value)}
+                    placeholder={t('upload.renamePlaceholder')}
+                    style={{ ...inputStyle, marginBottom: 4 }}
+                  />
+                  <div style={{
+                    fontFamily: 'var(--font-display)', fontSize: 10,
+                    color: 'var(--fg-4)', marginBottom: 10, lineHeight: 1.5,
+                  }}>{t('upload.renameHint')}</div>
+                </>
+              )}
 
               <label style={labelStyle}>{t('upload.targetTracker')}</label>
               <select
