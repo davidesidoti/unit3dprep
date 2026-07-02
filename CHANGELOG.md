@@ -22,6 +22,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
   italiana, compare accanto a "Ignora e continua comunque" un pulsante **"Segna da controllare e
   chiudi"**: marca automaticamente come "da controllare" gli episodi (o il film) privi di audio
   italiano e chiude il wizard, così li ritrovi facilmente in seguito senza doverli segnare a mano.
+  Se **tutti** gli episodi scansionati risultano senza traccia italiana, viene marcata
+  direttamente l'intera stagione invece dei singoli episodi.
 - Nel dettaglio di una serie, l'intestazione di una stagione mostra ora il badge giallo "da
   controllare" (con il numero di episodi) anche quando è flaggato **almeno un singolo episodio**,
   non solo quando è marcata l'intera stagione — così si capisce a colpo d'occhio che dentro c'è

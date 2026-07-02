@@ -154,6 +154,7 @@ async def wizard_audio(tok: str):
     state = _get(tok)
     path = Path(state["path"])
     files = [path] if path.is_file() else list(iter_video_files(path))
+    state["audio_total"] = len(files)
 
     async def generate() -> AsyncGenerator[dict, None]:
         loop = asyncio.get_event_loop()
@@ -191,22 +192,28 @@ async def wizard_audio_override(tok: str):
 @router.post("/wizard/{tok}/audio-to-check")
 async def wizard_audio_to_check(tok: str):
     """Flag the non-Italian files found during the audio scan as "to-check"
-    (deferred), then the wizard is closed by the FE. Movie → flag the movie
-    root (matches the library item path); series/episode → flag each non-ITA
-    episode file."""
+    (deferred), then the wizard is closed by the FE.
+    - Movie → flag the movie root (matches the library item path).
+    - Series/season pack where **every** scanned episode lacks ITA → flag the
+      whole season/series folder in one shot (`state["path"]`) instead of each
+      episode, so the library shows the season as flagged.
+    - Otherwise (some episodes ITA, some not) → flag each non-ITA episode file."""
     state = _get(tok)
     non_ita = state.get("non_ita_paths", [])
     if not non_ita:
         return JSONResponse({"ok": True, "flagged": 0})
     category = state["category"]
-    if state["kind"] == "movie":
+    kind = state["kind"]
+    if kind == "movie":
         await add_flag(str(Path(state["path"]).resolve()), category, "movie")
-        flagged = 1
-    else:
-        for p in non_ita:
-            await add_flag(str(Path(p).resolve()), category, "episode")
-        flagged = len(non_ita)
-    return JSONResponse({"ok": True, "flagged": flagged})
+        return JSONResponse({"ok": True, "flagged": 1, "scope": "movie"})
+    total = state.get("audio_total", 0)
+    if kind == "series" and total > 0 and len(non_ita) >= total:
+        await add_flag(str(Path(state["path"]).resolve()), category, "series")
+        return JSONResponse({"ok": True, "flagged": 1, "scope": "season"})
+    for p in non_ita:
+        await add_flag(str(Path(p).resolve()), category, "episode")
+    return JSONResponse({"ok": True, "flagged": len(non_ita), "scope": "episodes"})
 
 
 @router.post("/wizard/{tok}/tmdb")
