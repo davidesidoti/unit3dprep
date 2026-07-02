@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-07-03
+
 ### Added
 - Gestione in **blocco** nella tab **Cronologia Upload**: una casella di selezione per riga
   (più un "seleziona tutti" nell'intestazione) permette di scegliere più voci e cancellarle
