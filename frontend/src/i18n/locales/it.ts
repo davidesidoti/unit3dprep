@@ -384,7 +384,7 @@ export const it: Catalog = {
     bulkMarkUploaded: 'Segna come caricati',
     bulkMarking: 'Marcatura in corso…',
     bulkDone: 'Marcati {{ok}}/{{total}}',
-    bulkOnlyMovies: 'La marcatura in bulk è disponibile solo per i film.',
+    bulkOnlyMovies: 'Segna come caricati vale solo per i film non ancora caricati.',
     bulkScanLangs: 'Scansiona lingue',
     bulkScanLangsProgress: 'Scansione lingue {{done}}/{{total}}…',
     bulkScanLangsDone: 'Lingue scansionate: {{ok}}/{{total}}',

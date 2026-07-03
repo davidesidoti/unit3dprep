@@ -382,7 +382,7 @@ export const en = {
     bulkMarkUploaded: 'Mark as uploaded',
     bulkMarking: 'Marking…',
     bulkDone: 'Marked {{ok}}/{{total}}',
-    bulkOnlyMovies: 'Bulk marking is available only for movies.',
+    bulkOnlyMovies: 'Mark as uploaded applies only to not-yet-uploaded movies.',
     bulkScanLangs: 'Scan languages',
     bulkScanLangsProgress: 'Scanning languages {{done}}/{{total}}…',
     bulkScanLangsDone: 'Languages scanned: {{ok}}/{{total}}',

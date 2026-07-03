@@ -205,19 +205,18 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const needTmdb = filtered.filter((i) => !i.tmdb_id).length;
   const needLangs = filtered.filter((i) => !i.lang_scanned).length;
 
-  const selectableFiltered = useMemo(
-    () => filtered.filter((it) => !it.already_uploaded),
-    [filtered],
-  );
+  // Everything is selectable in bulk mode (scan-langs works on any item, uploaded or not).
+  const selectableFiltered = filtered;
   const canBulk = selectableFiltered.length > 0;
   const selectedCount = selectedPaths.size;
-  // "Mark uploaded" bulk action only applies to movies; scan-langs applies to any selected item.
-  const selectedMovieCount = useMemo(
-    () => items.filter(
-      (it) => selectedPaths.has(it.path) && it.kind === 'movie' && !it.already_uploaded,
-    ).length,
+  // "Mark uploaded" only applies to not-yet-uploaded movies: enabled only when the WHOLE
+  // selection qualifies, so a selected series or an already-uploaded item disables it.
+  const selectedItems = useMemo(
+    () => items.filter((it) => selectedPaths.has(it.path)),
     [items, selectedPaths],
   );
+  const canBulkMark = selectedItems.length > 0
+    && selectedItems.every((it) => it.kind === 'movie' && !it.already_uploaded);
 
   const toggleBulkMode = () => {
     setBulkMode((prev) => {
@@ -229,7 +228,6 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   };
 
   const toggleItemSelected = (item: LibraryItem) => {
-    if (item.already_uploaded) return;
     setSelectedPaths((prev) => {
       const next = new Set(prev);
       if (next.has(item.path)) next.delete(item.path); else next.add(item.path);
@@ -602,9 +600,9 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
               : 0;
             const totalSeasons = isSeries ? item.seasons!.length : 0;
             const selectedHere = selected?.path === item.path;
-            const bulkEligible = bulkMode && !item.already_uploaded;
+            const bulkEligible = bulkMode;
             const bulkSelected = bulkEligible && selectedPaths.has(item.path);
-            const bulkDisabled = bulkMode && item.already_uploaded;
+            const bulkDisabled = false;
             const handleClick = () => {
               if (bulkMode) { toggleItemSelected(item); return; }
               setSelected(item);
@@ -805,14 +803,14 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           </button>
           <button
             onClick={runBulkMark}
-            disabled={selectedMovieCount === 0 || bulkBusy}
+            disabled={!canBulkMark || bulkBusy}
             title={t('library.bulkOnlyMovies')}
             style={{
-              background: selectedMovieCount > 0 && !bulkBusy ? 'var(--green)' : 'var(--border)',
+              background: canBulkMark && !bulkBusy ? 'var(--green)' : 'var(--border)',
               border: 'none', borderRadius: 6,
               padding: '7px 14px', fontSize: 12, fontWeight: 700,
-              color: selectedMovieCount > 0 && !bulkBusy ? '#fff' : 'var(--fg-3)',
-              cursor: selectedMovieCount > 0 && !bulkBusy ? 'pointer' : 'not-allowed',
+              color: canBulkMark && !bulkBusy ? '#fff' : 'var(--fg-3)',
+              cursor: canBulkMark && !bulkBusy ? 'pointer' : 'not-allowed',
               fontFamily: 'var(--font-display)',
             }}
           >
