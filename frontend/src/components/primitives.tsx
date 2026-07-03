@@ -60,6 +60,20 @@ export function LangChip({ lang }: { lang: string }) {
   );
 }
 
+// Subtitle-language chip. ITA highlighted (cyan) to distinguish from the green audio chips.
+export function SubChip({ lang }: { lang: string }) {
+  const isIta = lang === 'ITA';
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
+      background: isIta ? 'rgba(34,211,238,0.14)' : 'var(--bg-card)',
+      color: isIta ? 'var(--cyan, #22d3ee)' : 'var(--fg-3)',
+      border: `1px solid ${isIta ? 'var(--cyan, #22d3ee)' : 'var(--border)'}`,
+      fontFamily: 'var(--font-mono)', marginRight: 3,
+    }}>{lang}</span>
+  );
+}
+
 export function Badge({
   children, color = 'var(--green)', bg = 'var(--green-dim)', style,
 }: {

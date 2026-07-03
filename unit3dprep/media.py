@@ -50,6 +50,7 @@ class Season:
     to_check_episode_paths: set[str] = field(default_factory=set)
     # Lang cache fields (populated by routes)
     available_langs: list = field(default_factory=list)
+    available_subs: list = field(default_factory=list)
     lang_scanned: bool = False
 
     @property
@@ -73,6 +74,10 @@ class Season:
     @property
     def has_italian(self) -> bool:
         return "ITA" in self.available_langs
+
+    @property
+    def has_italian_subs(self) -> bool:
+        return "ITA" in self.available_subs
 
     @property
     def all_episodes_uploaded(self) -> bool:
@@ -106,7 +111,9 @@ class MediaItem:
     any_to_check: bool = False
     # Lang cache fields (populated by routes)
     available_langs: list = field(default_factory=list)
+    available_subs: list = field(default_factory=list)
     episode_langs: dict = field(default_factory=dict)  # str(filepath) -> [langs]
+    episode_subs: dict = field(default_factory=dict)   # str(filepath) -> [sub langs]
     lang_scanned: bool = False
 
     @property
@@ -143,6 +150,10 @@ class MediaItem:
     @property
     def has_italian(self) -> bool:
         return "ITA" in self.available_langs
+
+    @property
+    def has_italian_subs(self) -> bool:
+        return "ITA" in self.available_subs
 
     @property
     def all_seasons_uploaded(self) -> bool:

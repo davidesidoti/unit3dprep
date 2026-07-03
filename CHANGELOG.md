@@ -6,6 +6,16 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- La scansione delle lingue ora rileva anche i **sottotitoli** (tracce muxate e file esterni
+  `.srt`/`.ass`/`.ssa`/`.sub`/`.vtt` accanto al video), così ogni media mostra sia le lingue audio
+  sia quelle dei sottotitoli. Nella Media Library i sottotitoli compaiono come chip dedicati (ITA
+  evidenziato) sulle card, nel pannello dettaglio e sulle righe stagione. I media già scansionati
+  in precedenza si completano con i sottotitoli alla prossima scansione lingue.
+- Nel primo step del wizard (Controllo Audio), se un file non ha audio ITA **ma ha sottotitoli
+  ITA**, compare l'etichetta "SUB ITA" accanto al file e un pulsante dedicato "Sub ITA trovati,
+  carica comunque" per procedere all'upload.
+
 ## [1.1.7] - 2026-07-03
 
 ### Added

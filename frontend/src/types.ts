@@ -15,6 +15,7 @@ export interface Season {
   episode_count: number;
   size: string;
   langs: string[];
+  subs?: string[];
   lang_scanned: boolean;
   already_uploaded: boolean;
   uploaded_episodes: number;
@@ -52,6 +53,7 @@ export interface LibraryItem {
   tmdb_overview: string;
   tmdb_overview_en: string;
   langs: string[];
+  subs?: string[];
   lang_scanned: boolean;
   already_uploaded: boolean;
   to_check?: boolean;

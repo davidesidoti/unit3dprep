@@ -3,10 +3,14 @@
 Keys are source_path strings (unresolved for series/seasons, same convention as tmdb_cache).
 Schema per entry:
   {
-    "langs": ["ITA", "ENG", ...],
-    "episode_langs": { "<str(filepath)>": ["ITA", "ENG"] },  # only for series/seasons
+    "langs": ["ITA", "ENG", ...],                            # audio languages
+    "subs": ["ITA", "ENG", ...],                             # subtitle languages (muxed + sidecar)
+    "episode_langs": { "<str(filepath)>": ["ITA", "ENG"] },  # per-episode audio (series/seasons)
+    "episode_subs": { "<str(filepath)>": ["ITA", "ENG"] },   # per-episode subs (series/seasons)
     "scanned_at": "YYYY-MM-DD HH:MM:SS"
   }
+The "subs"/"episode_subs" keys are added by newer scans; entries written before this feature
+lack them and readers must default to [] / {}. Presence of "subs" marks an entry as sub-scanned.
 """
 import asyncio
 import json
@@ -96,13 +100,22 @@ async def get_lang(source_path: str) -> dict | None:
     return await _run(_get_sync, source_path)
 
 
-async def set_lang(source_path: str, langs: list, episode_langs: dict | None = None):
+async def set_lang(
+    source_path: str,
+    langs: list,
+    episode_langs: dict | None = None,
+    subs: list | None = None,
+    episode_subs: dict | None = None,
+):
     record: dict = {
         "langs": langs,
+        "subs": subs if subs is not None else [],
         "scanned_at": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
     }
     if episode_langs is not None:
         record["episode_langs"] = episode_langs
+    if episode_subs is not None:
+        record["episode_subs"] = episode_subs
     await _run(_set_sync, source_path, record)
 
 

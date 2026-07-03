@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Flag } from 'lucide-react';
+import { Flag, Captions } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { WizardCtx } from '../types';
 
@@ -196,9 +196,10 @@ function AudioStep({ token, onNext, onOverride, onCheckLater }: {
   token: string; onNext: () => void; onOverride: () => void; onCheckLater: () => void;
 }) {
   const { t } = useTranslation();
-  const [files, setFiles] = useState<{ name: string; ok?: boolean; error?: string }[]>([]);
+  const [files, setFiles] = useState<{ name: string; ok?: boolean; error?: string; subs?: string[]; sub_ita?: boolean }[]>([]);
   const [done, setDone] = useState(false);
   const [allOk, setAllOk] = useState(false);
+  const [hasItaSubs, setHasItaSubs] = useState(false);
   const [checkingLater, setCheckingLater] = useState(false);
 
   useEffect(() => {
@@ -207,10 +208,14 @@ function AudioStep({ token, onNext, onOverride, onCheckLater }: {
         if (name === 'file_result') {
           try {
             const r = JSON.parse(data);
-            setFiles((list) => [...list, { name: r.file, ok: r.ok, error: r.error }]);
+            setFiles((list) => [...list, { name: r.file, ok: r.ok, error: r.error, subs: r.subs, sub_ita: r.sub_ita }]);
           } catch {/* */}
         } else if (name === 'done') {
-          try { setAllOk(JSON.parse(data).all_ok); } catch {/* */}
+          try {
+            const d = JSON.parse(data);
+            setAllOk(d.all_ok);
+            setHasItaSubs(!!d.has_ita_subs);
+          } catch {/* */}
           setDone(true); close();
         }
       },
@@ -258,6 +263,14 @@ function AudioStep({ token, onNext, onOverride, onCheckLater }: {
               flex: 1, fontFamily: 'var(--font-mono)', fontSize: 11,
               color: 'var(--fg-1)',
             }}>{r.name}</span>
+            {!r.ok && r.sub_ita && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 3,
+                fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 3,
+                background: 'rgba(34,211,238,0.14)', color: 'var(--cyan, #22d3ee)',
+                border: '1px solid var(--cyan, #22d3ee)', fontFamily: 'var(--font-mono)',
+              }}><Captions size={10} />{t('wizard.audioSubBadge')}</span>
+            )}
             <span style={{
               fontSize: 10, color: r.ok ? 'var(--green)' : 'var(--red)',
               fontFamily: 'var(--font-mono)',
@@ -280,6 +293,18 @@ function AudioStep({ token, onNext, onOverride, onCheckLater }: {
                 fontFamily: 'var(--font-display)',
               }}
             >{t('wizard.audioOverride')}</button>
+            {hasItaSubs && (
+              <button
+                onClick={override}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(34,211,238,0.14)', border: '1px solid var(--cyan, #22d3ee)',
+                  color: 'var(--cyan, #22d3ee)', padding: '8px 14px', borderRadius: 6,
+                  fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: 'var(--font-display)',
+                }}
+              ><Captions size={12} />{t('wizard.audioSubOverride')}</button>
+            )}
             <button
               onClick={checkLater}
               disabled={checkingLater}

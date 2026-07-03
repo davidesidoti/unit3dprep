@@ -1,6 +1,7 @@
 """Pure-logic functions. No print/input/sys.exit side effects."""
 import json
 import os
+import re
 import shutil
 import urllib.parse
 import urllib.request
@@ -30,6 +31,9 @@ def seedings_dir() -> Path:
 # Back-compat constant (resolves at import; use seedings_dir() for live-reload).
 SEEDINGS_DIR = seedings_dir()
 VIDEO_EXTENSIONS = {".mkv", ".mp4", ".avi", ".mov", ".m4v", ".ts", ".webm", ".wmv", ".flv"}
+SUBTITLE_EXTENSIONS = {".srt", ".ass", ".ssa", ".sub", ".vtt"}
+# Filename tokens on sidecar subs that are NOT language tags → ignored during lang inference.
+_SUB_NOISE_TOKENS = {"forced", "sdh", "cc", "full", "hi", "foreign", "sub", "subs", "subtitle", "subtitles"}
 ITA_TAGS = {"it", "ita", "italian", "italiano"}
 TMDB_BASE = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
@@ -73,10 +77,11 @@ STREAM_ABBR = {
 
 
 # ---------------------------------------------------------------------------
-# MediaInfo: audio detection
+# MediaInfo: audio + subtitle detection
 # ---------------------------------------------------------------------------
 
 def _audio_langs(track) -> list[str]:
+    """Language candidates from a single mediainfo track (Audio or Text)."""
     cands = []
     if track.language:
         cands.append(track.language)
@@ -91,41 +96,106 @@ def _audio_langs(track) -> list[str]:
     return [c for c in cands if c]
 
 
-def audio_languages(path: Path) -> list[str]:
-    """Return sorted unique normalised language codes for all audio tracks.
+def _norm_lang_code(raw: str) -> str | None:
+    """Normalise a raw language tag → 3-letter code via LANG_MAP, else None."""
+    normalized = raw.lower().strip()
+    # Handle IETF tags like "it-IT", "en-US" → use primary subtag
+    if "-" in normalized and "_" not in normalized:
+        normalized = normalized.split("-")[0]
+    elif "_" in normalized:
+        normalized = normalized.split("_")[0]
+    return LANG_MAP.get(normalized)
 
-    ITA appears first if present; remaining codes are alphabetically sorted.
-    Returns empty list if pymediainfo not available or parse fails.
+
+def _ita_first(codes: list[str]) -> list[str]:
+    """Return codes with ITA first, remaining alphabetically sorted."""
+    has_ita = "ITA" in codes
+    rest = sorted(c for c in codes if c != "ITA")
+    return (["ITA"] + rest) if has_ita else rest
+
+
+def _sidecar_sub_lang(suffix: str) -> str | None:
+    """Infer a subtitle language code from the sidecar filename part that follows the
+    video stem, e.g. ".ita" → "ITA", "_en.forced" → "ENG". None if no tag found."""
+    for tok in re.split(r"[.\-_ ]+", suffix.lower()):
+        if not tok or tok in _SUB_NOISE_TOKENS:
+            continue
+        code = LANG_MAP.get(tok)
+        if code:
+            return code
+    return None
+
+
+def audio_and_subtitle_languages(path: Path) -> tuple[list[str], list[str]]:
+    """Single mediainfo parse → (audio_langs, subtitle_langs), both normalised ITA-first.
+
+    subtitle_langs merges muxed Text tracks + sidecar subtitle files (.srt/.ass/...) that sit
+    in the same folder and share the video's filename stem. "UND" marks audio/sub streams that
+    are present but whose language could not be determined. Empty lists if parse unavailable.
     """
     if MediaInfo is None:
-        return []
+        return [], []
     try:
         info = MediaInfo.parse(str(path))
     except Exception:
-        return []
-    seen: list[str] = []
-    audio_track_count = 0
+        return [], []
+    audio_seen: list[str] = []
+    sub_seen: list[str] = []
+    audio_count = 0
+    text_count = 0
     for track in info.tracks:
-        if track.track_type != "Audio":
+        if track.track_type == "Audio":
+            audio_count += 1
+            target = audio_seen
+        elif track.track_type == "Text":
+            text_count += 1
+            target = sub_seen
+        else:
             continue
-        audio_track_count += 1
         for c in _audio_langs(track):
-            normalized = c.lower().strip()
-            # Handle IETF tags like "it-IT", "en-US" → use primary subtag
-            if "-" in normalized and "_" not in normalized:
-                normalized = normalized.split("-")[0]
-            elif "_" in normalized:
-                normalized = normalized.split("_")[0]
-            code = LANG_MAP.get(normalized)
-            if code and code not in seen:
-                seen.append(code)
-    # Audio tracks exist but none have a recognised language tag → mark as undetermined
-    if audio_track_count > 0 and not seen:
-        return ["UND"]
-    # ITA first, rest alpha
-    has_ita = "ITA" in seen
-    rest = sorted(c for c in seen if c != "ITA")
-    return (["ITA"] + rest) if has_ita else rest
+            code = _norm_lang_code(c)
+            if code and code not in target:
+                target.append(code)
+    # Sidecar subtitle files next to the video, matched by shared filename stem
+    sidecar_count = 0
+    try:
+        stem = path.stem
+        for sc in path.parent.iterdir():
+            if not sc.is_file() or sc.suffix.lower() not in SUBTITLE_EXTENSIONS:
+                continue
+            sc_stem = sc.stem
+            if sc_stem == stem:
+                suffix = ""
+            elif sc_stem.startswith(stem):
+                suffix = sc_stem[len(stem):]
+            else:
+                continue
+            sidecar_count += 1
+            code = _sidecar_sub_lang(suffix) if suffix else None
+            if code and code not in sub_seen:
+                sub_seen.append(code)
+    except OSError:
+        pass
+    # Streams/sidecars present but no recognised language → undetermined
+    if audio_count > 0 and not audio_seen:
+        audio_seen = ["UND"]
+    if (text_count > 0 or sidecar_count > 0) and not sub_seen:
+        sub_seen = ["UND"]
+    return _ita_first(audio_seen), _ita_first(sub_seen)
+
+
+def audio_languages(path: Path) -> list[str]:
+    """Return normalised audio language codes (ITA-first). Empty if parse fails."""
+    return audio_and_subtitle_languages(path)[0]
+
+
+def subtitle_languages(path: Path) -> list[str]:
+    """Return normalised subtitle language codes (muxed + sidecar, ITA-first)."""
+    return audio_and_subtitle_languages(path)[1]
+
+
+def has_italian_subtitles(path: Path) -> bool:
+    return "ITA" in subtitle_languages(path)
 
 
 def has_italian_audio(path: Path) -> bool:

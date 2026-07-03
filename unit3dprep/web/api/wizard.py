@@ -16,7 +16,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from ...core import (
     extract_specs,
-    has_italian_audio,
+    audio_and_subtitle_languages,
     iter_video_files,
     map_source,
     tmdb_fetch_bilingual,
@@ -160,22 +160,32 @@ async def wizard_audio(tok: str):
         loop = asyncio.get_event_loop()
         all_ok = True
         non_ita: list[str] = []
+        ita_sub_paths: list[str] = []
         for f in files:
             try:
-                ok = await loop.run_in_executor(None, has_italian_audio, f)
-                payload = {"file": f.name, "ok": ok}
+                audio_langs, sub_langs = await loop.run_in_executor(
+                    None, audio_and_subtitle_languages, f)
+                ok = "ITA" in audio_langs
+                sub_ita = "ITA" in sub_langs
+                payload = {"file": f.name, "ok": ok, "subs": sub_langs, "sub_ita": sub_ita}
             except Exception as e:
                 ok = False
-                payload = {"file": f.name, "ok": False, "error": str(e)}
+                sub_ita = False
+                payload = {"file": f.name, "ok": False, "subs": [], "sub_ita": False, "error": str(e)}
             if not ok:
                 all_ok = False
                 non_ita.append(str(f))
+                if sub_ita:
+                    ita_sub_paths.append(str(f))
             yield {"event": "file_result", "data": json.dumps(payload)}
             await asyncio.sleep(0)
         state["audio_ok"] = all_ok
         state["non_ita_paths"] = non_ita
+        state["ita_sub_paths"] = ita_sub_paths
         state["step"] = "tmdb" if all_ok else "audio_failed"
-        yield {"event": "done", "data": json.dumps({"all_ok": all_ok, "total": len(files)})}
+        yield {"event": "done", "data": json.dumps({
+            "all_ok": all_ok, "total": len(files), "has_ita_subs": len(ita_sub_paths) > 0,
+        })}
 
     return EventSourceResponse(generate())
 

@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from ...core import (
-    audio_languages,
+    audio_and_subtitle_languages,
     tmdb_fetch,
     tmdb_fetch_bilingual,
     tmdb_poster_url,
@@ -52,6 +52,7 @@ def _season_to_dict(s: Season, uploaded_paths: set[str]) -> dict[str, Any]:
         "episode_count": s.episode_count,
         "size": s.total_size_human,
         "langs": list(s.available_langs),
+        "subs": list(s.available_subs),
         "lang_scanned": s.lang_scanned,
         "already_uploaded": s.already_uploaded,
         "uploaded_episodes": len(s.uploaded_episode_paths),
@@ -87,6 +88,7 @@ def _item_to_dict(item: MediaItem, uploaded_paths: set[str]) -> dict[str, Any]:
         "tmdb_overview": item.tmdb_overview,
         "tmdb_overview_en": getattr(item, "tmdb_overview_en", ""),
         "langs": list(item.available_langs),
+        "subs": list(item.available_subs),
         "lang_scanned": item.lang_scanned,
         "already_uploaded": str(item.path.resolve()) in uploaded_paths,
         "to_check": item.to_check,
@@ -173,6 +175,7 @@ async def _enrich_items(items: list[MediaItem]) -> tuple[set[str], dict, dict]:
         if item.kind == "series":
             uploaded_season_numbers: list[int] = []
             all_langs: list[str] = []
+            all_subs: list[str] = []
             any_scanned = False
             series_root = str(item.path.resolve())
             item.to_check = series_root in to_check_paths
@@ -204,11 +207,15 @@ async def _enrich_items(items: list[MediaItem]) -> tuple[set[str], dict, dict]:
                 lang_entry = lang_cache.get(ssp)
                 if lang_entry:
                     season.available_langs = lang_entry.get("langs", [])
+                    season.available_subs = lang_entry.get("subs", [])
                     season.lang_scanned = True
                     any_scanned = True
                     for lang in season.available_langs:
                         if lang not in all_langs:
                             all_langs.append(lang)
+                    for sub in season.available_subs:
+                        if sub not in all_subs:
+                            all_subs.append(sub)
             item.uploaded_season_numbers = uploaded_season_numbers
             item.any_to_check = item.to_check or any(
                 s.to_check or s.to_check_episode_paths for s in item.seasons
@@ -217,6 +224,9 @@ async def _enrich_items(items: list[MediaItem]) -> tuple[set[str], dict, dict]:
                 has_ita = "ITA" in all_langs
                 rest = sorted(c for c in all_langs if c != "ITA")
                 item.available_langs = (["ITA"] + rest) if has_ita else rest
+                has_ita_sub = "ITA" in all_subs
+                rest_sub = sorted(c for c in all_subs if c != "ITA")
+                item.available_subs = (["ITA"] + rest_sub) if has_ita_sub else rest_sub
                 item.lang_scanned = True
         else:
             item.to_check = str(item.path.resolve()) in to_check_paths
@@ -224,7 +234,9 @@ async def _enrich_items(items: list[MediaItem]) -> tuple[set[str], dict, dict]:
             lang_entry = lang_cache.get(sp)
             if lang_entry:
                 item.available_langs = lang_entry.get("langs", [])
+                item.available_subs = lang_entry.get("subs", [])
                 item.episode_langs = lang_entry.get("episode_langs", {})
+                item.episode_subs = lang_entry.get("episode_subs", {})
                 item.lang_scanned = True
         if not item.tmdb_kind:
             item.tmdb_kind = "tv" if item.kind == "series" else "movie"
@@ -413,6 +425,39 @@ async def library_enrich(request: Request, category: str):
     return EventSourceResponse(generate())
 
 
+def _ita_first(codes: list[str]) -> list[str]:
+    """Return codes with ITA first, remaining alphabetically sorted."""
+    has_ita = "ITA" in codes
+    rest = sorted(c for c in codes if c != "ITA")
+    return (["ITA"] + rest) if has_ita else rest
+
+
+async def _scan_langs_and_subs(video_files, loop):
+    """Scan each video file once for audio + subtitle languages.
+
+    Returns (merged_audio, episode_langs, merged_subs, episode_subs); audio/subs are ITA-first.
+    Yields the event loop between files so SSE streams stay responsive."""
+    episode_langs: dict[str, list[str]] = {}
+    episode_subs: dict[str, list[str]] = {}
+    seen: list[str] = []
+    seen_subs: list[str] = []
+    for vf in video_files:
+        try:
+            langs, subs = await loop.run_in_executor(None, audio_and_subtitle_languages, vf)
+        except Exception:
+            langs, subs = [], []
+        episode_langs[str(vf)] = langs
+        episode_subs[str(vf)] = subs
+        for lang in langs:
+            if lang not in seen:
+                seen.append(lang)
+        for sub in subs:
+            if sub not in seen_subs:
+                seen_subs.append(sub)
+        await asyncio.sleep(0.05)
+    return _ita_first(seen), episode_langs, _ita_first(seen_subs), episode_subs
+
+
 @router.get("/library/{category}/scan-langs")
 async def library_scan_langs(request: Request, category: str):
     if category not in discover_categories():
@@ -433,60 +478,46 @@ async def library_scan_langs(request: Request, category: str):
             if item.kind == "series":
                 for season in item.seasons:
                     sp = str(season.path)
-                    if sp in lang_cache:
+                    entry = lang_cache.get(sp)
+                    if entry and "subs" in entry:  # already scanned with sub support
                         continue
-                    episode_langs: dict[str, list[str]] = {}
-                    seen: list[str] = []
-                    for vf in season.video_files:
-                        try:
-                            langs = await loop.run_in_executor(None, audio_languages, vf)
-                        except Exception:
-                            langs = []
-                        episode_langs[str(vf)] = langs
-                        for lang in langs:
-                            if lang not in seen:
-                                seen.append(lang)
-                        await asyncio.sleep(0.05)
-                    has_ita = "ITA" in seen
-                    rest = sorted(c for c in seen if c != "ITA")
-                    merged = (["ITA"] + rest) if has_ita else rest
-                    await set_lang(sp, merged, episode_langs)
+                    merged, episode_langs, merged_subs, episode_subs = \
+                        await _scan_langs_and_subs(season.video_files, loop)
+                    await set_lang(sp, merged, episode_langs, subs=merged_subs, episode_subs=episode_subs)
                     yield {
                         "event": "lang_scanned",
                         "data": json.dumps({
                             "source_path": str(item.path),
                             "season_path": sp,
                             "langs": merged,
-                            "has_ita": has_ita,
+                            "subs": merged_subs,
+                            "has_ita": "ITA" in merged,
+                            "has_ita_sub": "ITA" in merged_subs,
                         }),
                     }
             else:
                 sp = str(item.path)
-                if sp in lang_cache:
+                entry = lang_cache.get(sp)
+                if entry and "subs" in entry:  # already scanned with sub support
                     continue
-                episode_langs: dict[str, list[str]] = {}
-                seen: list[str] = []
-                for vf in item.video_files:
-                    try:
-                        langs = await loop.run_in_executor(None, audio_languages, vf)
-                    except Exception:
-                        langs = []
-                    episode_langs[str(vf)] = langs
-                    for lang in langs:
-                        if lang not in seen:
-                            seen.append(lang)
-                    await asyncio.sleep(0.05)
-                has_ita = "ITA" in seen
-                rest = sorted(c for c in seen if c != "ITA")
-                merged = (["ITA"] + rest) if has_ita else rest
-                await set_lang(sp, merged, episode_langs if len(item.video_files) > 1 else None)
+                multi = len(item.video_files) > 1
+                merged, episode_langs, merged_subs, episode_subs = \
+                    await _scan_langs_and_subs(item.video_files, loop)
+                await set_lang(
+                    sp, merged,
+                    episode_langs if multi else None,
+                    subs=merged_subs,
+                    episode_subs=episode_subs if multi else None,
+                )
                 yield {
                     "event": "lang_scanned",
                     "data": json.dumps({
                         "source_path": sp,
                         "season_path": None,
                         "langs": merged,
-                        "has_ita": has_ita,
+                        "subs": merged_subs,
+                        "has_ita": "ITA" in merged,
+                        "has_ita_sub": "ITA" in merged_subs,
                     }),
                 }
         yield {"event": "done", "data": "{}"}
@@ -575,45 +606,39 @@ async def library_rescan_langs(request: Request, category: str, item_name: str):
     if item.kind == "series":
         seasons_result = {}
         all_series_langs: list[str] = []
+        all_series_subs: list[str] = []
         for season in item.seasons:
             sp = str(season.path)
-            episode_langs: dict[str, list[str]] = {}
-            seen: list[str] = []
-            for vf in season.video_files:
-                try:
-                    langs = await loop.run_in_executor(None, audio_languages, vf)
-                except Exception:
-                    langs = []
-                episode_langs[str(vf)] = langs
-                for lang in langs:
-                    if lang not in seen:
-                        seen.append(lang)
-            has_ita = "ITA" in seen
-            rest = sorted(c for c in seen if c != "ITA")
-            merged = (["ITA"] + rest) if has_ita else rest
-            await set_lang(sp, merged, episode_langs)
-            seasons_result[sp] = {"langs": merged, "episode_langs": episode_langs}
+            merged, episode_langs, merged_subs, episode_subs = \
+                await _scan_langs_and_subs(season.video_files, loop)
+            await set_lang(sp, merged, episode_langs, subs=merged_subs, episode_subs=episode_subs)
+            seasons_result[sp] = {
+                "langs": merged, "subs": merged_subs,
+                "episode_langs": episode_langs, "episode_subs": episode_subs,
+            }
             for lang in merged:
                 if lang not in all_series_langs:
                     all_series_langs.append(lang)
-        has_ita_series = "ITA" in all_series_langs
-        rest_series = sorted(c for c in all_series_langs if c != "ITA")
-        merged_series = (["ITA"] + rest_series) if has_ita_series else rest_series
-        return JSONResponse({"ok": True, "langs": merged_series, "seasons": seasons_result})
+            for sub in merged_subs:
+                if sub not in all_series_subs:
+                    all_series_subs.append(sub)
+        return JSONResponse({
+            "ok": True,
+            "langs": _ita_first(all_series_langs),
+            "subs": _ita_first(all_series_subs),
+            "seasons": seasons_result,
+        })
     sp = str(item.path)
-    episode_langs: dict[str, list[str]] = {}
-    seen: list[str] = []
-    for vf in item.video_files:
-        try:
-            langs = await loop.run_in_executor(None, audio_languages, vf)
-        except Exception:
-            langs = []
-        episode_langs[str(vf)] = langs
-        for lang in langs:
-            if lang not in seen:
-                seen.append(lang)
-    has_ita = "ITA" in seen
-    rest = sorted(c for c in seen if c != "ITA")
-    merged = (["ITA"] + rest) if has_ita else rest
-    await set_lang(sp, merged, episode_langs if len(item.video_files) > 1 else None)
-    return JSONResponse({"ok": True, "langs": merged, "episode_langs": episode_langs})
+    multi = len(item.video_files) > 1
+    merged, episode_langs, merged_subs, episode_subs = \
+        await _scan_langs_and_subs(item.video_files, loop)
+    await set_lang(
+        sp, merged,
+        episode_langs if multi else None,
+        subs=merged_subs,
+        episode_subs=episode_subs if multi else None,
+    )
+    return JSONResponse({
+        "ok": True, "langs": merged, "subs": merged_subs,
+        "episode_langs": episode_langs, "episode_subs": episode_subs,
+    })

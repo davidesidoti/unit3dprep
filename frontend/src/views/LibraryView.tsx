@@ -4,11 +4,11 @@ import {
   Film, Tv, Sparkles, RefreshCw, Database, Headphones,
   Pencil, X, Search as SearchIcon, Star,
   ChevronDown, Folder, BookOpen, Music, Library as LibraryIcon,
-  CheckSquare, Square, Flag, Upload, Check,
+  CheckSquare, Square, Flag, Upload, Check, Captions,
 } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { Category, LibraryItem, Season, SeasonStatus, SeriesStatus, WizardCtx } from '../types';
-import { LangChip, Badge, LoadMore } from '../components/primitives';
+import { LangChip, SubChip, Badge, LoadMore } from '../components/primitives';
 import { useIncremental } from '../hooks/useIncremental';
 
 type SortKey = 'name' | 'year' | 'size';
@@ -626,6 +626,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
                     display: 'flex', gap: 3, flexWrap: 'wrap', maxWidth: '65%',
                   }}>
                     {item.langs.slice(0, 2).map((l) => <LangChip key={l} lang={l} />)}
+                    {(item.subs ?? []).slice(0, 2).map((s) => <SubChip key={`s-${s}`} lang={s} />)}
                     {!item.lang_scanned && !item.langs.length && (
                       <Badge color="var(--yellow)" bg="rgba(245,166,35,0.15)">? langs</Badge>
                     )}
@@ -937,6 +938,21 @@ function DetailPanel({
               }}>{t('library.notScanned')}</span>}
         </div>
 
+        <SectionHeader title={t('library.sectionSubs')} />
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 10, alignItems: 'center' }}>
+          {(item.subs ?? []).length ? (
+            <>
+              <Captions size={12} style={{ color: 'var(--fg-3)', marginRight: 2 }} />
+              {(item.subs ?? []).map((s) => <SubChip key={s} lang={s} />)}
+            </>
+          ) : (
+            <span style={{
+              fontSize: 11, color: item.lang_scanned ? 'var(--fg-3)' : 'var(--yellow)',
+              fontFamily: 'var(--font-display)',
+            }}>{item.lang_scanned ? t('library.subsNotFound') : t('library.notScanned')}</span>
+          )}
+        </div>
+
         <SectionHeader title={t('library.sectionSourcePath')} />
         <div style={{
           fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-2)',
@@ -1164,6 +1180,11 @@ function SeasonRow({
         </span>
         {season.langs.length > 0 && <span>{season.langs.join(' / ')}</span>}
         {!season.langs.length && <span style={{ color: 'var(--yellow)' }}>? langs</span>}
+        {(season.subs ?? []).length > 0 && (
+          <span style={{ color: 'var(--cyan, #22d3ee)' }}>
+            {t('library.subShort')} {(season.subs ?? []).join('/')}
+          </span>
+        )}
       </div>
       {!season.already_uploaded && season.uploaded_episodes > 0 && (
         <>
