@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.8] - 2026-07-03
+
 ### Added
 - **Selezione multipla in Media Library**: ora si può selezionare **qualsiasi** elemento (film,
   serie, anche quelli già caricati) e c'è una nuova azione **"Scansiona lingue"** che scansiona
