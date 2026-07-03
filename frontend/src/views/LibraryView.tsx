@@ -92,6 +92,8 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkToast, setBulkToast] = useState<string | null>(null);
+  // Anchor item path for shift-click range selection (in displayed `visible` order).
+  const anchorRef = useRef<string | null>(null);
 
   const loadCategories = async () => {
     try {
@@ -219,6 +221,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     && selectedItems.every((it) => it.kind === 'movie' && !it.already_uploaded);
 
   const toggleBulkMode = () => {
+    anchorRef.current = null;
     setBulkMode((prev) => {
       const next = !prev;
       if (next) { setSelected(null); setBulkToast(null); }
@@ -235,11 +238,34 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     });
   };
 
+  // Plain click toggles + moves the anchor; shift-click selects the whole range
+  // (in displayed `visible` order) between the anchor and the clicked card.
+  const onBulkCardClick = (e: React.MouseEvent, item: LibraryItem) => {
+    if (e.shiftKey && anchorRef.current !== null) {
+      const paths = visible.map((v) => v.path);
+      const a = paths.indexOf(anchorRef.current);
+      const b = paths.indexOf(item.path);
+      if (a !== -1 && b !== -1) {
+        const [lo, hi] = a <= b ? [a, b] : [b, a];
+        const range = paths.slice(lo, hi + 1);
+        setSelectedPaths((prev) => {
+          const next = new Set(prev);
+          for (const p of range) next.add(p);
+          return next;
+        });
+        anchorRef.current = item.path;
+        return;
+      }
+    }
+    toggleItemSelected(item);
+    anchorRef.current = item.path;
+  };
+
   const selectAllVisible = () => {
     setSelectedPaths(new Set(selectableFiltered.map((it) => it.path)));
   };
 
-  const clearSelection = () => setSelectedPaths(new Set());
+  const clearSelection = () => { anchorRef.current = null; setSelectedPaths(new Set()); };
 
   const runBulkMark = async () => {
     if (bulkBusy || selectedCount === 0) return;
@@ -260,6 +286,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     const ok = results.filter((r) => r.status === 'fulfilled').length;
     setBulkToast(t('library.bulkDone', { ok, total: targets.length }));
     setBulkBusy(false);
+    anchorRef.current = null;
     setSelectedPaths(new Set());
     setBulkMode(false);
     await reloadKeepSelection(category);
@@ -281,6 +308,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     }
     setBulkToast(t('library.bulkScanLangsDone', { ok, total: targets.length }));
     setBulkBusy(false);
+    anchorRef.current = null;
     setSelectedPaths(new Set());
     setBulkMode(false);
     await reloadKeepSelection(category);
@@ -603,8 +631,8 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
             const bulkEligible = bulkMode;
             const bulkSelected = bulkEligible && selectedPaths.has(item.path);
             const bulkDisabled = false;
-            const handleClick = () => {
-              if (bulkMode) { toggleItemSelected(item); return; }
+            const handleClick = (e: React.MouseEvent) => {
+              if (bulkMode) { onBulkCardClick(e, item); return; }
               setSelected(item);
             };
             const borderColor = bulkSelected
@@ -617,6 +645,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
                 key={item.path}
                 className="u3d-card"
                 onClick={handleClick}
+                onMouseDown={bulkMode ? (e) => { if (e.shiftKey) e.preventDefault(); } : undefined}
                 style={{
                   background: 'var(--bg-card)',
                   border: `1px solid ${borderColor}`,
