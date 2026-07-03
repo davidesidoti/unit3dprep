@@ -13,6 +13,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
 - **"Rianalizza lingue audio"** nel pannello dettaglio ora mostra l'avanzamento in tempo reale:
   per una serie il pulsante indica il numero di episodi scansionati sul totale (es. "Scansione
   3/12…").
+- Il pulsante "Scansiona Lingue" ha ora un menù (freccia a fianco) con **"Forza ri-scansione"**:
+  rifà la scansione di **tutti** i media ignorando la cache (utile dopo aver sostituito file),
+  mentre il click normale continua a scansionare solo i media non ancora analizzati.
 
 ## [1.1.8] - 2026-07-03
 

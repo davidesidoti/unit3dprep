@@ -476,7 +476,7 @@ async def _scan_langs_and_subs(video_files, loop):
 
 
 @router.get("/library/{category}/scan-langs")
-async def library_scan_langs(request: Request, category: str):
+async def library_scan_langs(request: Request, category: str, force: bool = False):
     if category not in discover_categories():
         raise HTTPException(404, _i18n_t("err.category_not_found", get_request_lang(request)))
 
@@ -495,16 +495,17 @@ async def library_scan_langs(request: Request, category: str):
         # Build the work list up-front (skipping items already scanned with sub
         # support) so the client can render an accurate "done/total" counter.
         tasks: list[tuple[str, object, object]] = []  # (kind, item, season|None)
+        # ``force`` re-scans everything, ignoring the "already scanned" skip.
         for item in items:
             if item.kind == "series":
                 for season in item.seasons:
                     entry = lang_cache.get(str(season.path))
-                    if entry and "subs" in entry:  # already scanned with sub support
+                    if not force and entry and "subs" in entry:  # already scanned with sub support
                         continue
                     tasks.append(("series", item, season))
             else:
                 entry = lang_cache.get(str(item.path))
-                if entry and "subs" in entry:  # already scanned with sub support
+                if not force and entry and "subs" in entry:  # already scanned with sub support
                     continue
                 tasks.append(("movie", item, None))
 

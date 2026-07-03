@@ -88,6 +88,8 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const [mediaRoot, setMediaRoot] = useState('');
   const [catPickerOpen, setCatPickerOpen] = useState(false);
   const catBtnRef = useRef<HTMLDivElement | null>(null);
+  const [scanMenuOpen, setScanMenuOpen] = useState(false);
+  const scanBtnRef = useRef<HTMLDivElement | null>(null);
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -132,6 +134,17 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     window.addEventListener('mousedown', close);
     return () => window.removeEventListener('mousedown', close);
   }, [catPickerOpen]);
+
+  useEffect(() => {
+    if (!scanMenuOpen) return;
+    const close = (e: MouseEvent) => {
+      if (scanBtnRef.current && !scanBtnRef.current.contains(e.target as Node)) {
+        setScanMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, [scanMenuOpen]);
 
   const load = async (cat: Category) => {
     if (!cat) return;
@@ -324,11 +337,15 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     });
   };
 
-  const runScanLangs = () => {
+  const runScanLangs = (force = false) => {
     setScanning(true);
+    setScanMenuOpen(false);
     setBulkToast(null);
     let total = 0;
-    const close = openSSE(`/api/library/${category}/scan-langs`, {
+    const url = force
+      ? `/api/library/${category}/scan-langs?force=1`
+      : `/api/library/${category}/scan-langs`;
+    const close = openSSE(url, {
       onEvent: (name, data) => {
         if (name === 'progress') {
           try {
@@ -495,10 +512,57 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           <Database size={11} />
           {enriching ? t('library.enriching') : t('library.autoTmdb')}
         </button>
-        <button disabled={scanning} onClick={runScanLangs} style={actionBtn}>
-          <Headphones size={11} />
-          {scanning ? t('library.scanning') : t('library.scanLangs')}
-        </button>
+        <div ref={scanBtnRef} style={{ position: 'relative', display: 'inline-flex' }}>
+          <button
+            disabled={scanning}
+            onClick={() => runScanLangs(false)}
+            title={t('library.scanLangsNewSub')}
+            style={{ ...actionBtn, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+          >
+            <Headphones size={11} />
+            {scanning ? t('library.scanning') : t('library.scanLangs')}
+          </button>
+          <button
+            disabled={scanning}
+            onClick={() => setScanMenuOpen((v) => !v)}
+            aria-label={t('library.scanLangsForce')}
+            style={{
+              ...actionBtn, borderLeft: 'none', padding: '0 6px',
+              borderTopLeftRadius: 0, borderBottomLeftRadius: 0,
+            }}
+          >
+            <ChevronDown size={13}
+              style={{ transition: 'transform 150ms',
+                transform: scanMenuOpen ? 'rotate(180deg)' : 'none' }} />
+          </button>
+          {scanMenuOpen && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+              minWidth: 240, background: '#0a0c12',
+              border: '1px solid var(--border)', borderRadius: 8,
+              boxShadow: '0 12px 40px rgba(0,0,0,0.55)', zIndex: 50,
+              overflow: 'hidden',
+            }}>
+              <button onClick={() => runScanLangs(false)} style={scanMenuItem}>
+                <Headphones size={14} color="var(--blue-bright)" />
+                <div>
+                  <div style={{ fontWeight: 600 }}>{t('library.scanLangsNew')}</div>
+                  <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>{t('library.scanLangsNewSub')}</div>
+                </div>
+              </button>
+              <button
+                onClick={() => runScanLangs(true)}
+                style={{ ...scanMenuItem, borderTop: '1px solid var(--border-subtle)' }}
+              >
+                <RefreshCw size={14} color="var(--yellow)" />
+                <div>
+                  <div style={{ fontWeight: 600 }}>{t('library.scanLangsForce')}</div>
+                  <div style={{ fontSize: 10, color: 'var(--fg-4)' }}>{t('library.scanLangsForceSub')}</div>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
         {canBulk && (
           <button
             onClick={toggleBulkMode}
@@ -1666,6 +1730,13 @@ const warnChip: React.CSSProperties = {
   fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 4,
   background: 'rgba(245,166,35,0.1)', color: 'var(--yellow)',
   border: '1px solid var(--yellow)', fontFamily: 'var(--font-display)',
+};
+
+const scanMenuItem: React.CSSProperties = {
+  width: '100%', display: 'flex', alignItems: 'center', gap: 9,
+  padding: '9px 12px', background: 'transparent', border: 'none',
+  color: 'var(--fg-1)', fontSize: 12, cursor: 'pointer',
+  fontFamily: 'var(--font-display)', textAlign: 'left',
 };
 
 function TmdbEditModal({
