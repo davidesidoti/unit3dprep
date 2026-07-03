@@ -7,6 +7,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- **Selezione multipla in Media Library**: ora si possono selezionare anche le **serie** (non solo
+  i film) e c'è una nuova azione **"Scansiona lingue"** che scansiona audio e sottotitoli di tutti
+  gli elementi selezionati in sequenza, con avanzamento. "Segna come caricati" resta limitato ai film.
 - La scansione delle lingue ora rileva anche i **sottotitoli** (tracce muxate e file esterni
   `.srt`/`.ass`/`.ssa`/`.sub`/`.vtt` accanto al video), così ogni media mostra sia le lingue audio
   sia quelle dei sottotitoli. Nella Media Library i sottotitoli compaiono come chip dedicati (ITA

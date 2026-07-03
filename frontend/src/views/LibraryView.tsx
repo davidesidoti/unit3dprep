@@ -206,11 +206,18 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const needLangs = filtered.filter((i) => !i.lang_scanned).length;
 
   const selectableFiltered = useMemo(
-    () => filtered.filter((it) => it.kind === 'movie' && !it.already_uploaded),
+    () => filtered.filter((it) => !it.already_uploaded),
     [filtered],
   );
   const canBulk = selectableFiltered.length > 0;
   const selectedCount = selectedPaths.size;
+  // "Mark uploaded" bulk action only applies to movies; scan-langs applies to any selected item.
+  const selectedMovieCount = useMemo(
+    () => items.filter(
+      (it) => selectedPaths.has(it.path) && it.kind === 'movie' && !it.already_uploaded,
+    ).length,
+    [items, selectedPaths],
+  );
 
   const toggleBulkMode = () => {
     setBulkMode((prev) => {
@@ -222,7 +229,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   };
 
   const toggleItemSelected = (item: LibraryItem) => {
-    if (item.kind !== 'movie' || item.already_uploaded) return;
+    if (item.already_uploaded) return;
     setSelectedPaths((prev) => {
       const next = new Set(prev);
       if (next.has(item.path)) next.delete(item.path); else next.add(item.path);
@@ -254,6 +261,27 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     );
     const ok = results.filter((r) => r.status === 'fulfilled').length;
     setBulkToast(t('library.bulkDone', { ok, total: targets.length }));
+    setBulkBusy(false);
+    setSelectedPaths(new Set());
+    setBulkMode(false);
+    await reloadKeepSelection(category);
+  };
+
+  const runBulkScanLangs = async () => {
+    if (bulkBusy || selectedCount === 0) return;
+    const targets = items.filter((it) => selectedPaths.has(it.path));
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    setBulkToast(null);
+    let ok = 0;
+    for (let i = 0; i < targets.length; i++) {
+      setBulkToast(t('library.bulkScanLangsProgress', { done: i, total: targets.length }));
+      try {
+        await api.post(`/api/library/${category}/${encodeURIComponent(targets[i].name)}/rescan-langs`);
+        ok++;
+      } catch { /* ignore */ }
+    }
+    setBulkToast(t('library.bulkScanLangsDone', { ok, total: targets.length }));
     setBulkBusy(false);
     setSelectedPaths(new Set());
     setBulkMode(false);
@@ -574,9 +602,9 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
               : 0;
             const totalSeasons = isSeries ? item.seasons!.length : 0;
             const selectedHere = selected?.path === item.path;
-            const bulkEligible = bulkMode && item.kind === 'movie';
+            const bulkEligible = bulkMode && !item.already_uploaded;
             const bulkSelected = bulkEligible && selectedPaths.has(item.path);
-            const bulkDisabled = bulkMode && (item.kind !== 'movie' || item.already_uploaded);
+            const bulkDisabled = bulkMode && item.already_uploaded;
             const handleClick = () => {
               if (bulkMode) { toggleItemSelected(item); return; }
               setSelected(item);
@@ -760,14 +788,31 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
             {t('library.bulkCancel')}
           </button>
           <button
-            onClick={runBulkMark}
+            onClick={runBulkScanLangs}
             disabled={selectedCount === 0 || bulkBusy}
             style={{
-              background: selectedCount > 0 && !bulkBusy ? 'var(--green)' : 'var(--border)',
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: selectedCount > 0 && !bulkBusy ? 'var(--blue)' : 'var(--border)',
               border: 'none', borderRadius: 6,
               padding: '7px 14px', fontSize: 12, fontWeight: 700,
-              color: '#fff',
+              color: selectedCount > 0 && !bulkBusy ? '#fff' : 'var(--fg-3)',
               cursor: selectedCount > 0 && !bulkBusy ? 'pointer' : 'not-allowed',
+              fontFamily: 'var(--font-display)',
+            }}
+          >
+            <Music size={13} />
+            {bulkBusy ? t('library.scanning') : t('library.bulkScanLangs')}
+          </button>
+          <button
+            onClick={runBulkMark}
+            disabled={selectedMovieCount === 0 || bulkBusy}
+            title={t('library.bulkOnlyMovies')}
+            style={{
+              background: selectedMovieCount > 0 && !bulkBusy ? 'var(--green)' : 'var(--border)',
+              border: 'none', borderRadius: 6,
+              padding: '7px 14px', fontSize: 12, fontWeight: 700,
+              color: selectedMovieCount > 0 && !bulkBusy ? '#fff' : 'var(--fg-3)',
+              cursor: selectedMovieCount > 0 && !bulkBusy ? 'pointer' : 'not-allowed',
               fontFamily: 'var(--font-display)',
             }}
           >
