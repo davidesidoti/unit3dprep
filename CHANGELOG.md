@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.9] - 2026-07-03
+
 ### Added
 - Contatore di avanzamento anche per la **scansione lingue dell'intera libreria** (pulsante
   "Scansiona Lingue" in alto a destra): compare in basso un indicatore "Scansione lingue x/y…",
