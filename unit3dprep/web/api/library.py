@@ -432,15 +432,18 @@ def _ita_first(codes: list[str]) -> list[str]:
     return (["ITA"] + rest) if has_ita else rest
 
 
-async def _scan_langs_and_subs(video_files, loop):
-    """Scan each video file once for audio + subtitle languages.
+async def _scan_langs_and_subs_stream(video_files, loop):
+    """Async-generator variant of :func:`_scan_langs_and_subs`.
 
-    Returns (merged_audio, episode_langs, merged_subs, episode_subs); audio/subs are ITA-first.
-    Yields the event loop between files so SSE streams stay responsive."""
+    Yields ``("progress", n, path)`` after each file is scanned (``n`` = 1-based
+    count of files done so far), then a terminal
+    ``("result", merged_audio, episode_langs, merged_subs, episode_subs)``.
+    Callers that only need the aggregate use :func:`_scan_langs_and_subs`."""
     episode_langs: dict[str, list[str]] = {}
     episode_subs: dict[str, list[str]] = {}
     seen: list[str] = []
     seen_subs: list[str] = []
+    done = 0
     for vf in video_files:
         try:
             langs, subs = await loop.run_in_executor(None, audio_and_subtitle_languages, vf)
@@ -454,8 +457,22 @@ async def _scan_langs_and_subs(video_files, loop):
         for sub in subs:
             if sub not in seen_subs:
                 seen_subs.append(sub)
+        done += 1
+        yield ("progress", done, str(vf))
         await asyncio.sleep(0.05)
-    return _ita_first(seen), episode_langs, _ita_first(seen_subs), episode_subs
+    yield ("result", _ita_first(seen), episode_langs, _ita_first(seen_subs), episode_subs)
+
+
+async def _scan_langs_and_subs(video_files, loop):
+    """Scan each video file once for audio + subtitle languages.
+
+    Returns (merged_audio, episode_langs, merged_subs, episode_subs); audio/subs are ITA-first.
+    Yields the event loop between files so SSE streams stay responsive."""
+    result = ([], {}, [], {})
+    async for ev in _scan_langs_and_subs_stream(video_files, loop):
+        if ev[0] == "result":
+            result = ev[1:]
+    return result
 
 
 @router.get("/library/{category}/scan-langs")
@@ -474,32 +491,45 @@ async def library_scan_langs(request: Request, category: str):
                 all_paths.append(str(item.path))
         lang_cache = await get_many_langs(all_paths)
         loop = asyncio.get_event_loop()
+
+        # Build the work list up-front (skipping items already scanned with sub
+        # support) so the client can render an accurate "done/total" counter.
+        tasks: list[tuple[str, object, object]] = []  # (kind, item, season|None)
         for item in items:
             if item.kind == "series":
                 for season in item.seasons:
-                    sp = str(season.path)
-                    entry = lang_cache.get(sp)
+                    entry = lang_cache.get(str(season.path))
                     if entry and "subs" in entry:  # already scanned with sub support
                         continue
-                    merged, episode_langs, merged_subs, episode_subs = \
-                        await _scan_langs_and_subs(season.video_files, loop)
-                    await set_lang(sp, merged, episode_langs, subs=merged_subs, episode_subs=episode_subs)
-                    yield {
-                        "event": "lang_scanned",
-                        "data": json.dumps({
-                            "source_path": str(item.path),
-                            "season_path": sp,
-                            "langs": merged,
-                            "subs": merged_subs,
-                            "has_ita": "ITA" in merged,
-                            "has_ita_sub": "ITA" in merged_subs,
-                        }),
-                    }
+                    tasks.append(("series", item, season))
             else:
-                sp = str(item.path)
-                entry = lang_cache.get(sp)
+                entry = lang_cache.get(str(item.path))
                 if entry and "subs" in entry:  # already scanned with sub support
                     continue
+                tasks.append(("movie", item, None))
+
+        total = len(tasks)
+        yield {"event": "progress", "data": json.dumps({"done": 0, "total": total})}
+        done = 0
+        for kind, item, season in tasks:
+            if kind == "series":
+                sp = str(season.path)
+                merged, episode_langs, merged_subs, episode_subs = \
+                    await _scan_langs_and_subs(season.video_files, loop)
+                await set_lang(sp, merged, episode_langs, subs=merged_subs, episode_subs=episode_subs)
+                yield {
+                    "event": "lang_scanned",
+                    "data": json.dumps({
+                        "source_path": str(item.path),
+                        "season_path": sp,
+                        "langs": merged,
+                        "subs": merged_subs,
+                        "has_ita": "ITA" in merged,
+                        "has_ita_sub": "ITA" in merged_subs,
+                    }),
+                }
+            else:
+                sp = str(item.path)
                 multi = len(item.video_files) > 1
                 merged, episode_langs, merged_subs, episode_subs = \
                     await _scan_langs_and_subs(item.video_files, loop)
@@ -520,7 +550,9 @@ async def library_scan_langs(request: Request, category: str):
                         "has_ita_sub": "ITA" in merged_subs,
                     }),
                 }
-        yield {"event": "done", "data": "{}"}
+            done += 1
+            yield {"event": "progress", "data": json.dumps({"done": done, "total": total})}
+        yield {"event": "done", "data": json.dumps({"total": total})}
 
     return EventSourceResponse(generate())
 
@@ -642,3 +674,84 @@ async def library_rescan_langs(request: Request, category: str, item_name: str):
         "ok": True, "langs": merged, "subs": merged_subs,
         "episode_langs": episode_langs, "episode_subs": episode_subs,
     })
+
+
+@router.get("/library/{category}/{item_name:path}/rescan-langs/stream")
+async def library_rescan_langs_stream(request: Request, category: str, item_name: str):
+    """SSE variant of ``rescan-langs`` for a single item. Emits ``progress``
+    events ``{done, total}`` per video file (so a series streams a per-episode
+    counter) and a terminal ``done`` carrying the same payload as the POST."""
+    lang = get_request_lang(request)
+    if category not in discover_categories():
+        raise HTTPException(404, _i18n_t("err.category_not_found", lang))
+    item = get_item(category, item_name)
+    if item is None:
+        raise HTTPException(404, _i18n_t("err.item_not_found_in_category", lang, name=item_name, category=category))
+
+    async def generate() -> AsyncGenerator[dict, None]:
+        loop = asyncio.get_event_loop()
+        if item.kind == "series":
+            total = sum(len(s.video_files) for s in item.seasons)
+            yield {"event": "progress", "data": json.dumps({"done": 0, "total": total})}
+            done = 0
+            seasons_result: dict[str, dict] = {}
+            all_series_langs: list[str] = []
+            all_series_subs: list[str] = []
+            for season in item.seasons:
+                sp = str(season.path)
+                merged, episode_langs, merged_subs, episode_subs = [], {}, [], {}
+                async for ev in _scan_langs_and_subs_stream(season.video_files, loop):
+                    if ev[0] == "progress":
+                        done += 1
+                        yield {"event": "progress", "data": json.dumps({"done": done, "total": total})}
+                    else:
+                        _, merged, episode_langs, merged_subs, episode_subs = ev
+                await set_lang(sp, merged, episode_langs, subs=merged_subs, episode_subs=episode_subs)
+                seasons_result[sp] = {
+                    "langs": merged, "subs": merged_subs,
+                    "episode_langs": episode_langs, "episode_subs": episode_subs,
+                }
+                for lg in merged:
+                    if lg not in all_series_langs:
+                        all_series_langs.append(lg)
+                for sub in merged_subs:
+                    if sub not in all_series_subs:
+                        all_series_subs.append(sub)
+            yield {
+                "event": "done",
+                "data": json.dumps({
+                    "ok": True,
+                    "langs": _ita_first(all_series_langs),
+                    "subs": _ita_first(all_series_subs),
+                    "seasons": seasons_result,
+                }),
+            }
+            return
+
+        sp = str(item.path)
+        multi = len(item.video_files) > 1
+        total = len(item.video_files)
+        yield {"event": "progress", "data": json.dumps({"done": 0, "total": total})}
+        done = 0
+        merged, episode_langs, merged_subs, episode_subs = [], {}, [], {}
+        async for ev in _scan_langs_and_subs_stream(item.video_files, loop):
+            if ev[0] == "progress":
+                done += 1
+                yield {"event": "progress", "data": json.dumps({"done": done, "total": total})}
+            else:
+                _, merged, episode_langs, merged_subs, episode_subs = ev
+        await set_lang(
+            sp, merged,
+            episode_langs if multi else None,
+            subs=merged_subs,
+            episode_subs=episode_subs if multi else None,
+        )
+        yield {
+            "event": "done",
+            "data": json.dumps({
+                "ok": True, "langs": merged, "subs": merged_subs,
+                "episode_langs": episode_langs, "episode_subs": episode_subs,
+            }),
+        }
+
+    return EventSourceResponse(generate())

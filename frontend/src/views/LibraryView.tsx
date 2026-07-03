@@ -326,9 +326,26 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
 
   const runScanLangs = () => {
     setScanning(true);
+    setBulkToast(null);
+    let total = 0;
     const close = openSSE(`/api/library/${category}/scan-langs`, {
-      onEvent: (name) => {
-        if (name === 'done') { close(); setScanning(false); load(category); }
+      onEvent: (name, data) => {
+        if (name === 'progress') {
+          try {
+            const p = JSON.parse(data) as { done: number; total: number };
+            total = p.total;
+            if (p.total > 0) {
+              setBulkToast(t('library.scanLangsProgress', { done: p.done, total: p.total }));
+            }
+          } catch { /* ignore malformed progress */ }
+        } else if (name === 'done') {
+          close();
+          setScanning(false);
+          setBulkToast(total > 0
+            ? t('library.scanLangsDone', { total })
+            : t('library.scanLangsUpToDate'));
+          load(category);
+        }
       },
       onError: () => { close(); setScanning(false); },
     });
@@ -1563,17 +1580,33 @@ function RescanLangsBtn({
 }: { category: Category; name: string; onRescan?: (langs: string[]) => void }) {
   const { t } = useTranslation();
   const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle');
-  const rescan = async () => {
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const rescan = () => {
+    if (state === 'loading') return;
     setState('loading');
-    try {
-      const r = await api.post<{ ok: boolean; langs: string[] }>(
-        `/api/library/${category}/${encodeURIComponent(name)}/rescan-langs`, {},
-      );
-      onRescan?.(r.langs);
-      setState('done');
-    } catch {
-      setState('idle');
-    }
+    setProgress(null);
+    const close = openSSE(
+      `/api/library/${category}/${encodeURIComponent(name)}/rescan-langs/stream`,
+      {
+        onEvent: (evName, data) => {
+          if (evName === 'progress') {
+            try { setProgress(JSON.parse(data) as { done: number; total: number }); }
+            catch { /* ignore malformed progress */ }
+          } else if (evName === 'done') {
+            close();
+            try { onRescan?.((JSON.parse(data) as { langs?: string[] }).langs ?? []); }
+            catch { /* ignore malformed payload */ }
+            setState('done');
+            setProgress(null);
+          } else if (evName === 'error') {
+            close();
+            setState('idle');
+            setProgress(null);
+          }
+        },
+        onError: () => { close(); setState('idle'); setProgress(null); },
+      },
+    );
   };
   return (
     <button
@@ -1588,7 +1621,11 @@ function RescanLangsBtn({
         fontFamily: 'var(--font-display)', marginBottom: 6,
       }}
     >
-      {state === 'loading' ? t('library.scanning') : state === 'done' ? t('library.rescanDone') : t('library.rescanLangs')}
+      {state === 'loading'
+        ? (progress && progress.total > 0
+            ? t('library.rescanProgress', { done: progress.done, total: progress.total })
+            : t('library.scanning'))
+        : state === 'done' ? t('library.rescanDone') : t('library.rescanLangs')}
     </button>
   );
 }

@@ -6,6 +6,14 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Contatore di avanzamento anche per la **scansione lingue dell'intera libreria** (pulsante
+  "Scansiona Lingue" in alto a destra): compare in basso un indicatore "Scansione lingue x/y…",
+  come già avviene per la selezione multipla.
+- **"Rianalizza lingue audio"** nel pannello dettaglio ora mostra l'avanzamento in tempo reale:
+  per una serie il pulsante indica il numero di episodi scansionati sul totale (es. "Scansione
+  3/12…").
+
 ## [1.1.8] - 2026-07-03
 
 ### Added
