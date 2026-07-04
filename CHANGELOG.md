@@ -20,6 +20,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ### Changed
 - Il match dei duplicati usa un'impronta più robusta (numero di file + dimensioni) invece della
   sola dimensione totale in byte, riducendo i falsi riconoscimenti anche per film ed episodi.
+- Nel popup "Possibile duplicato" il pulsante **"Annulla"** è ora evidenziato in giallo (azione
+  consigliata) mentre **"Carica comunque"** è neutro, per scoraggiare il caricamento di un duplicato.
 
 ## [1.1.9] - 2026-07-03
 

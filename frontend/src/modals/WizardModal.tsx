@@ -657,22 +657,22 @@ function DuplicateStep({ token, duplicate, onContinue, onCancel }: {
           onClick={cancel}
           disabled={busy}
           style={{
-            background: 'transparent', border: '1px solid var(--border)',
-            color: 'var(--fg-2)', padding: '8px 18px', borderRadius: 6,
-            fontSize: 12, fontWeight: 600,
+            background: 'var(--yellow)', border: 'none', color: '#0a0c12',
+            padding: '8px 18px', borderRadius: 6, fontSize: 12,
+            fontWeight: 700,
             cursor: busy ? 'not-allowed' : 'pointer',
-            fontFamily: 'var(--font-display)', opacity: busy ? 0.5 : 1,
+            fontFamily: 'var(--font-display)', opacity: busy ? 0.6 : 1,
           }}
         >{skipping ? '…' : t('wizard.duplicateCancel')}</button>
         <button
           onClick={confirm}
           disabled={busy}
           style={{
-            background: 'var(--yellow)', border: 'none', color: '#0a0c12',
-            padding: '8px 18px', borderRadius: 6, fontSize: 12,
-            fontWeight: 700,
+            background: 'transparent', border: '1px solid var(--border)',
+            color: 'var(--fg-2)', padding: '8px 18px', borderRadius: 6,
+            fontSize: 12, fontWeight: 600,
             cursor: busy ? 'not-allowed' : 'pointer',
-            fontFamily: 'var(--font-display)', opacity: busy ? 0.6 : 1,
+            fontFamily: 'var(--font-display)', opacity: busy ? 0.5 : 1,
           }}
         >{confirming ? '…' : t('wizard.duplicateContinue')}</button>
       </div>
