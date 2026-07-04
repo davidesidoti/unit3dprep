@@ -237,6 +237,7 @@ function CandidateRow({ c, onReseed }: { c: ReseedCandidate; onReseed: (c: Resee
           <span style={{ fontSize: 10, color: 'var(--red)', fontFamily: 'var(--font-mono)' }}>↓ {c.torrent.seeders} {t('reseed.seedersLabel')}</span>
           <span style={{ fontSize: 10, color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>
             {t('reseed.localFile')}: {c.item_name}{se}
+            {c.num_files ? ` · ${t('reseed.fileCount', { count: c.num_files })}` : ''}
           </span>
         </div>
       </div>

@@ -515,6 +515,8 @@ export const en = {
     youHaveMulti: '{{count}} matching local files',
     seedersLabel: 'seeders',
     localFile: 'Local file',
+    fileCount_one: '{{count}} file',
+    fileCount_other: '{{count}} files',
     // wizard
     wizardTitle: 'Reseed',
     stepSelect: 'Select file',

@@ -219,7 +219,11 @@ function SelectStep({ loading, torrent, matches, onPick }: {
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12, color: 'var(--fg-1)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word' }}>{m.item_name}</div>
-                <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>{m.category} · {m.size_human}</div>
+                <div style={{ fontSize: 10, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>
+                  {m.category} · {m.size_human}
+                  {m.kind === 'season' && m.season != null ? ` · S${String(m.season).padStart(2, '0')}` : ''}
+                  {m.num_files ? ` · ${t('reseed.fileCount', { count: m.num_files })}` : ''}
+                </div>
               </div>
               <span style={{
                 fontSize: 11, fontWeight: 700, color: 'var(--blue-bright)',

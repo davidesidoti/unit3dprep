@@ -5,9 +5,10 @@ a *new* torrent) and exposes nothing for fetching an existing torrent or
 listing 0-seed ones. So reseed talks to the ITT/Unit3D API + qBittorrent
 directly:
 
-  1. discover ITT torrents with **0 seeders** whose exact byte size matches a
-     local single-file media item (movie or single episode), via tmdbId +
-     size, reusing the duplicate-check pattern;
+  1. discover ITT torrents with **0 seeders** whose content matches local media
+     — a single file (movie/episode) by exact byte size, or a **season pack** by
+     exact file-count + per-file size multiset (from the API `files[]`) — via
+     tmdbId, reusing the duplicate-check fingerprint;
   2. download the `.torrent`;
   3. add it to qBit **paused + skip-check**, read the file layout qBit expects
      (`/torrents/files`), hardlink the local content into those paths, then
@@ -30,6 +31,7 @@ import httpx
 from ..core import VIDEO_EXTENSIONS, hardlink_file, seedings_dir
 from ..media import discover_categories, scan_category
 from .clients import get_client
+from .duplicate_check import _entry_delta, _entry_file_sizes
 from .db import record_upload
 from .tmdb_cache import get_many
 from .trackers import _human_size, _resolution_for, _type_for
@@ -225,6 +227,55 @@ def _guess_episode(name: str) -> int | None:
         return None
 
 
+def _units_from_item(item: Any) -> list[dict[str, Any]]:
+    """Single-file reseed units for one media item (movie or per-episode)."""
+    units: list[dict[str, Any]] = []
+    if item.kind == "movie":
+        if len(item.video_files) == 1:
+            units.append({
+                "item": item, "file": item.video_files[0],
+                "kind": "movie", "season": None, "episode": None,
+            })
+    else:
+        for season in item.seasons:
+            for vf in season.video_files:
+                units.append({
+                    "item": item, "file": vf, "kind": "episode",
+                    "season": season.number, "episode": _guess_episode(vf.name),
+                })
+    return units
+
+
+def _pack_units_from_item(item: Any) -> list[dict[str, Any]]:
+    """Season-pack reseed units for one media item: one per season folder that
+    holds ≥2 video files (a single-file season is already an episode unit).
+    Carries the folder path + fingerprint (count, total, sorted per-file sizes).
+    """
+    units: list[dict[str, Any]] = []
+    if item.kind != "series":
+        return units
+    for season in item.seasons:
+        vids = list(season.video_files)
+        if len(vids) < 2:
+            continue
+        sizes: list[int] = []
+        ok = True
+        for vf in vids:
+            s = _safe_size(vf)
+            if s is None:
+                ok = False
+                break
+            sizes.append(s)
+        if not ok or not sizes:
+            continue
+        units.append({
+            "item": item, "kind": "season", "season": season.number,
+            "path": season.path, "num_files": len(sizes),
+            "total": sum(sizes), "sizes": sorted(sizes),
+        })
+    return units
+
+
 def _scan_units(category: str) -> list[dict[str, Any]]:
     """Flatten a category into single-file reseed units (one ITT query each).
 
@@ -232,19 +283,15 @@ def _scan_units(category: str) -> list[dict[str, Any]]:
     """
     units: list[dict[str, Any]] = []
     for item in scan_category(category):
-        if item.kind == "movie":
-            if len(item.video_files) == 1:
-                units.append({
-                    "item": item, "file": item.video_files[0],
-                    "kind": "movie", "season": None, "episode": None,
-                })
-        else:
-            for season in item.seasons:
-                for vf in season.video_files:
-                    units.append({
-                        "item": item, "file": vf, "kind": "episode",
-                        "season": season.number, "episode": _guess_episode(vf.name),
-                    })
+        units.extend(_units_from_item(item))
+    return units
+
+
+def _pack_units(category: str) -> list[dict[str, Any]]:
+    """Flatten a category into season-pack reseed units (one per season folder)."""
+    units: list[dict[str, Any]] = []
+    for item in scan_category(category):
+        units.extend(_pack_units_from_item(item))
     return units
 
 
@@ -282,30 +329,87 @@ def _local_match(unit: dict[str, Any], size: int) -> dict:
     }
 
 
-def _index_category(category: str) -> dict[int, list[dict]]:
-    """Size -> local matches for a single category (sync; run in an executor)."""
-    part: dict[int, list[dict]] = {}
-    for unit in _scan_units(category):
-        try:
-            sz = unit["file"].stat().st_size
-        except OSError:
+def _pack_local_match(unit: dict[str, Any]) -> dict:
+    """Manual-flow match dict for a local season pack. Carries the sorted
+    per-file `sizes` (internal — stripped before the frontend) for the exact
+    multiset re-check in `_pack_local_matches`."""
+    item = unit["item"]
+    return {
+        "source_path": str(unit["path"]),
+        "item_name": item.name,
+        "category": item.category,
+        "kind": "season",
+        "season": unit["season"],
+        "size": unit["total"],
+        "size_human": _human_size(unit["total"]),
+        "num_files": unit["num_files"],
+        "sizes": unit["sizes"],
+    }
+
+
+def _pack_local_matches(attrs: dict, pack_idx: dict[int, list[dict]]) -> list[dict]:
+    """Local season-pack folders that can reseed a tracker torrent: exact total
+    size AND — when the API exposes them — matching file count + per-file size
+    multiset (reseed needs byte-exact content, so no size tolerance). Strips the
+    internal `sizes` key before returning to the frontend."""
+    try:
+        t_size = int(attrs.get("size"))
+    except (TypeError, ValueError):
+        return []
+    cands = pack_idx.get(t_size)
+    if not cands:
+        return []
+    t_sizes = _entry_file_sizes(attrs)  # sorted list, [] when the API omits files
+    try:
+        t_num = int(attrs.get("num_file")) if attrs.get("num_file") is not None else None
+    except (TypeError, ValueError):
+        t_num = None
+    out: list[dict] = []
+    for c in cands:
+        if t_num is not None and c.get("num_files") and t_num != c["num_files"]:
             continue
-        part.setdefault(sz, []).append(_local_match(unit, sz))
-    return part
+        if t_sizes and c.get("sizes") and list(c["sizes"]) != t_sizes:
+            continue
+        out.append({k: v for k, v in c.items() if k != "sizes"})
+    return out
 
 
-def _local_size_index(categories: list[str] | None = None) -> dict[int, list[dict]]:
-    """Map exact byte size -> local single-file matches.
+def _index_category_all(category: str) -> tuple[dict[int, list[dict]], dict[int, list[dict]]]:
+    """Single scan of a category → (single-file size index, season-pack total
+    size index). Sync; run in an executor. The pack index keys on each season
+    folder's aggregate size; matches carry the sorted per-file sizes."""
+    single: dict[int, list[dict]] = {}
+    pack: dict[int, list[dict]] = {}
+    for item in scan_category(category):
+        for unit in _units_from_item(item):
+            sz = _safe_size(unit["file"])
+            if sz is None:
+                continue
+            single.setdefault(sz, []).append(_local_match(unit, sz))
+        for punit in _pack_units_from_item(item):
+            pack.setdefault(punit["total"], []).append(_pack_local_match(punit))
+    return single, pack
 
-    Used by the manual flow to keep only torrents the user can actually reseed
-    (a tracker torrent is reseedable iff a local file has its exact size).
-    `categories=None` scans them all; pass a subset to narrow (and speed up).
+
+def _local_indexes(
+    categories: list[str] | None = None,
+) -> tuple[dict[int, list[dict]], dict[int, list[dict]]]:
+    """Merge `_index_category_all` across categories → (single idx, pack idx).
+
+    Used by the manual flow to keep only torrents the user can actually reseed:
+    a single-file torrent iff a local file has its exact size; a season pack iff
+    a local season folder matches its file-count + per-file sizes. `categories=
+    None` scans them all; pass a subset to narrow (and speed up).
     """
-    idx: dict[int, list[dict]] = {}
+    single: dict[int, list[dict]] = {}
+    pack: dict[int, list[dict]] = {}
     for category in (categories if categories is not None else discover_categories()):
-        for sz, ms in _index_category(category).items():
-            idx.setdefault(sz, []).extend(ms)
-    return idx
+        s, p = _index_category_all(category)
+        for sz, ms in s.items():
+            single.setdefault(sz, []).extend(ms)
+        for sz, ms in p.items():
+            pack.setdefault(sz, []).extend(ms)
+    return single, pack
 
 
 def _candidate_dict(unit: dict[str, Any], local_size: int, attrs: dict, entry: dict, base: str) -> dict:
@@ -320,6 +424,23 @@ def _candidate_dict(unit: dict[str, Any], local_size: int, attrs: dict, entry: d
         "episode": unit["episode"],
         "local_size": local_size,
         "local_size_human": _human_size(local_size),
+        "torrent": _torrent_brief(attrs, tid, base),
+    }
+
+
+def _pack_candidate_dict(unit: dict[str, Any], attrs: dict, entry: dict, base: str) -> dict:
+    item = unit["item"]
+    tid = int(entry.get("id") or attrs.get("id") or 0)
+    return {
+        "source_path": str(unit["path"]),
+        "item_name": item.name,
+        "category": item.category,
+        "kind": "season",
+        "season": unit["season"],
+        "episode": None,
+        "local_size": unit["total"],
+        "local_size_human": _human_size(unit["total"]),
+        "num_files": unit["num_files"],
         "torrent": _torrent_brief(attrs, tid, base),
     }
 
@@ -364,6 +485,36 @@ async def _match_unit(
     return None
 
 
+async def _match_pack_unit(
+    client: httpx.AsyncClient, base: str, token: str,
+    unit: dict[str, Any], cache: dict[str, dict], max_seeders: int = 0,
+) -> dict | str | None:
+    """Season-pack variant of `_match_unit`. A candidate is a tracker torrent
+    for the same tmdbId+season with an **exact** fingerprint (file count +
+    per-file size multiset, tolerance 0 — reseed needs byte-exact content) and
+    ``seeders <= max_seeders``. Returns a candidate dict, ``"unenriched"``, or
+    ``None``."""
+    item = unit["item"]
+    tmdb = cache.get(str(item.path)) or {}
+    tmdb_id = tmdb.get("tmdb_id", "")
+    if not tmdb_id:
+        return "unenriched"
+    params: dict[str, str] = {"tmdbId": str(tmdb_id), "api_token": token, "perPage": "100"}
+    if unit["season"] is not None:
+        params["seasonNumber"] = str(unit["season"])
+    data = await _filter(client, base, params)
+    for entry in data:
+        attrs = entry.get("attributes") or {}
+        if int(attrs.get("seeders") or 0) > max_seeders:
+            continue
+        if _entry_delta(
+            attrs, num_files=unit["num_files"], total_size=unit["total"],
+            file_sizes=unit["sizes"], tolerance_bytes=0,
+        ) is not None:
+            return _pack_candidate_dict(unit, attrs, entry, base)
+    return None
+
+
 async def stream_reseed_candidates(
     cfg: dict[str, Any], category: str, *, offset: int = 0, limit: int = 20,
     max_seeders: int = 0,
@@ -376,7 +527,7 @@ async def stream_reseed_candidates(
     `max_seeders` (default 0) is the inclusive seeder ceiling for a match —
     0 keeps only dead torrents; raise it to also surface near-dead ones."""
     base, token = _itt_creds(cfg)
-    units = _scan_units(category)
+    units = _scan_units(category) + _pack_units(category)
     window = units[offset:offset + limit]
     next_offset = offset + len(window)
 
@@ -403,6 +554,8 @@ async def stream_reseed_candidates(
     async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
         async def check(unit: dict[str, Any]) -> dict | str | None:
             async with sem:
+                if unit["kind"] == "season":
+                    return await _match_pack_unit(client, base, token, unit, cache, max_seeders)
                 return await _match_unit(client, base, token, unit, cache, max_seeders)
 
         tasks = [asyncio.create_task(check(u)) for u in window]
@@ -422,8 +575,9 @@ async def stream_reseed_candidates(
 
 
 async def suggest_local_files(cfg: dict[str, Any], torrent_id: int) -> dict[str, Any]:
-    """For the manual flow: torrent meta + local single-file items whose size
-    matches the torrent exactly (pre-selection)."""
+    """For the manual flow: torrent meta + local items that can reseed it —
+    single files matching its exact size, plus season folders matching its
+    file-count + per-file sizes (pre-selection)."""
     base, token = _itt_creds(cfg)
     if not _itt_configured(base, token):
         return {"torrent": None, "matches": []}
@@ -434,7 +588,9 @@ async def suggest_local_files(cfg: dict[str, Any], torrent_id: int) -> dict[str,
         size = int(meta.get("size"))
     except (TypeError, ValueError):
         size = 0
-    matches = _local_size_index().get(size, []) if size > 0 else []
+    single_idx, pack_idx = _local_indexes()
+    matches = list(single_idx.get(size, [])) if size > 0 else []
+    matches += _pack_local_matches(meta, pack_idx)
     tid = int(meta.get("id") or torrent_id)
     return {"torrent": _torrent_brief(meta, tid, base), "matches": matches}
 
@@ -456,7 +612,7 @@ async def reseed_search(cfg: dict[str, Any], query: str, category: str | None = 
     base, token = _itt_creds(cfg)
     if not _itt_configured(base, token) or not query.strip():
         return {"results": []}
-    idx = _local_size_index(_search_categories(category))
+    single_idx, pack_idx = _local_indexes(_search_categories(category))
     async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
         data = await _filter(client, base, {"api_token": token, "name": query, "perPage": "50"})
     results: list[dict] = []
@@ -466,7 +622,8 @@ async def reseed_search(cfg: dict[str, Any], query: str, category: str | None = 
             tsize = int(attrs.get("size"))
         except (TypeError, ValueError):
             continue
-        matches = idx.get(tsize)
+        matches = list(single_idx.get(tsize) or [])
+        matches += _pack_local_matches(attrs, pack_idx)
         if not matches:
             continue
         tid = int(entry.get("id") or attrs.get("id") or 0)
@@ -500,11 +657,14 @@ async def stream_reseed_search(
     categories = _search_categories(category)
     total = len(categories)
     loop = asyncio.get_event_loop()
-    idx: dict[int, list[dict]] = {}
+    single_idx: dict[int, list[dict]] = {}
+    pack_idx: dict[int, list[dict]] = {}
     for i, cat in enumerate(categories):
-        part = await loop.run_in_executor(None, _index_category, cat)
-        for sz, ms in part.items():
-            idx.setdefault(sz, []).extend(ms)
+        part_single, part_pack = await loop.run_in_executor(None, _index_category_all, cat)
+        for sz, ms in part_single.items():
+            single_idx.setdefault(sz, []).extend(ms)
+        for sz, ms in part_pack.items():
+            pack_idx.setdefault(sz, []).extend(ms)
         yield ("progress", {"done": i + 1, "total": total, "category": cat})
 
     count = 0
@@ -514,7 +674,8 @@ async def stream_reseed_search(
             tsize = int(attrs.get("size"))
         except (TypeError, ValueError):
             continue
-        matches = idx.get(tsize)
+        matches = list(single_idx.get(tsize) or [])
+        matches += _pack_local_matches(attrs, pack_idx)
         if not matches:
             continue
         tid = int(entry.get("id") or attrs.get("id") or 0)

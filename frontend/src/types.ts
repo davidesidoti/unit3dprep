@@ -178,11 +178,12 @@ export interface ReseedCandidate {
   source_path: string;
   item_name: string;
   category: string;
-  kind: string;          // 'movie' | 'episode'
+  kind: string;          // 'movie' | 'episode' | 'season'
   season: number | null;
   episode: number | null;
   local_size: number;
   local_size_human: string;
+  num_files?: number;    // season packs only: video-file count
   torrent: ReseedTorrent;
 }
 
@@ -193,6 +194,8 @@ export interface ReseedMatch {
   kind: string;
   size: number;
   size_human: string;
+  season?: number | null;  // season packs only
+  num_files?: number;      // season packs only: video-file count
 }
 
 export interface ReseedSuggest {

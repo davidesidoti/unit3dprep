@@ -517,6 +517,8 @@ export const it: Catalog = {
     youHaveMulti: '{{count}} file locali corrispondenti',
     seedersLabel: 'seed',
     localFile: 'File locale',
+    fileCount_one: '{{count}} file',
+    fileCount_other: '{{count}} file',
     // wizard
     wizardTitle: 'Reseed',
     stepSelect: 'Scegli file',
