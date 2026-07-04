@@ -342,18 +342,44 @@ async def wizard_names(tok: str, body: NamesBody):
     return JSONResponse({"ok": True})
 
 
-def _primary_source_size(state: dict[str, Any]) -> int | None:
-    """Bytes of the file we're about to upload (None for season packs)."""
-    if state["kind"] not in {"movie", "episode"}:
-        return None
+def _source_fingerprint(state: dict[str, Any]) -> tuple[int | None, int | None, list[int]]:
+    """(file_count, total_bytes, sorted per-file sizes) of what we'll upload.
+
+    Movie/episode → the single video file. Series (season pack / full series)
+    → every video file that ``hardlink_tree`` will place in the torrent, so the
+    fingerprint mirrors the packaged content. ``(None, None, [])`` when nothing
+    usable is found.
+    """
     path = Path(state["path"])
-    src = path if path.is_file() else next(iter(iter_video_files(path)), None)
-    if src is None:
-        return None
+    if state["kind"] in {"movie", "episode"}:
+        src = path if path.is_file() else next(iter(iter_video_files(path)), None)
+        if src is None:
+            return (None, None, [])
+        try:
+            sz = src.stat().st_size
+        except OSError:
+            return (None, None, [])
+        return (1, sz, [sz])
+    if state["kind"] == "series":
+        sizes: list[int] = []
+        for f in iter_video_files(path):
+            try:
+                sizes.append(f.stat().st_size)
+            except OSError:
+                continue
+        if not sizes:
+            return (None, None, [])
+        return (len(sizes), sum(sizes), sorted(sizes))
+    return (None, None, [])
+
+
+def _duplicate_tolerance_pct(cfg: dict[str, Any]) -> float:
+    """Configured size-match tolerance (%), clamped to a sane range."""
     try:
-        return src.stat().st_size
-    except OSError:
-        return None
+        v = float(cfg.get("W_DUPLICATE_SIZE_TOLERANCE_PCT", 2.0))
+    except (TypeError, ValueError):
+        v = 2.0
+    return max(0.0, min(v, 50.0))
 
 
 @router.post("/wizard/{tok}/duplicate-check")
@@ -362,10 +388,10 @@ async def wizard_duplicate_check(tok: str):
     cfg = web_config.load()
     enabled = bool(cfg.get("W_DUPLICATE_CHECK", True))
     state["duplicate"] = None
-    if not enabled or state["kind"] not in {"movie", "episode"}:
+    if not enabled:
         state["step"] = "hardlink"
         return JSONResponse({"enabled": enabled, "duplicate": None})
-    size = _primary_source_size(state)
+    num_files, total_size, file_sizes = _source_fingerprint(state)
     tmdb_id = state.get("tmdb_id", "")
     tracker_url = (cfg.get("ITT_URL") or "").strip()
     api_token = (cfg.get("ITT_APIKEY") or "").strip()
@@ -373,7 +399,10 @@ async def wizard_duplicate_check(tok: str):
         tracker_url=tracker_url,
         api_token=api_token,
         tmdb_id=tmdb_id,
-        size_bytes=size,
+        num_files=num_files,
+        total_size=total_size,
+        file_sizes=file_sizes,
+        tolerance_pct=_duplicate_tolerance_pct(cfg),
     )
     if match is None:
         state["step"] = "hardlink"

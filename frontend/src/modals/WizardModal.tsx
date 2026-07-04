@@ -18,6 +18,7 @@ type DuplicateInfo = {
   id?: string | number;
   name?: string;
   size?: number;
+  num_file?: number | null;
   type?: string;
   resolution?: string;
   category?: string;
@@ -622,6 +623,9 @@ function DuplicateStep({ token, duplicate, onContinue, onCancel }: {
       }}>
         <DupRow label={t('wizard.duplicateName')} value={duplicate.name || '—'} mono />
         <DupRow label={t('wizard.duplicateSize')} value={formatBytes(duplicate.size)} />
+        {typeof duplicate.num_file === 'number' && duplicate.num_file > 0 && (
+          <DupRow label={t('wizard.duplicateFiles')} value={String(duplicate.num_file)} />
+        )}
         <DupRow label={t('wizard.duplicateType')} value={
           [duplicate.type, duplicate.resolution].filter(Boolean).join(' · ') || '—'
         } />

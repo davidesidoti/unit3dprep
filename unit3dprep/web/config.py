@@ -257,6 +257,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "W_HARDLINK_ONLY": False,
     "W_CONFIRM_NAMES": True,
     "W_DUPLICATE_CHECK": True,
+    "W_DUPLICATE_SIZE_TOLERANCE_PCT": 2.0,
 }
 
 MASKED_KEYS = {
@@ -555,7 +556,7 @@ _GROUPS: list[tuple[str, list[str]]] = [
     ("Wizard defaults (unit3dprep)", [
         "W_AUDIO_CHECK", "W_AUTO_TMDB", "W_HIDE_UPLOADED",
         "W_HIDE_NO_ITALIAN", "W_HARDLINK_ONLY", "W_CONFIRM_NAMES",
-        "W_DUPLICATE_CHECK",
+        "W_DUPLICATE_CHECK", "W_DUPLICATE_SIZE_TOLERANCE_PCT",
     ]),
 ]
 
@@ -593,6 +594,11 @@ def _coerce_value(default_val: Any, raw: str) -> Any:
     if isinstance(default_val, int) and not isinstance(default_val, bool):
         try:
             return int(raw)
+        except ValueError:
+            return default_val
+    if isinstance(default_val, float):
+        try:
+            return float(raw)
         except ValueError:
             return default_val
     if isinstance(default_val, list):

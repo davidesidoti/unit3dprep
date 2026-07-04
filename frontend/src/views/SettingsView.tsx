@@ -689,6 +689,43 @@ function ToggleRow({
   );
 }
 
+function NumberRow({
+  cfg, set, k, label, sub, min = 0, max = 100, step = 0.5, suffix, disabled,
+}: {
+  cfg: Cfg; set: SetFn; k: string; label: string; sub: string;
+  min?: number; max?: number; step?: number; suffix?: string; disabled?: boolean;
+}) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      padding: '7px 0', borderBottom: '1px solid var(--border-subtle)',
+      opacity: disabled ? 0.5 : 1,
+    }}>
+      <div>
+        <div style={{
+          fontSize: 13, color: 'var(--fg-2)', fontFamily: 'var(--font-display)',
+        }}>{label}</div>
+        <div style={{
+          fontSize: 11, color: 'var(--fg-4)', fontFamily: 'var(--font-display)',
+        }}>{sub}</div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <input
+          type="number" min={min} max={max} step={step} disabled={disabled}
+          value={cfg[k] ?? ''}
+          onChange={(e) => set(k, e.target.value === '' ? 0 : Number(e.target.value))}
+          style={{
+            width: 72, background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '6px 8px', fontSize: 12, color: 'var(--fg-1)',
+            fontFamily: 'var(--font-mono)', textAlign: 'right',
+          }}
+        />
+        {suffix && <span style={{ fontSize: 12, color: 'var(--fg-3)' }}>{suffix}</span>}
+      </div>
+    </div>
+  );
+}
+
 // -------------------------------------------------------------- Sections ----
 
 function TrackerSection({ cfg, set, isMobile }: { cfg: Cfg; set: SetFn; isMobile?: boolean }) {
@@ -1227,6 +1264,11 @@ function SeedingSection({
       <ToggleRow cfg={cfg} set={set} k="W_DUPLICATE_CHECK"
         label={t('settings.seedingWizardDuplicateCheck')}
         sub={t('settings.seedingWizardDuplicateCheckSub')} />
+      <NumberRow cfg={cfg} set={set} k="W_DUPLICATE_SIZE_TOLERANCE_PCT"
+        label={t('settings.seedingWizardDuplicateTolerance')}
+        sub={t('settings.seedingWizardDuplicateToleranceSub')}
+        min={0} max={50} step={0.5} suffix="%"
+        disabled={!cfg.W_DUPLICATE_CHECK} />
     </>
   );
 }

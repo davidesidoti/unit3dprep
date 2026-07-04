@@ -6,6 +6,21 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Il **controllo duplicati sul tracker** ora funziona anche per i **pacchetti stagione** (prima
+  era limitato a film ed episodi singoli): confronta con ITT il numero di file e le dimensioni,
+  senza guardare i nomi, così due season pack con nomi diversi ma stesso contenuto vengono
+  riconosciuti come duplicati.
+- Nuova impostazione **"Tolleranza dimensione duplicati"** (`W_DUPLICATE_SIZE_TOLERANCE_PCT`,
+  default 2%): considera duplicati anche i torrent che differiscono di pochissimo in dimensione
+  (es. 12.00 vs 12.02 GB), come faceva unit3dup da console. Impostala a 0 per un match solo esatto.
+- Il pannello "Possibile duplicato" del wizard mostra ora anche il **numero di file** del torrent
+  trovato sul tracker.
+
+### Changed
+- Il match dei duplicati usa un'impronta più robusta (numero di file + dimensioni) invece della
+  sola dimensione totale in byte, riducendo i falsi riconoscimenti anche per film ed episodi.
+
 ## [1.1.9] - 2026-07-03
 
 ### Added
