@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-25
+
 ### Added
 - Il **controllo duplicati sul tracker** ora funziona anche per i **pacchetti stagione** (prima
   era limitato a film ed episodi singoli): confronta con ITT il numero di file e le dimensioni,
