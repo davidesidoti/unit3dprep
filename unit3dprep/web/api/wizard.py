@@ -25,8 +25,8 @@ from ...core import (
     build_name,
 )
 from ...upload import (
-    build_episode_names,
-    build_movie_name_from_file,
+    build_episode_names_detailed,
+    build_movie_name_from_file_detailed,
     do_hardlink_movie,
     do_hardlink_series,
 )
@@ -132,6 +132,7 @@ async def wizard_start(request: Request, body: StartBody):
         "tmdb_poster": "",
         "tmdb_overview": "",
         "final_names": {},
+        "file_specs": {},
         "folder_name": "",
         "seeding_path": "",
         "upload_done": False,
@@ -263,25 +264,34 @@ async def wizard_tmdb(request: Request, tok: str, body: TmdbBody):
             "poster": state["tmdb_poster"],
         },
         "proposed": proposed,
+        "file_specs": state["file_specs"],
         "folder_name": state["folder_name"],
     })
 
 
 async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
+    """Propose a final name per video file and record each file's media profile.
+
+    `state["file_specs"]` maps file path → technical profile (resolution, codec,
+    source, …) so the names step can flag the odd file out inside a pack.
+    """
     from guessit import guessit as _guessit
     loop = asyncio.get_event_loop()
     path = Path(state["path"])
     kind = state["kind"]
     title = state["tmdb_title"]
     year = state["tmdb_year"]
+    specs_map: dict[str, dict[str, str]] = {}
+    state["file_specs"] = specs_map
     if kind == "movie":
         files = [path] if path.is_file() else list(iter_video_files(path))
         proposed: dict[str, str] = {}
         for vf in files:
-            name = await loop.run_in_executor(
-                None, build_movie_name_from_file, vf, title, year
+            name, profile = await loop.run_in_executor(
+                None, build_movie_name_from_file_detailed, vf, title, year
             )
             proposed[str(vf)] = name
+            specs_map[str(vf)] = profile
         return proposed
     if kind == "episode":
         files = [path] if path.is_file() else list(iter_video_files(path))
@@ -290,27 +300,32 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
         episode_file = files[0]
         season_folder = episode_file.parent
         folder_guess = dict(_guessit(season_folder.name))
-        result = await loop.run_in_executor(
+        detailed = await loop.run_in_executor(
             None,
-            lambda: {str(k): v for k, v in build_episode_names(
+            lambda: {str(k): v for k, v in build_episode_names_detailed(
                 season_folder, [episode_file], title, year, folder_guess
             ).items()},
         )
+        result = {k: name for k, (name, _) in detailed.items()}
+        specs_map.update({k: profile for k, (_, profile) in detailed.items()})
         if not result:
-            fallback = await loop.run_in_executor(
-                None, build_movie_name_from_file, episode_file, title, ""
+            fallback, profile = await loop.run_in_executor(
+                None, build_movie_name_from_file_detailed, episode_file, title, ""
             )
             result = {str(episode_file): fallback}
+            specs_map[str(episode_file)] = profile
         return result
     # series
     folder_guess = dict(_guessit(path.name))
     files = list(iter_video_files(path))
-    result = await loop.run_in_executor(
+    detailed = await loop.run_in_executor(
         None,
-        lambda: {str(k): v for k, v in build_episode_names(
+        lambda: {str(k): v for k, v in build_episode_names_detailed(
             path, files, title, year, folder_guess
         ).items()},
     )
+    result = {k: name for k, (name, _) in detailed.items()}
+    specs_map.update({k: profile for k, (_, profile) in detailed.items()})
     if files:
         first = files[0]
         g = dict(_guessit(first.name))

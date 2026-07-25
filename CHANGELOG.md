@@ -16,6 +16,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
   (es. 12.00 vs 12.02 GB), come faceva unit3dup da console. Impostala a 0 per un match solo esatto.
 - Il pannello "Possibile duplicato" del wizard mostra ora anche il **numero di file** del torrent
   trovato sul tracker.
+- Nello step **Rinomina** del wizard, i file che si discostano dagli altri del pacchetto (es. un
+  episodio H.264 in mezzo a H.265, o a 720p invece che 1080p) sono ora **evidenziati in rosso**
+  con l'indicazione di cosa cambia rispetto alla maggioranza (risoluzione, codec, sorgente, HDR,
+  audio, dub, gruppo), così è facile verificarli e correggere il nome prima di caricare.
 - Il **reseed** ora supporta anche i **pacchetti stagione** (prima solo film ed episodi singoli),
   sia nei candidati automatici sia nella ricerca manuale: un pacchetto sul tracker viene proposto
   come reseedabile quando in libreria esiste una cartella stagione con lo stesso numero di file e

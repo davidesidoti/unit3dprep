@@ -29,6 +29,7 @@ from .core import (
     hardlink_tree,
     has_italian_audio,
     map_source,
+    media_profile,
 )
 
 
@@ -67,15 +68,20 @@ def check_audio_files(paths: list[Path]) -> list[AudioResult]:
     return results
 
 
-def build_episode_names(
+def build_episode_names_detailed(
     series_folder: Path,
     video_files: list[Path],
     series_title: str,
     year: str,
     folder_guess: dict,
-) -> dict[Path, str]:
-    """Returns mapping file_path → new_base_name (no extension)."""
-    episode_rename: dict[Path, str] = {}
+) -> dict[Path, tuple[str, dict[str, str]]]:
+    """Like `build_episode_names`, but also returns each file's media profile.
+
+    The profile comes from the same mediainfo parse used to build the name, so
+    callers that want to compare episodes (odd-one-out detection) pay nothing
+    extra for it.
+    """
+    episode_rename: dict[Path, tuple[str, dict[str, str]]] = {}
     for f in video_files:
         g = dict(guessit(f.name))
         season = g.get("season")
@@ -92,8 +98,40 @@ def build_episode_names(
             title=series_title, year="", se=se,
             specs=specs, source=source, src_type=src_type, tag=tag,
         )
-        episode_rename[f] = new_name
+        episode_rename[f] = (new_name, media_profile(specs, source, src_type, tag))
     return episode_rename
+
+
+def build_episode_names(
+    series_folder: Path,
+    video_files: list[Path],
+    series_title: str,
+    year: str,
+    folder_guess: dict,
+) -> dict[Path, str]:
+    """Returns mapping file_path → new_base_name (no extension)."""
+    detailed = build_episode_names_detailed(
+        series_folder, video_files, series_title, year, folder_guess
+    )
+    return {f: name for f, (name, _) in detailed.items()}
+
+
+def build_movie_name_from_file_detailed(
+    video_file: Path,
+    movie_title: str,
+    year: str,
+) -> tuple[str, dict[str, str]]:
+    """Returns `(new_base_name, media_profile)` for a single video file."""
+    g = dict(guessit(video_file.name))
+    specs = extract_specs(video_file)
+    source, src_type = map_source(g)
+    tag = g.get("release_group", "") or ""
+    repack = "REPACK" if g.get("proper_count") else ""
+    name = build_name(
+        title=movie_title, year=year, se="",
+        specs=specs, source=source, src_type=src_type, tag=tag, repack=repack,
+    )
+    return name, media_profile(specs, source, src_type, tag)
 
 
 def build_movie_name_from_file(
@@ -101,15 +139,7 @@ def build_movie_name_from_file(
     movie_title: str,
     year: str,
 ) -> str:
-    g = dict(guessit(video_file.name))
-    specs = extract_specs(video_file)
-    source, src_type = map_source(g)
-    tag = g.get("release_group", "") or ""
-    repack = "REPACK" if g.get("proper_count") else ""
-    return build_name(
-        title=movie_title, year=year, se="",
-        specs=specs, source=source, src_type=src_type, tag=tag, repack=repack,
-    )
+    return build_movie_name_from_file_detailed(video_file, movie_title, year)[0]
 
 
 def do_hardlink_movie(src: Path, final_name: str) -> Path:

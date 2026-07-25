@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Flag, Captions } from 'lucide-react';
+import { Flag, Captions, AlertTriangle } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { WizardCtx } from '../types';
 
@@ -463,15 +463,54 @@ function TmdbStep({ token, ctx, onNext }: {
   );
 }
 
+/** Technical make-up of one file, as returned by the backend `file_specs`. */
+type FileProfile = Record<ProfileKey, string>;
+
+const PROFILE_KEYS = ['resolution', 'codec', 'source', 'hdr', 'audio', 'dub', 'group'] as const;
+type ProfileKey = typeof PROFILE_KEYS[number];
+
+type Oddity = { key: ProfileKey; value: string; majority: string };
+
+/**
+ * Flag files whose technical profile departs from the pack's majority — e.g.
+ * one H.264 episode among H.265 ones. Only attributes where a strict majority
+ * exists are considered, so a pack where every file differs stays quiet.
+ */
+function findOddFiles(specs: Record<string, FileProfile>): Record<string, Oddity[]> {
+  const files = Object.keys(specs);
+  const odd: Record<string, Oddity[]> = {};
+  if (files.length < 3) return odd;   // no meaningful majority below 3 files
+  for (const key of PROFILE_KEYS) {
+    const counts = new Map<string, number>();
+    for (const f of files) {
+      const v = specs[f]?.[key] ?? '';
+      counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    if (counts.size < 2) continue;    // everyone agrees
+    let majority = '';
+    let best = 0;
+    for (const [v, n] of counts) if (n > best) { best = n; majority = v; }
+    if (best <= files.length / 2) continue;  // no strict majority → too noisy to flag
+    for (const f of files) {
+      const v = specs[f]?.[key] ?? '';
+      if (v === majority) continue;
+      (odd[f] ||= []).push({ key, value: v, majority });
+    }
+  }
+  return odd;
+}
+
 function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
   const { t } = useTranslation();
   const [names, setNames] = useState<Record<string, string>>({});
+  const [specs, setSpecs] = useState<Record<string, FileProfile>>({});
   const [folder, setFolder] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.get<any>(`/api/wizard/${token}`).then((s) => {
       setNames(s.final_names || {});
+      setSpecs(s.file_specs || {});
       setFolder(s.folder_name || '');
       setLoading(false);
     });
@@ -487,6 +526,8 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
   if (loading) return <div style={{ padding: 30, color: 'var(--fg-3)' }}>{t('wizard.namesLoading')}</div>;
 
   const entries = Object.entries(names);
+  const oddFiles = findOddFiles(specs);
+  const oddCount = Object.keys(oddFiles).length;
 
   return (
     <div style={{ padding: '20px 24px' }}>
@@ -496,6 +537,22 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
         {t('wizard.namesDesc')}
         <span style={{ color: 'var(--yellow)' }}>{t('wizard.namesWarning')}</span>
       </div>
+      {oddCount > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8,
+          background: 'var(--red-muted)', border: '1px solid var(--red-dim)',
+          borderRadius: 6, padding: '9px 11px', marginBottom: 12,
+          fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5,
+        }}>
+          <AlertTriangle size={14} style={{ color: 'var(--red)', flexShrink: 0, marginTop: 1 }} />
+          <span>
+            <strong style={{ color: 'var(--red-bright)' }}>
+              {t('wizard.oddBanner', { count: oddCount })}
+            </strong>{' '}
+            {t('wizard.oddBannerHint')}
+          </span>
+        </div>
+      )}
       {folder && (
         <div style={{ marginBottom: 12 }}>
           <label style={{
@@ -519,28 +576,67 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
         background: 'var(--bg-base)', border: '1px solid var(--border-subtle)',
         borderRadius: 6, maxHeight: 300, overflowY: 'auto',
       }}>
-        {entries.map(([file, name], i) => (
-          <div key={file} style={{
-            padding: '8px 12px',
-            borderBottom: i < entries.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-          }}>
-            <div style={{
-              fontSize: 10, color: 'var(--fg-4)',
-              fontFamily: 'var(--font-mono)', marginBottom: 3,
-            }}>{file.split(/[\\/]/).pop()} →</div>
-            <input
-              value={name}
-              onChange={(e) =>
-                setNames((ns) => ({ ...ns, [file]: e.target.value }))
-              }
-              style={{
-                width: '100%', background: 'transparent', border: 'none',
-                fontSize: 11, color: 'var(--fg-1)',
-                fontFamily: 'var(--font-mono)', outline: 'none',
-              }}
-            />
-          </div>
-        ))}
+        {entries.map(([file, name], i) => {
+          const odd = oddFiles[file];
+          return (
+            <div key={file} style={{
+              padding: '8px 12px',
+              borderBottom: i < entries.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+              borderLeft: odd ? '2px solid var(--red)' : '2px solid transparent',
+              background: odd ? 'var(--red-muted)' : 'transparent',
+            }}>
+              <div style={{
+                fontSize: 10, color: odd ? 'var(--red-bright)' : 'var(--fg-4)',
+                fontFamily: 'var(--font-mono)', marginBottom: 3,
+                display: 'flex', alignItems: 'center', gap: 5,
+              }}>
+                {odd && (
+                  <AlertTriangle
+                    size={11}
+                    style={{ color: 'var(--red)', flexShrink: 0 }}
+                    aria-label={t('wizard.oddRowTitle')}
+                  />
+                )}
+                <span>{file.split(/[\\/]/).pop()} →</span>
+              </div>
+              <input
+                value={name}
+                onChange={(e) =>
+                  setNames((ns) => ({ ...ns, [file]: e.target.value }))
+                }
+                style={{
+                  width: '100%', background: 'transparent', border: 'none',
+                  fontSize: 11, color: 'var(--fg-1)',
+                  fontFamily: 'var(--font-mono)', outline: 'none',
+                }}
+              />
+              {odd && (
+                <div style={{
+                  display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 5,
+                }}>
+                  {odd.map((o) => (
+                    <span
+                      key={o.key}
+                      title={t('wizard.oddChipTitle', {
+                        attr: t(`wizard.oddAttr.${o.key}`),
+                        majority: o.majority || t('wizard.oddNone'),
+                      })}
+                      style={{
+                        fontSize: 9.5, fontFamily: 'var(--font-mono)',
+                        background: 'var(--red-dim)', color: 'var(--red-bright)',
+                        borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {t(`wizard.oddAttr.${o.key}`)}: {o.value || t('wizard.oddNone')}
+                      {' ≠ '}
+                      {o.majority || t('wizard.oddNone')}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
         <button

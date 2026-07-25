@@ -381,6 +381,37 @@ def hi10p_flag(specs: dict) -> bool:
     return ("AVC" in fmt) and (specs.get("bit_depth") == 10) and (not specs.get("hdr"))
 
 
+# Attribute keys of `media_profile`, in display order.
+PROFILE_KEYS = ("resolution", "codec", "source", "hdr", "audio", "dub", "group")
+
+
+def media_profile(specs: dict, source: str, src_type: str, tag: str = "") -> dict[str, str]:
+    """Compact, comparable summary of one file's technical make-up.
+
+    Uses the very same labels `build_name` puts in the final name, so a season
+    pack whose episodes were encoded differently (e.g. one H.264 among H.265)
+    can be spotted by comparing profiles across files. Empty string = unknown.
+    """
+    codec = vcodec_for_type(specs, src_type or source)
+    if hi10p_flag(specs):
+        codec = f"{codec} Hi10P".strip()
+    return {
+        "resolution": specs.get("resolution") or "",
+        "codec": codec,
+        "source": " ".join(p for p in (source, src_type) if p),
+        "hdr": specs.get("hdr") or "",
+        "audio": " ".join(
+            p for p in (
+                specs.get("acodec") or "",
+                specs.get("channels") or "",
+                specs.get("object") or "",
+            ) if p
+        ),
+        "dub": " ".join(specs.get("dub") or []),
+        "group": tag or "",
+    }
+
+
 # ---------------------------------------------------------------------------
 # guessit → source/type
 # ---------------------------------------------------------------------------
