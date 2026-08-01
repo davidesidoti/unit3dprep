@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-08-01
+
 ### Fixed
 - **Gli upload adesso vanno davvero in seed.** Due problemi lato tracker li rompevano entrambi:
   - ITT risponde all'upload con una pagina HTML invece che con JSON. Unit3DWebUp non sa
