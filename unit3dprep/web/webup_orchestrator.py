@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
@@ -34,6 +35,7 @@ from ..core import iter_video_files
 from .clients import get_client as get_qbit_client
 from .config import load as load_config, runtime_setting
 from .duplicate_check import find_recent_match
+from .logbuf import emit as log_emit
 from .reseed import (
     _await_new_hash,
     _poll_recheck,
@@ -493,6 +495,22 @@ async def _verify_upload_on_tracker(match_path: str, tmdb_id: str) -> dict[str, 
     if not total_size:
         return None
     cfg = load_config()
+
+    # The wait can run for minutes; report into the Logs tab so it doesn't look
+    # like the upload silently hung (the SSE stream is busy awaiting this call).
+    started = time.monotonic()
+
+    def _report(index: int, total: int, found: bool) -> None:
+        if not (found or index == 1 or index % 3 == 0):
+            return
+        elapsed = int(time.monotonic() - started)
+        log_emit(
+            "ok" if found else "info",
+            f"Tracker: tentativo {index}/{total} — "
+            + ("torrent trovato" if found else f"non ancora visibile ({elapsed}s)"),
+            "webup", source="webup", event="upload.tracker_response",
+        )
+
     return await find_recent_match(
         tracker_url=(cfg.get("ITT_URL") or "").strip(),
         api_token=(cfg.get("ITT_APIKEY") or "").strip(),
@@ -500,6 +518,7 @@ async def _verify_upload_on_tracker(match_path: str, tmdb_id: str) -> dict[str, 
         num_files=num_files,
         total_size=total_size,
         file_sizes=file_sizes,
+        on_attempt=_report,
     )
 
 

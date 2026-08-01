@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -32,10 +33,12 @@ _TIMEOUT = httpx.Timeout(15.0, connect=5.0)
 # torrent we just uploaded". Generous, to absorb clock skew against the tracker.
 DEFAULT_RECENT_WINDOW = 1800.0
 
-# A freshly accepted torrent does not show up in /api/torrents/filter straight
-# away — measured misses several seconds after the upload, with the entry
-# appearing later. Back off over ~2 minutes before concluding it never landed.
-_RECENT_BACKOFF = (3.0, 6.0, 12.0, 20.0, 30.0, 45.0)
+# How long a freshly accepted torrent stays invisible to the API varies a lot:
+# measured on ITT 2026-08-01, one upload was listed within seconds while the
+# next one (two minutes later) took several minutes. Keep polling for ~6 min
+# before concluding it never landed — the alternative is a torrent published on
+# the tracker that nobody seeds.
+_RECENT_BACKOFF = (3.0, 6.0, 12.0, 20.0, 30.0, 45.0, 60.0, 60.0, 60.0, 60.0)
 
 
 def _retry_after_seconds(resp: httpx.Response) -> float:
@@ -187,20 +190,30 @@ async def _fetch_rows(
     return [e for e in items if isinstance(e, dict)]
 
 
+def _bust(params: dict[str, str], nonce: str | None) -> dict[str, str]:
+    """Add a throwaway query param so a response cached against the exact query
+    string cannot be replayed to us. Unit3D ignores unknown params."""
+    if not nonce:
+        return params
+    return {**params, "_": nonce}
+
+
 async def _fetch_entries(
-    tracker_url: str, api_token: str, tmdb_int: int, *, throttle_retries: int = 2,
+    tracker_url: str, api_token: str, tmdb_int: int, *,
+    throttle_retries: int = 2, nonce: str | None = None,
 ) -> list[dict[str, Any]] | None:
     """Tracker entries for a TMDB id, via the search/filter endpoint."""
     base = tracker_url.rstrip("/")
     return await _fetch_rows(
         f"{base}/api/torrents/filter",
-        {"tmdbId": str(tmdb_int), "api_token": api_token, "perPage": "100"},
+        _bust({"tmdbId": str(tmdb_int), "api_token": api_token, "perPage": "100"}, nonce),
         throttle_retries=throttle_retries,
     )
 
 
 async def _fetch_newest(
-    tracker_url: str, api_token: str, *, per_page: int = 50, throttle_retries: int = 2,
+    tracker_url: str, api_token: str, *, per_page: int = 50,
+    throttle_retries: int = 2, nonce: str | None = None,
 ) -> list[dict[str, Any]] | None:
     """The most recently uploaded torrents, newest first.
 
@@ -213,7 +226,7 @@ async def _fetch_newest(
     base = tracker_url.rstrip("/")
     return await _fetch_rows(
         f"{base}/api/torrents",
-        {"api_token": api_token, "perPage": str(per_page)},
+        _bust({"api_token": api_token, "perPage": str(per_page)}, nonce),
         throttle_retries=throttle_retries,
     )
 
@@ -366,11 +379,13 @@ async def find_recent_match(
     delays = tuple(backoff or ())
     total_rounds = len(delays) + 1
     for attempt in range(total_rounds):
-        # Newest-uploads listing first: it sees a fresh torrent immediately,
-        # the TMDB filter can lag minutes behind (see _fetch_newest).
-        match = _pick(await _fetch_newest(tracker_url, api_token))
+        # Newest-uploads listing first — it usually carries a fresh torrent
+        # sooner than the TMDB filter (see _fetch_newest). Both get a per-attempt
+        # nonce so no cached snapshot taken before our upload can be replayed.
+        nonce = f"{time.time_ns()}"
+        match = _pick(await _fetch_newest(tracker_url, api_token, nonce=nonce))
         if match is None:
-            match = _pick(await _fetch_entries(tracker_url, api_token, tmdb_int))
+            match = _pick(await _fetch_entries(tracker_url, api_token, tmdb_int, nonce=nonce))
         if on_attempt is not None:
             try:
                 on_attempt(attempt + 1, total_rounds, match is not None)
