@@ -30,7 +30,9 @@ import logging
 from pathlib import Path
 from typing import Any, AsyncGenerator
 
-from .config import runtime_setting
+from ..core import iter_video_files
+from .config import load as load_config, runtime_setting
+from .duplicate_check import find_recent_match
 from .webup_client import WebupClient, compute_job_id
 from .webup_job_fix import (
     DEFAULT_TRACKER_SIGNATURE,
@@ -361,6 +363,57 @@ async def _drain_buffered(
         yield {"type": "log", "data": text, "kind": ev_kind, "event": slug}, msg
 
 
+def _content_fingerprint(path: Path) -> tuple[int | None, int | None, list[int]]:
+    """(file count, total bytes, sorted per-file sizes) of what went into the
+    torrent.
+
+    ``hardlink_tree`` packs video files only, so the tracker's ``num_file`` and
+    ``size`` mirror exactly this for both a single movie and a season pack.
+    """
+    try:
+        files = [path] if path.is_file() else list(iter_video_files(path))
+    except OSError:
+        return (None, None, [])
+    sizes: list[int] = []
+    for f in files:
+        try:
+            sizes.append(f.stat().st_size)
+        except OSError:
+            continue
+    if not sizes:
+        return (None, None, [])
+    return (len(sizes), sum(sizes), sorted(sizes))
+
+
+async def _verify_upload_on_tracker(match_path: str, tmdb_id: str) -> dict[str, Any] | None:
+    """Did the torrent we just sent actually land on the tracker?
+
+    Webup's `itt_tracker_helper._post` calls `resp.json()` without checking the
+    content type, so a tracker answering `200 text/html` — which ITT does on a
+    *successful* upload — makes webup's `/upload` raise and reach us as an HTTP
+    500. Abandoning the run there leaves a torrent published on the tracker
+    that nobody seeds, so instead of trusting that response we look the torrent
+    up by TMDB id + exact content fingerprint.
+
+    Returns the matched tracker entry, or ``None`` when we cannot confirm it —
+    in which case the caller must treat the upload as failed.
+    """
+    if not tmdb_id:
+        return None
+    num_files, total_size, file_sizes = _content_fingerprint(Path(match_path))
+    if not total_size:
+        return None
+    cfg = load_config()
+    return await find_recent_match(
+        tracker_url=(cfg.get("ITT_URL") or "").strip(),
+        api_token=(cfg.get("ITT_APIKEY") or "").strip(),
+        tmdb_id=tmdb_id,
+        num_files=num_files,
+        total_size=total_size,
+        file_sizes=file_sizes,
+    )
+
+
 async def stream_webup(
     *,
     client: WebupClient,
@@ -629,66 +682,91 @@ async def stream_webup(
         else:
             yield _progress_event("upload", 0)
             yield {"type": "log", "data": "webup: /upload…"}
+            upload_error: str | None = None
             try:
-                upload_http_resp = await asyncio.wait_for(client.upload(job_id), timeout=PHASE_TIMEOUT)
+                await asyncio.wait_for(client.upload(job_id), timeout=PHASE_TIMEOUT)
             except asyncio.TimeoutError:
-                yield {"type": "error", "data": f"/upload timeout after {PHASE_TIMEOUT}s"}
-                yield {"type": "done", "exit_code": 1}
-                return
+                upload_error = f"/upload timeout after {PHASE_TIMEOUT}s"
             except Exception as e:
-                yield {"type": "error", "data": f"/upload failed: {e}"}
-                yield {"type": "done", "exit_code": 1}
-                return
+                upload_error = f"/upload failed: {e}"
 
-            # webup's /upload endpoint returns JSON null regardless of outcome
-            # (FastAPI default for endpoints with no explicit return value).
-            # The actual tracker result comes exclusively through WebSocket
-            # posterLogMessage events broadcast inside UploadUseCase.execute().
-            # Do NOT treat None here as an error — drain WS for the real status.
-
-            _log.info(
-                "upload: /upload HTTP done, ws_connected=%s queue_size=%d — draining WS",
-                ws.connected, queue.qsize(),
-            )
-
-            upload_failed = False
-            upload_succeeded = False
-            async for ev, msg in _drain_buffered(queue, job_id, window=8.0):
-                yield ev
-                if is_terminal_failure(msg):
-                    upload_failed = True
-                elif is_terminal_success(msg):
-                    upload_succeeded = True
-
-            _log.info(
-                "upload: drain done — succeeded=%s failed=%s queue_size=%d ws_connected=%s",
-                upload_succeeded, upload_failed, queue.qsize(), ws.connected,
-            )
-
-            if upload_succeeded:
-                pass  # WS confirmed success
-            elif upload_failed:
-                yield {"type": "error", "data": "/upload tracker rejected — see log above for details"}
-                yield {"type": "done", "exit_code": 1}
-                return
-            else:
-                # No posterLogMessage arrived within 8 s.
-                # This is a WS delivery issue (timing race, connection glitch)
-                # rather than a definitive upload failure — the HTTP 200 from
-                # webup means execute() completed and the tracker call was made.
-                # Log a warning and proceed to seed so the workflow still
-                # completes; the operator should verify the tracker manually.
+            if upload_error:
+                # webup blew up — but its own crash says nothing about what the
+                # tracker did with our POST. It raises on any non-JSON reply,
+                # and ITT answers `200 text/html` on success, so the torrent is
+                # usually already published. Ask the tracker directly; only give
+                # up when it cannot confirm the upload.
+                landed: dict[str, Any] | None = None
+                try:
+                    landed = await _verify_upload_on_tracker(match_path, wanted_tmdb or webup_tmdb)
+                except Exception as exc:
+                    _log.warning("upload verification failed: %r", exc)
+                if landed is None:
+                    yield {"type": "error", "data": upload_error}
+                    yield {"type": "done", "exit_code": 1}
+                    return
                 yield {
                     "type": "log",
-                    "data": (
-                        f"webup: /upload — no WS status received within 8 s "
-                        f"(ws_connected={ws.connected}, queue_size={queue.qsize()}). "
-                        "Proceeding to seed. Check the tracker to confirm the upload succeeded."
-                    ),
                     "kind": "warn",
                     "event": "upload.tracker_response",
+                    "data": (
+                        f"webup: {upload_error} — but the torrent IS on the tracker "
+                        f"(id={landed.get('id')}, {landed.get('name')!r}). Known webup "
+                        "limitation: it cannot read a non-JSON tracker reply. Seeding it."
+                    ),
                 }
-            yield _progress_event("upload", 100)
+                yield _progress_event("upload", 100)
+            else:
+                # webup's /upload endpoint returns JSON null regardless of
+                # outcome (FastAPI default for endpoints with no explicit return
+                # value). The actual tracker result comes exclusively through
+                # WebSocket posterLogMessage events broadcast inside
+                # UploadUseCase.execute(). Do NOT treat None here as an error —
+                # drain WS for the real status.
+
+                _log.info(
+                    "upload: /upload HTTP done, ws_connected=%s queue_size=%d — draining WS",
+                    ws.connected, queue.qsize(),
+                )
+
+                upload_failed = False
+                upload_succeeded = False
+                async for ev, msg in _drain_buffered(queue, job_id, window=8.0):
+                    yield ev
+                    if is_terminal_failure(msg):
+                        upload_failed = True
+                    elif is_terminal_success(msg):
+                        upload_succeeded = True
+
+                _log.info(
+                    "upload: drain done — succeeded=%s failed=%s queue_size=%d ws_connected=%s",
+                    upload_succeeded, upload_failed, queue.qsize(), ws.connected,
+                )
+
+                if upload_succeeded:
+                    pass  # WS confirmed success
+                elif upload_failed:
+                    yield {"type": "error", "data": "/upload tracker rejected — see log above for details"}
+                    yield {"type": "done", "exit_code": 1}
+                    return
+                else:
+                    # No posterLogMessage arrived within 8 s.
+                    # This is a WS delivery issue (timing race, connection glitch)
+                    # rather than a definitive upload failure — the HTTP 200 from
+                    # webup means execute() completed and the tracker call was made.
+                    # Log a warning and proceed to seed so the workflow still
+                    # completes; the operator should verify the tracker manually.
+                    yield {
+                        "type": "log",
+                        "data": (
+                            f"webup: /upload — no WS status received within 8 s "
+                            f"(ws_connected={ws.connected}, queue_size={queue.qsize()}). "
+                            "Proceeding to seed. Check the tracker to confirm the upload succeeded."
+                        ),
+                        "kind": "warn",
+                        "event": "upload.tracker_response",
+                    }
+                yield _progress_event("upload", 100)
 
         # ---- Seed (optional) ----
         if do_seed:

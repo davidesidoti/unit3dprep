@@ -6,6 +6,15 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Gli upload non si fermano più con un errore quando il torrent è in realtà finito sul tracker.
+  ITT risponde all'upload con una pagina HTML invece che con JSON: Unit3DWebUp non riesce a
+  leggerla e restituisce un errore 500, così il torrent veniva pubblicato sul tracker ma non
+  veniva mai aggiunto a qBittorrent — entry online con 0 seeder. Ora, se l'upload fallisce,
+  unit3dprep chiede al tracker se il torrent c'è davvero (per ID TMDB, numero di file e
+  dimensioni esatte) e in caso affermativo prosegue con il seed segnalando l'accaduto nel log.
+  Se il tracker non conferma nulla, l'upload resta un errore come prima.
+
 ## [1.2.0] - 2026-07-25
 
 ### Added
