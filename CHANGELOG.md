@@ -13,9 +13,10 @@ Versioning: [Semantic Versioning](https://semver.org/).
     procedura si fermava prima del seed — entry online con 0 seeder. Ora, se l'upload fallisce,
     unit3dprep chiede al tracker se il torrent c'è davvero — lo cerca fra i torrent caricati
     di recente confrontando numero di file e dimensioni esatte, senza guardare i nomi — e in
-    caso affermativo prosegue. La ricerca per ID TMDB resta come riserva perché il tracker può
-    metterci diversi minuti a includere un torrent appena caricato nei risultati di ricerca.
-    Se il tracker non conferma nulla, l'upload resta un errore come prima.
+    caso affermativo prosegue. La ricerca per ID TMDB resta come riserva. Il tracker può
+    metterci da pochi secondi a diversi minuti a mostrare un torrent appena caricato, quindi
+    la conferma insiste fino a circa 6 minuti riportando i tentativi nella scheda Log; se non
+    conferma nulla, l'upload resta un errore come prima.
   - Il tracker riscrive un campo interno del torrent quando lo salva, cambiandone l'infohash:
     il `.torrent` creato in locale non corrisponde più a quello registrato e l'announce
     rispondeva "InfoHash not found", quindi il torrent restava fermo. Ora unit3dprep scarica
