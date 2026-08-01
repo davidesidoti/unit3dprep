@@ -11,10 +11,11 @@ Versioning: [Semantic Versioning](https://semver.org/).
   - ITT risponde all'upload con una pagina HTML invece che con JSON. Unit3DWebUp non sa
     leggerla e restituisce un errore 500, così il torrent veniva pubblicato sul tracker ma la
     procedura si fermava prima del seed — entry online con 0 seeder. Ora, se l'upload fallisce,
-    unit3dprep chiede al tracker se il torrent c'è davvero (per ID TMDB, numero di file e
-    dimensioni esatte, riprovando per un paio di minuti perché il tracker impiega qualche
-    istante a mostrarlo) e in caso affermativo prosegue. Se il tracker non conferma nulla,
-    l'upload resta un errore come prima.
+    unit3dprep chiede al tracker se il torrent c'è davvero — lo cerca fra i torrent caricati
+    di recente confrontando numero di file e dimensioni esatte, senza guardare i nomi — e in
+    caso affermativo prosegue. La ricerca per ID TMDB resta come riserva perché il tracker può
+    metterci diversi minuti a includere un torrent appena caricato nei risultati di ricerca.
+    Se il tracker non conferma nulla, l'upload resta un errore come prima.
   - Il tracker riscrive un campo interno del torrent quando lo salva, cambiandone l'infohash:
     il `.torrent` creato in locale non corrisponde più a quello registrato e l'announce
     rispondeva "InfoHash not found", quindi il torrent restava fermo. Ora unit3dprep scarica
