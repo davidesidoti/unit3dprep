@@ -32,6 +32,20 @@ _TIMEOUT = httpx.Timeout(15.0, connect=5.0)
 # torrent we just uploaded". Generous, to absorb clock skew against the tracker.
 DEFAULT_RECENT_WINDOW = 1800.0
 
+# A freshly accepted torrent does not show up in /api/torrents/filter straight
+# away — measured misses several seconds after the upload, with the entry
+# appearing later. Back off over ~2 minutes before concluding it never landed.
+_RECENT_BACKOFF = (3.0, 6.0, 12.0, 20.0, 30.0, 45.0)
+
+
+def _retry_after_seconds(resp: httpx.Response) -> float:
+    """``Retry-After`` in seconds, 0 when absent or unparseable."""
+    try:
+        ra = resp.headers.get("retry-after")
+        return float(ra) if ra else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
 
 def _to_int(v: Any) -> int | None:
     try:
@@ -138,17 +152,32 @@ def _prepare(
     return tmdb_int, total_int, int(round(total_int * tol / 100.0))
 
 
-async def _fetch_entries(tracker_url: str, api_token: str, tmdb_int: int) -> list[dict[str, Any]] | None:
+async def _fetch_entries(
+    tracker_url: str, api_token: str, tmdb_int: int, *, throttle_retries: int = 2,
+) -> list[dict[str, Any]] | None:
     """Tracker entries for a TMDB id. ``None`` marks a failed API call —
-    callers must not read that as "nothing on the tracker"."""
+    callers must not read that as "nothing on the tracker".
+
+    Unit3D throttles its API, so a 429 is waited out (honouring ``Retry-After``,
+    capped) rather than reported as a failure.
+    """
     base = tracker_url.rstrip("/")
     url = f"{base}/api/torrents/filter"
     params = {"tmdbId": str(tmdb_int), "api_token": api_token, "perPage": "100"}
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
-            r = await client.get(url, params=params)
-            r.raise_for_status()
-            payload = r.json()
+            for attempt in range(throttle_retries + 1):
+                r = await client.get(url, params=params)
+                if r.status_code == 429 and attempt < throttle_retries:
+                    wait = min(_retry_after_seconds(r) or 10.0, 30.0)
+                    log.info("tracker 429 — waiting %.0fs then retrying", wait)
+                    await asyncio.sleep(wait)
+                    continue
+                r.raise_for_status()
+                payload = r.json()
+                break
+            else:  # pragma: no cover — loop always breaks or raises
+                return None
     except (httpx.HTTPError, ValueError) as e:
         log.warning("tracker query failed (%s): %s", url, e)
         return None
@@ -256,8 +285,8 @@ async def find_recent_match(
     total_size: int | None,
     file_sizes: list[int] | None = None,
     within_seconds: float = DEFAULT_RECENT_WINDOW,
-    attempts: int = 2,
-    retry_delay: float = 2.0,
+    backoff: tuple[float, ...] = _RECENT_BACKOFF,
+    on_attempt: Any = None,
 ) -> dict[str, Any] | None:
     """Confirm that a torrent we just sent actually reached the tracker.
 
@@ -270,8 +299,12 @@ async def find_recent_match(
 
     The match is exact — same file count, same per-file sizes, same total — and
     the entry must be younger than ``within_seconds``, so an older duplicate is
-    never mistaken for our upload. The API call is retried once because a
-    transient failure would otherwise read as "the upload did not land".
+    never mistaken for our upload.
+
+    A just-accepted torrent is not immediately visible on the filter endpoint,
+    so the lookup is retried along ``backoff`` (delays in seconds between
+    attempts) before concluding the upload did not land. ``on_attempt`` is an
+    optional ``(index, total, found) -> None`` callback for progress reporting.
     """
     prepared = _prepare(tmdb_id, total_size, 0.0)
     if not tracker_url or not api_token or prepared is None:
@@ -279,9 +312,11 @@ async def find_recent_match(
     tmdb_int, total_int, tolerance_bytes = prepared
     cutoff = datetime.now(timezone.utc) - timedelta(seconds=max(0.0, within_seconds))
 
-    rounds = max(1, attempts)
-    for attempt in range(rounds):
+    delays = tuple(backoff or ())
+    total_rounds = len(delays) + 1
+    for attempt in range(total_rounds):
         entries = await _fetch_entries(tracker_url, api_token, tmdb_int)
+        match = None
         if entries:
             match = _select_recent(
                 entries,
@@ -292,8 +327,13 @@ async def find_recent_match(
                 cutoff=cutoff,
                 tmdb_int=tmdb_int,
             )
-            if match is not None:
-                return match
-        if attempt + 1 < rounds:
-            await asyncio.sleep(retry_delay)
+        if on_attempt is not None:
+            try:
+                on_attempt(attempt + 1, total_rounds, match is not None)
+            except Exception:  # a progress callback must never break the lookup
+                log.debug("on_attempt callback failed", exc_info=True)
+        if match is not None:
+            return match
+        if attempt < len(delays):
+            await asyncio.sleep(delays[attempt])
     return None

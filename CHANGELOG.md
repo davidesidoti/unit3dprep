@@ -7,13 +7,21 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
-- Gli upload non si fermano più con un errore quando il torrent è in realtà finito sul tracker.
-  ITT risponde all'upload con una pagina HTML invece che con JSON: Unit3DWebUp non riesce a
-  leggerla e restituisce un errore 500, così il torrent veniva pubblicato sul tracker ma non
-  veniva mai aggiunto a qBittorrent — entry online con 0 seeder. Ora, se l'upload fallisce,
-  unit3dprep chiede al tracker se il torrent c'è davvero (per ID TMDB, numero di file e
-  dimensioni esatte) e in caso affermativo prosegue con il seed segnalando l'accaduto nel log.
-  Se il tracker non conferma nulla, l'upload resta un errore come prima.
+- **Gli upload adesso vanno davvero in seed.** Due problemi lato tracker li rompevano entrambi:
+  - ITT risponde all'upload con una pagina HTML invece che con JSON. Unit3DWebUp non sa
+    leggerla e restituisce un errore 500, così il torrent veniva pubblicato sul tracker ma la
+    procedura si fermava prima del seed — entry online con 0 seeder. Ora, se l'upload fallisce,
+    unit3dprep chiede al tracker se il torrent c'è davvero (per ID TMDB, numero di file e
+    dimensioni esatte, riprovando per un paio di minuti perché il tracker impiega qualche
+    istante a mostrarlo) e in caso affermativo prosegue. Se il tracker non conferma nulla,
+    l'upload resta un errore come prima.
+  - Il tracker riscrive un campo interno del torrent quando lo salva, cambiandone l'infohash:
+    il `.torrent` creato in locale non corrisponde più a quello registrato e l'announce
+    rispondeva "InfoHash not found", quindi il torrent restava fermo. Ora unit3dprep scarica
+    dal tracker il `.torrent` giusto e mette in seed quello, verificando con un ricontrollo
+    che i file locali combacino prima di avviarlo.
+- Il torrent aggiunto a qBittorrent riceve lo stesso tag configurato in impostazioni
+  (`TORRENT__TAG`) che applicava Unit3DWebUp.
 
 ## [1.2.0] - 2026-07-25
 

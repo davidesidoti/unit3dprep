@@ -31,7 +31,7 @@ import httpx
 from ..core import VIDEO_EXTENSIONS, hardlink_file, seedings_dir
 from ..media import discover_categories, scan_category
 from .clients import get_client
-from .duplicate_check import _entry_delta, _entry_file_sizes
+from .duplicate_check import _entry_delta, _entry_file_sizes, _retry_after_seconds
 from .db import record_upload
 from .tmdb_cache import get_many
 from .trackers import _human_size, _resolution_for, _type_for
@@ -100,14 +100,6 @@ class _RateLimiter:
 
 
 _itt_rate = _RateLimiter()
-
-
-def _retry_after_seconds(resp: httpx.Response) -> float:
-    try:
-        ra = resp.headers.get("retry-after")
-        return float(ra) if ra else 0.0
-    except (TypeError, ValueError):
-        return 0.0
 
 
 async def _itt_get(

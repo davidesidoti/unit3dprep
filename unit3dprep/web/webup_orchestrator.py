@@ -31,8 +31,16 @@ from pathlib import Path
 from typing import Any, AsyncGenerator
 
 from ..core import iter_video_files
+from .clients import get_client as get_qbit_client
 from .config import load as load_config, runtime_setting
 from .duplicate_check import find_recent_match
+from .reseed import (
+    _await_new_hash,
+    _poll_recheck,
+    _reseed_lock as reseed_lock,
+    download_torrent_file,
+    fetch_torrent_meta,
+)
 from .webup_client import WebupClient, compute_job_id
 from .webup_job_fix import (
     DEFAULT_TRACKER_SIGNATURE,
@@ -385,6 +393,82 @@ def _content_fingerprint(path: Path) -> tuple[int | None, int | None, list[int]]
     return (len(sizes), sum(sizes), sorted(sizes))
 
 
+async def _seed_from_tracker(
+    entry: dict[str, Any], match_path: str, result: dict[str, bool],
+) -> AsyncGenerator[dict[str, Any], None]:
+    """Seed the `.torrent` the *tracker* stored, not the one webup built.
+
+    Unit3D normalizes an uploaded torrent before saving it — on ITT that means
+    rewriting ``info.source`` (``ITT`` → ``ItaTorrents``), which changes the
+    infohash. The local `.torrent` therefore announces as "InfoHash not found"
+    and never seeds, even though the upload succeeded. Downloading the
+    tracker's copy is the only way to get the infohash it registered.
+
+    The content is already hardlinked where the torrent expects it, so this
+    only adds → rechecks → resumes. Reports through ``result``:
+    ``added`` (a torrent reached qBittorrent — never fall back to webup's
+    /seed afterwards, it would add a second, dead one) and ``ok`` (seeding).
+    """
+    cfg = load_config()
+    base = (cfg.get("ITT_URL") or "").rstrip("/")
+    token = (cfg.get("ITT_APIKEY") or "").strip()
+    try:
+        torrent_id = int(entry.get("id"))
+    except (TypeError, ValueError):
+        yield {"type": "log", "kind": "warn", "data": f"webup: id torrent non valido ({entry.get('id')!r})"}
+        return
+    save_path = str(Path(match_path).parent)
+
+    async with reseed_lock:
+        try:
+            meta = await fetch_torrent_meta(base, token, torrent_id)
+            tbytes = await download_torrent_file((meta or {}).get("download_link") or "")
+            client = get_qbit_client(cfg)
+            before = {t.hash for t in await client.list()}
+            # Same qBittorrent tag webup's own /seed applies (TORRENT__TAG), so
+            # bot uploads keep showing up under one tag in the sidebar.
+            await client.add_torrent(
+                tbytes, save_path=save_path, paused=True, skip_checking=False,
+                tags=(cfg.get("TAG") or "").strip() or None,
+            )
+            new_hash = await _await_new_hash(client, before)
+            if not new_hash:
+                yield {
+                    "type": "log", "kind": "warn",
+                    "data": "webup: torrent aggiunto a qBittorrent ma non individuato "
+                            "(forse già presente) — verifica manualmente",
+                    "event": "upload.qbit",
+                }
+                return
+            result["added"] = True
+            await client.recheck(new_hash)
+            final = 0.0
+            async for prog, _state in _poll_recheck(client, new_hash):
+                final = prog
+                yield _progress_event("seed", prog * 100)
+            if final < 0.999:
+                yield {
+                    "type": "log", "kind": "error",
+                    "data": f"webup: recheck fermo al {final * 100:.1f}% — il contenuto locale non "
+                            "corrisponde al torrent del tracker; lasciato in pausa",
+                    "event": "upload.qbit",
+                }
+                return
+            await client.resume(new_hash)
+            result["ok"] = True
+            yield {
+                "type": "log", "kind": "ok",
+                "data": f"webup: in seed con il .torrent del tracker (infohash {new_hash[:12]}…)",
+                "event": "upload.qbit",
+            }
+        except Exception as exc:
+            yield {
+                "type": "log", "kind": "warn",
+                "data": f"webup: seed dal tracker fallito ({exc!r})",
+                "event": "upload.qbit",
+            }
+
+
 async def _verify_upload_on_tracker(match_path: str, tmdb_id: str) -> dict[str, Any] | None:
     """Did the torrent we just sent actually land on the tracker?
 
@@ -670,6 +754,7 @@ async def stream_webup(
         # WSL/dev can exercise the full pipeline without polluting the live
         # tracker. Maketorrent and seed still run, the .torrent ends up in qBit.
         dry_run = runtime_setting("U3DP_DRY_RUN_TRACKER", "0") in {"1", "true", "True", "yes"}
+        landed: dict[str, Any] | None = None
         if dry_run:
             yield _progress_event("upload", 0)
             yield {
@@ -696,7 +781,6 @@ async def stream_webup(
                 # and ITT answers `200 text/html` on success, so the torrent is
                 # usually already published. Ask the tracker directly; only give
                 # up when it cannot confirm the upload.
-                landed: dict[str, Any] | None = None
                 try:
                     landed = await _verify_upload_on_tracker(match_path, wanted_tmdb or webup_tmdb)
                 except Exception as exc:
@@ -771,6 +855,42 @@ async def stream_webup(
         # ---- Seed (optional) ----
         if do_seed:
             yield _progress_event("seed", 0)
+
+            # Prefer the tracker's own .torrent: Unit3D rewrites `info.source`
+            # when it stores the upload, so the locally built file has a
+            # different infohash and would announce "InfoHash not found".
+            # Fall back to webup's /seed only when the tracker entry is unknown
+            # (dry-run, missing TMDB id, tracker unreachable).
+            seeded = {"added": False, "ok": False}
+            if not dry_run:
+                if landed is None:
+                    yield {"type": "log", "data": "webup: cerco il torrent sul tracker…"}
+                    try:
+                        landed = await _verify_upload_on_tracker(match_path, wanted_tmdb or webup_tmdb)
+                    except Exception as exc:
+                        _log.warning("tracker lookup before seed failed: %r", exc)
+                if landed is None:
+                    yield {
+                        "type": "log", "kind": "warn",
+                        "data": "webup: torrent non trovato sul tracker — uso il .torrent locale "
+                                "(l'announce potrebbe rispondere 'InfoHash not found')",
+                        "event": "upload.qbit",
+                    }
+                else:
+                    async for ev in _seed_from_tracker(landed, match_path, seeded):
+                        yield ev
+
+            if seeded["ok"]:
+                yield _progress_event("seed", 100)
+                yield {"type": "done", "exit_code": 0}
+                return
+            if seeded["added"]:
+                # Something reached qBittorrent but isn't seeding — adding the
+                # local .torrent on top would just create a dead duplicate.
+                yield _progress_event("seed", 100)
+                yield {"type": "done", "exit_code": 1}
+                return
+
             yield {"type": "log", "data": "webup: /seed…"}
             try:
                 code, body = await client.seed(job_id)
