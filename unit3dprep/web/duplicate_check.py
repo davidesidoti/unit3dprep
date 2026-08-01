@@ -126,6 +126,9 @@ def _summarize(entry: dict[str, Any], attrs: dict[str, Any], tmdb_int: int, delt
         "leechers": attrs.get("leechers"),
         "created_at": attrs.get("created_at"),
         "details_link": attrs.get("details_link"),
+        # Carries the rsskey — the only way to fetch the .torrent (see
+        # reseed.download_torrent_file). Saves re-querying the show endpoint.
+        "download_link": attrs.get("download_link") or "",
         "tmdb_id": tmdb_int,
         "size_delta": delta,
         "approx": delta > 0,
@@ -152,18 +155,15 @@ def _prepare(
     return tmdb_int, total_int, int(round(total_int * tol / 100.0))
 
 
-async def _fetch_entries(
-    tracker_url: str, api_token: str, tmdb_int: int, *, throttle_retries: int = 2,
+async def _fetch_rows(
+    url: str, params: dict[str, str], *, throttle_retries: int = 2,
 ) -> list[dict[str, Any]] | None:
-    """Tracker entries for a TMDB id. ``None`` marks a failed API call —
-    callers must not read that as "nothing on the tracker".
+    """GET a Unit3D torrent listing. ``None`` marks a failed API call — callers
+    must not read that as "nothing on the tracker".
 
     Unit3D throttles its API, so a 429 is waited out (honouring ``Retry-After``,
     capped) rather than reported as a failure.
     """
-    base = tracker_url.rstrip("/")
-    url = f"{base}/api/torrents/filter"
-    params = {"tmdbId": str(tmdb_int), "api_token": api_token, "perPage": "100"}
     try:
         async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=True) as client:
             for attempt in range(throttle_retries + 1):
@@ -185,6 +185,37 @@ async def _fetch_entries(
     if not isinstance(items, list):
         return []
     return [e for e in items if isinstance(e, dict)]
+
+
+async def _fetch_entries(
+    tracker_url: str, api_token: str, tmdb_int: int, *, throttle_retries: int = 2,
+) -> list[dict[str, Any]] | None:
+    """Tracker entries for a TMDB id, via the search/filter endpoint."""
+    base = tracker_url.rstrip("/")
+    return await _fetch_rows(
+        f"{base}/api/torrents/filter",
+        {"tmdbId": str(tmdb_int), "api_token": api_token, "perPage": "100"},
+        throttle_retries=throttle_retries,
+    )
+
+
+async def _fetch_newest(
+    tracker_url: str, api_token: str, *, per_page: int = 50, throttle_retries: int = 2,
+) -> list[dict[str, Any]] | None:
+    """The most recently uploaded torrents, newest first.
+
+    ``/api/torrents/filter`` lags badly behind a fresh upload — measured on ITT
+    2026-08-01: a torrent created at T was still missing from the filter results
+    at T+2min and only showed up around T+7min, while the plain list endpoint
+    (a straight newest-first listing) had it. So confirming a just-finished
+    upload starts here, and only falls back to the TMDB filter.
+    """
+    base = tracker_url.rstrip("/")
+    return await _fetch_rows(
+        f"{base}/api/torrents",
+        {"api_token": api_token, "perPage": str(per_page)},
+        throttle_retries=throttle_retries,
+    )
 
 
 async def find_duplicate(
@@ -248,16 +279,23 @@ def _select_recent(
     tolerance_bytes: int,
     cutoff: datetime,
     tmdb_int: int,
+    require_tmdb: bool = True,
 ) -> dict[str, Any] | None:
     """Newest entry matching the fingerprint and created at/after ``cutoff``.
 
     An entry without a parseable ``created_at`` is skipped: we cannot tell it
-    apart from a torrent that was already on the tracker.
+    apart from a torrent that was already on the tracker. With ``require_tmdb``
+    an entry that advertises a different ``tmdb_id`` is skipped too — the
+    newest-uploads listing spans every title, so the fingerprint alone could in
+    principle collide with somebody else's upload in the same window.
     """
     newest: dict[str, Any] | None = None
     newest_at: datetime | None = None
     for entry in entries:
         attrs = entry.get("attributes") or {}
+        entry_tmdb = _to_int(attrs.get("tmdb_id"))
+        if require_tmdb and entry_tmdb is not None and entry_tmdb != tmdb_int:
+            continue
         delta = _entry_delta(
             attrs,
             num_files=num_files,
@@ -312,21 +350,27 @@ async def find_recent_match(
     tmdb_int, total_int, tolerance_bytes = prepared
     cutoff = datetime.now(timezone.utc) - timedelta(seconds=max(0.0, within_seconds))
 
+    def _pick(entries: list[dict[str, Any]] | None) -> dict[str, Any] | None:
+        if not entries:
+            return None
+        return _select_recent(
+            entries,
+            num_files=num_files,
+            total_size=total_int,
+            file_sizes=file_sizes,
+            tolerance_bytes=tolerance_bytes,
+            cutoff=cutoff,
+            tmdb_int=tmdb_int,
+        )
+
     delays = tuple(backoff or ())
     total_rounds = len(delays) + 1
     for attempt in range(total_rounds):
-        entries = await _fetch_entries(tracker_url, api_token, tmdb_int)
-        match = None
-        if entries:
-            match = _select_recent(
-                entries,
-                num_files=num_files,
-                total_size=total_int,
-                file_sizes=file_sizes,
-                tolerance_bytes=tolerance_bytes,
-                cutoff=cutoff,
-                tmdb_int=tmdb_int,
-            )
+        # Newest-uploads listing first: it sees a fresh torrent immediately,
+        # the TMDB filter can lag minutes behind (see _fetch_newest).
+        match = _pick(await _fetch_newest(tracker_url, api_token))
+        if match is None:
+            match = _pick(await _fetch_entries(tracker_url, api_token, tmdb_int))
         if on_attempt is not None:
             try:
                 on_attempt(attempt + 1, total_rounds, match is not None)

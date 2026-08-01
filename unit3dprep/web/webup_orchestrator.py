@@ -421,8 +421,13 @@ async def _seed_from_tracker(
 
     async with reseed_lock:
         try:
-            meta = await fetch_torrent_meta(base, token, torrent_id)
-            tbytes = await download_torrent_file((meta or {}).get("download_link") or "")
+            # The listing already gave us the download link (it embeds the
+            # rsskey); only ask the show endpoint when it didn't.
+            link = (entry.get("download_link") or "").strip()
+            if not link:
+                meta = await fetch_torrent_meta(base, token, torrent_id)
+                link = (meta or {}).get("download_link") or ""
+            tbytes = await download_torrent_file(link)
             client = get_qbit_client(cfg)
             before = {t.hash for t in await client.list()}
             # Same qBittorrent tag webup's own /seed applies (TORRENT__TAG), so
@@ -781,6 +786,12 @@ async def stream_webup(
                 # and ITT answers `200 text/html` on success, so the torrent is
                 # usually already published. Ask the tracker directly; only give
                 # up when it cannot confirm the upload.
+                yield {
+                    "type": "log", "kind": "warn",
+                    "data": f"webup: {upload_error} — controllo sul tracker se il torrent "
+                            "è stato accettato (può richiedere un paio di minuti)…",
+                    "event": "upload.tracker_response",
+                }
                 try:
                     landed = await _verify_upload_on_tracker(match_path, wanted_tmdb or webup_tmdb)
                 except Exception as exc:
