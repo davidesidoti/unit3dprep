@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from .. import config
+from .. import arr, config
 from ...media import media_root, seedings_root
 
 router = APIRouter(prefix="/api", tags=["settings"])
@@ -26,11 +26,18 @@ async def get_settings():
     })
 
 
+_ARR_KEYS = ("W_RADARR_URL", "W_RADARR_APIKEY", "W_SONARR_URL", "W_SONARR_APIKEY")
+
+
 @router.put("/settings")
 async def put_settings(incoming: dict):
     existing = config.load()
     merged = {**existing, **config.merge_secrets(existing, incoming)}
     config.save(merged)
+    # The *arr index caches `configured` alongside the data, so new credentials
+    # would stay invisible to the library for a full TTL without this.
+    if any(existing.get(k) != merged.get(k) for k in _ARR_KEYS):
+        arr.invalidate_cache()
     return JSONResponse({"ok": True, "config": config.mask_secrets(merged)})
 
 

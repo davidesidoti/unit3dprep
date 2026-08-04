@@ -18,6 +18,7 @@ from . import logbuf
 from .webup_client import get_client as get_webup_client, shutdown_client as shutdown_webup_client
 from .webup_ws import WebupWSManager
 from .api import (
+    arr as arr_api,
     auth as auth_api,
     fs as fs_api,
     library as library_api,
@@ -127,6 +128,7 @@ for r in (
     logs_api.router,
     queue_api.router,
     quickupload_api.router,
+    arr_api.router,
     reseed_api.router,
     search_api.router,
     settings_api.router,
