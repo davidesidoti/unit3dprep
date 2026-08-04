@@ -9,7 +9,7 @@ Each entry carries:
     kind   - "info" | "ok" | "warn" | "error" | "debug"
     name   - raw logger name (e.g. "httpx", "unit3dup")
     msg    - formatted message
-    source - user-facing category: app|http|upload|client|tracker|wizard|unit3dup|system
+    source - user-facing category: app|http|upload|client|tracker|wizard|unit3dup|system|arr
     event  - optional slug for UI grouping (e.g. "upload.tmdb")
     count  - present when consecutive duplicates were coalesced (>=2)
 """
@@ -53,6 +53,8 @@ def _infer_source(name: str) -> str:
         return "tracker"
     if "client" in n or "qbit" in n:
         return "client"
+    if n == "unit3dprep.arr" or n.startswith("unit3dprep.arr."):
+        return "arr"
     if n.startswith("unit3dprep") or n.startswith("itatorrents"):
         return "app"
     return "app"

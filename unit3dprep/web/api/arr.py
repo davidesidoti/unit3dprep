@@ -1,6 +1,8 @@
 """Radarr / Sonarr endpoints consumed by the library view."""
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -78,28 +80,59 @@ async def _resolve_and_unmonitor(body: UnmonitorBody, lang: str) -> int:
 @router.post("/arr/unmonitor")
 async def arr_unmonitor(request: Request, body: UnmonitorBody):
     lang = get_request_lang(request)
+    target = body.path or f"{len(body.episode_ids)} episodi"
     try:
         changed = await _resolve_and_unmonitor(body, lang)
-    except HTTPException:
+    except HTTPException as e:
+        # Also log 400/404s, not just transport failures: the index is cached
+        # 60s, so the realistic failure is Radarr/Sonarr going down *after*
+        # the badge rendered — the click 404s and the Logs tab is the only
+        # place that failure is visible besides the button itself.
+        logbuf.emit(
+            "warn", f"Rimozione monitoraggio fallita ({e.status_code}): {target}",
+            "arr", source="arr",
+        )
         raise
     except Exception as e:  # noqa: BLE001
         logbuf.emit("error", f"Rimozione monitoraggio fallita: {e}", "arr", source="arr")
         raise HTTPException(502, arr.error_msg(e)) from e
-    target = body.path or f"{len(body.episode_ids)} episodi"
     logbuf.emit("info", f"Monitoraggio rimosso ({body.kind}): {target}", "arr", source="arr")
     return JSONResponse({"ok": True, "changed": changed})
 
 
 _BULK_FAILURE_LOG_CAP = 10
+_BULK_SERIES_CONCURRENCY = 6
+
+
+async def _cascade_series(semaphore: asyncio.Semaphore, series_id: int) -> int | BaseException:
+    """Unmonitor one series under the concurrency cap.
+
+    Returns the changed-episode count, or the exception, instead of raising —
+    ``asyncio.gather`` preserves call order, so the caller pairs each result
+    back to its path positionally regardless of completion order. Deliberately
+    calls only ``unmonitor_series()`` here, never ``arr.build_index()``: that
+    helper's cache lock is not reentrant, and every task in this gather would
+    deadlock against a sibling holding it.
+    """
+    async with semaphore:
+        try:
+            return await arr.unmonitor_series(series_id)
+        except Exception as e:  # noqa: BLE001
+            return e
 
 
 @router.post("/arr/unmonitor/bulk")
 async def arr_unmonitor_bulk(body: BulkBody):
     """Switch monitoring off across many paths.
 
-    Movies go out in a single call to Radarr's editor endpoint; each series gets
-    its own cascade. One failure does not stop the others — it lands in
-    ``failed``.
+    Movies go out in a single call to Radarr's editor endpoint. A series needs
+    4 HTTP calls of its own (fetch series, PUT series, fetch episodes, PUT
+    episodes), so on a library with hundreds of series a one-at-a-time loop
+    takes minutes and outruns nginx's 60s read timeout before the client sees
+    a response. The cascades instead run concurrently, bounded by
+    ``_BULK_SERIES_CONCURRENCY`` so Radarr/Sonarr aren't hit with hundreds of
+    simultaneous requests. One failure does not stop the others — it lands in
+    ``failed`` with its own path.
 
     ``done`` counts *targets* (each movie, each series) that succeeded, not
     episodes — unlike ``/arr/unmonitor``'s ``changed``, which counts episodes
@@ -129,12 +162,22 @@ async def arr_unmonitor_bulk(body: BulkBody):
             done += len(movie_ids)
         except Exception as e:  # noqa: BLE001
             failed.append({"path": f"{len(movie_ids)} film", "error": arr.error_msg(e)})
-    for path, series_id in series_targets:
-        try:
-            await arr.unmonitor_series(series_id)
-            done += 1
-        except Exception as e:  # noqa: BLE001
-            failed.append({"path": path, "error": arr.error_msg(e)})
+
+    if series_targets:
+        semaphore = asyncio.Semaphore(_BULK_SERIES_CONCURRENCY)
+        outcomes = await asyncio.gather(
+            *(_cascade_series(semaphore, series_id) for _, series_id in series_targets),
+            return_exceptions=True,
+        )
+        # zip(), not the outcome, supplies the path: gather() returns results
+        # positionally matched to the input awaitables, not to completion
+        # order, so this pairing is correct even though the cascades finish
+        # in whatever order their HTTP calls happen to land.
+        for (path, _series_id), outcome in zip(series_targets, outcomes):
+            if isinstance(outcome, BaseException):
+                failed.append({"path": path, "error": arr.error_msg(outcome)})
+            else:
+                done += 1
 
     level = "warn" if failed else "info"
     logbuf.emit(
