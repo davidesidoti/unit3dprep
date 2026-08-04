@@ -29,6 +29,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
   elemento selezionato subito dopo il click.
 - I messaggi di connessione Radarr/Sonarr comparivano nel filtro Log "App" invece che
   in "Arr".
+- Nei Log, i chip delle fonti **Upload** e **Wizard** erano incolori e indistinguibili
+  fra loro e dal testo normale: usavano un colore mai definito. Ora ne hanno uno ciascuno.
 
 ### Removed
 - Tolta la spunta **"Solo con audio italiano"** dalla Libreria: il nuovo filtro lingua fa lo
