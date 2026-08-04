@@ -266,6 +266,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "W_CONFIRM_NAMES": True,
     "W_DUPLICATE_CHECK": True,
     "W_DUPLICATE_SIZE_TOLERANCE_PCT": 2.0,
+
+    # Radarr / Sonarr — rimozione del monitoraggio dalla libreria.
+    "W_RADARR_URL": "",
+    "W_RADARR_APIKEY": "",
+    "W_SONARR_URL": "",
+    "W_SONARR_APIKEY": "",
 }
 
 MASKED_KEYS = {
@@ -275,6 +281,7 @@ MASKED_KEYS = {
     "QBIT_PASS", "TRASM_PASS", "RTORR_PASS", "FTPX_PASS",
     "PTSCREENS_KEY", "PASSIMA_KEY", "IMGBB_KEY", "IMGFI_KEY",
     "FREE_IMAGE_KEY", "LENSDUMP_KEY", "IMARIDE_KEY",
+    "W_RADARR_APIKEY", "W_SONARR_APIKEY",
 }
 
 
@@ -565,6 +572,10 @@ _GROUPS: list[tuple[str, list[str]]] = [
         "W_AUDIO_CHECK", "W_AUTO_TMDB", "W_HIDE_UPLOADED",
         "W_HARDLINK_ONLY", "W_CONFIRM_NAMES",
         "W_DUPLICATE_CHECK", "W_DUPLICATE_SIZE_TOLERANCE_PCT",
+    ]),
+    ("Radarr / Sonarr (unit3dprep)", [
+        "W_RADARR_URL", "W_RADARR_APIKEY",
+        "W_SONARR_URL", "W_SONARR_APIKEY",
     ]),
 ]
 
