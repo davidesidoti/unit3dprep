@@ -31,13 +31,16 @@ const SOURCES: { key: SourceKey; label: string }[] = [
   { key: 'system', label: 'System' },
 ];
 
+// One hue per source, so the filter row reads at a glance. Names not defined in
+// tokens.css carry an explicit fallback — `--accent` used to have none, which
+// made Upload and Wizard collapse to the inherited text colour.
 const sourceBadge: Record<string, string> = {
   app: 'var(--blue)',
   http: 'var(--fg-3)',
-  upload: 'var(--accent)',
+  upload: 'var(--cyan)',
   client: 'var(--purple, #a78bfa)',
   tracker: 'var(--teal, #5eead4)',
-  wizard: 'var(--accent)',
+  wizard: 'var(--pink, #f472b6)',
   webup: 'var(--green, #34d399)',
   system: 'var(--fg-3)',
   // The only warm hue left free in this palette: distinct at a glance from the
