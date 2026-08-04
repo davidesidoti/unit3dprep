@@ -15,6 +15,21 @@ Versioning: [Semantic Versioning](https://semver.org/).
   rimozione con un click su film, serie, stagione ed episodio, anche sulla
   selezione multipla. URL e API key si impostano in Impostazioni → Radarr / Sonarr.
 
+### Fixed
+- Rimozione monitoraggio Radarr/Sonarr: un fallimento (servizio irraggiungibile, film o
+  serie non più trovato) ora appare sul pulsante stesso e finisce nei Log sotto la fonte
+  "Arr", invece di fallire in silenzio.
+- Rimozione monitoraggio in blocco su molte serie: ora corre con un limite di richieste
+  parallele, evitando timeout su librerie con centinaia di serie; la selezione esclude
+  automaticamente gli elementi già senza monitoraggio; l'avviso finale è verde solo a
+  operazione riuscita, giallo se non c'era nulla da fare, rosso in caso di errore.
+- Episodi in un file multi-episodio (es. S01E02E03): rimuovere il monitoraggio dal chip
+  ora spegne tutti gli episodi del file, non solo il primo.
+- Il pulsante di rimozione monitoraggio non resta più bloccato su "fatto" se si cambia
+  elemento selezionato subito dopo il click.
+- I messaggi di connessione Radarr/Sonarr comparivano nel filtro Log "App" invece che
+  in "Arr".
+
 ### Removed
 - Tolta la spunta **"Solo con audio italiano"** dalla Libreria: il nuovo filtro lingua fa lo
   stesso lavoro (Audio › ITA) ed è più esplicito. Sparisce anche l'impostazione collegata

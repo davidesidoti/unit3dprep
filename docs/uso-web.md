@@ -268,10 +268,19 @@ Radarr o Sonarr stanno ancora cercando. Il pulsante di rimozione compare solo l�
 
 Il monitoraggio si può solo rimuovere, non riattivare.
 
+!!! note "La card della serie resta monitorata dopo aver spento tutte le stagioni"
+    Sonarr mantiene il flag `series.monitored` indipendente da quello delle singole
+    stagioni: se rimuovi il monitoraggio stagione per stagione, la serie può restare
+    marcata come monitorata anche a zero stagioni attive. È il comportamento corretto
+    di Sonarr, non un bug — usa il pulsante di rimozione a livello di serie per
+    spegnere anche quel flag.
+
 Per lavorare in blocco: filtra per **Lingua**, entra in selezione multipla, seleziona
-e usa **Rimuovi monitoraggio**. Gli elementi che Radarr e Sonarr non conoscono vengono
-esclusi automaticamente; i film vengono spenti in un colpo solo, le serie una per una
-a cascata, e alla fine un avviso riporta quanti sono riusciti e quanti no.
+e usa **Rimuovi monitoraggio**. Gli elementi che Radarr e Sonarr non conoscono, o che
+sono già senza monitoraggio, vengono esclusi automaticamente; i film vengono spenti in
+un colpo solo, le serie a cascata (più cascate in parallelo, con un limite di
+concorrenza per non sovraccaricare Radarr/Sonarr), e alla fine un avviso riporta quanti
+sono riusciti e quanti no.
 
 Se Radarr o Sonarr non rispondono, la libreria funziona come sempre e in cima compare
 un avviso: badge e pulsanti restano nascosti finché il servizio non torna.

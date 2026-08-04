@@ -266,10 +266,18 @@ Sonarr is still searching for. The removal button appears only there:
 
 Monitoring can only be removed, never re-enabled.
 
+!!! note "The series card still shows as monitored after every season is cleared"
+    Sonarr keeps the `series.monitored` flag independent of the individual season
+    flags: if you remove monitoring season by season, the series can keep showing as
+    monitored even with zero active seasons left. That's correct Sonarr behaviour,
+    not a bug — use the series-level removal button to switch that flag off too.
+
 To work in bulk: filter by **Language**, enter multi-select, pick the items and hit
-**Stop monitoring**. Items Radarr and Sonarr don't know about are excluded
-automatically; movies go off in a single call, series one at a time with their
-cascade, and a toast reports how many succeeded and how many failed.
+**Stop monitoring**. Items Radarr and Sonarr don't know about, or that are already
+unmonitored, are excluded automatically; movies go off in a single call, series run
+their cascade with several in parallel (bounded, so Radarr/Sonarr aren't hit with
+hundreds of requests at once), and a toast reports how many succeeded and how many
+failed.
 
 If Radarr or Sonarr are unreachable the library keeps working as usual and a notice
 appears at the top: badges and buttons stay hidden until the service is back.
