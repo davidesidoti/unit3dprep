@@ -292,14 +292,14 @@ Expected: `ModuleNotFoundError: No module named 'unit3dprep.web.arr'`
 - [ ] **Step 3: Creare `unit3dprep/web/arr.py`**
 
 ```python
-"""Radarr / Sonarr — lettura dello stato di monitoraggio e sua rimozione.
+"""Radarr / Sonarr — read the monitored state and switch it off.
 
-Le funzioni pure (costruzione dell'indice, mutazione dei payload) sono separate
-dalle chiamate HTTP, così si possono esercitare senza un Radarr o un Sonarr vivi.
+Pure helpers (index building, payload mutation) are kept apart from the HTTP
+calls so they can be exercised without a live Radarr or Sonarr.
 
-Il match fra libreria e *arr avviene per path: entrambi vedono lo stesso
-filesystem, quindi il campo ``path`` restituito dalle loro API è identico a
-quello degli item della libreria.
+Library items are matched to *arr records by path: both sides see the same
+filesystem, so the ``path`` field these APIs return is identical to the
+library item's own path.
 """
 from __future__ import annotations
 
@@ -324,11 +324,11 @@ _cache_lock = asyncio.Lock()
 
 
 # ---------------------------------------------------------------------------
-# Credenziali
+# Credentials
 # ---------------------------------------------------------------------------
 
 def creds(kind: str) -> tuple[str, str]:
-    """(base_url senza slash finale, api_key) per ``radarr`` o ``sonarr``."""
+    """(base_url without trailing slash, api_key) for ``radarr`` or ``sonarr``."""
     prefix = "W_RADARR" if kind == "radarr" else "W_SONARR"
     base = config.runtime_setting(f"{prefix}_URL", "").strip().rstrip("/")
     token = config.runtime_setting(f"{prefix}_APIKEY", "").strip()
@@ -343,11 +343,11 @@ def configured(kind: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Funzioni pure
+# Pure helpers
 # ---------------------------------------------------------------------------
 
 def norm_path(p: str) -> str:
-    """Forma canonica di un path, usata come chiave dell'indice."""
+    """Canonical form of a path, used as the index key."""
     if not p:
         return ""
     n = os.path.normpath(str(p))
@@ -355,7 +355,7 @@ def norm_path(p: str) -> str:
 
 
 def movie_index(payload: Any) -> dict[str, dict[str, Any]]:
-    """``{path: {id, monitored, title}}`` da Radarr ``GET /api/v3/movie``."""
+    """``{path: {id, monitored, title}}`` from Radarr ``GET /api/v3/movie``."""
     out: dict[str, dict[str, Any]] = {}
     if not isinstance(payload, list):
         return out
@@ -375,10 +375,10 @@ def movie_index(payload: Any) -> dict[str, dict[str, Any]]:
 
 
 def series_index(payload: Any) -> dict[str, dict[str, Any]]:
-    """``{path: {id, monitored, seasons, title}}`` da Sonarr ``GET /api/v3/series``.
+    """``{path: {id, monitored, seasons, title}}`` from Sonarr ``GET /api/v3/series``.
 
-    ``seasons`` è indicizzato per numero di stagione come stringa, così
-    sopravvive al round-trip JSON verso il frontend.
+    ``seasons`` is keyed by season number as a string so it survives the JSON
+    round-trip to the frontend.
     """
     out: dict[str, dict[str, Any]] = {}
     if not isinstance(payload, list):
@@ -404,7 +404,7 @@ def series_index(payload: Any) -> dict[str, dict[str, Any]]:
 
 
 def error_msg(e: Exception) -> str:
-    """Messaggio leggibile per un errore di Radarr/Sonarr."""
+    """User-facing message for a Radarr/Sonarr failure (Italian, like the ITT one)."""
     resp = getattr(e, "response", None)
     code = getattr(resp, "status_code", None) if resp is not None else None
     if code == 401:
@@ -421,7 +421,7 @@ def error_msg(e: Exception) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Livello HTTP
+# HTTP layer
 # ---------------------------------------------------------------------------
 
 def _client(base: str, token: str) -> httpx.AsyncClient:
@@ -449,7 +449,7 @@ async def _put_json(kind: str, path: str, body: Any) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Indice con cache
+# Cached index
 # ---------------------------------------------------------------------------
 
 def invalidate_cache() -> None:
@@ -458,10 +458,10 @@ def invalidate_cache() -> None:
 
 
 async def build_index(*, force: bool = False) -> dict[str, Any]:
-    """Indice completo di Radarr e Sonarr, una chiamata per istanza.
+    """Full Radarr + Sonarr index, one request per instance.
 
-    Un errore su un'istanza non impedisce all'altra di popolarsi: finisce in
-    ``errors`` e il frontend lo mostra senza perdere il resto.
+    A failure on one instance does not stop the other from populating: it lands
+    in ``errors`` and the frontend surfaces it without losing the rest.
     """
     async with _cache_lock:
         cached = _cache["data"]
@@ -477,15 +477,15 @@ async def build_index(*, force: bool = False) -> dict[str, Any]:
     if has_radarr:
         try:
             movies = movie_index(await _get_json("radarr", "/api/v3/movie"))
-        except Exception as e:  # noqa: BLE001 — mai far cadere la libreria
+        except Exception as e:  # noqa: BLE001 — never let this break the library
             errors["radarr"] = error_msg(e)
-            log.warning("Radarr: indice non costruito — %s", e)
+            log.warning("Radarr: index not built — %s", e)
     if has_sonarr:
         try:
             series = series_index(await _get_json("sonarr", "/api/v3/series"))
         except Exception as e:  # noqa: BLE001
             errors["sonarr"] = error_msg(e)
-            log.warning("Sonarr: indice non costruito — %s", e)
+            log.warning("Sonarr: index not built — %s", e)
 
     data = {
         "configured": {"radarr": has_radarr, "sonarr": has_sonarr},
@@ -619,11 +619,11 @@ In `unit3dprep/web/arr.py`, subito dopo `series_index` (prima di `def error_msg`
 def series_unmonitored_payload(
     series: dict[str, Any], season_number: int | None = None,
 ) -> dict[str, Any]:
-    """Copia dell'oggetto serie di Sonarr con il monitoraggio spento.
+    """Copy of a Sonarr series object with monitoring switched off.
 
-    ``season_number`` a ``None`` spegne la serie intera: flag serie più ogni
-    stagione. Con un numero di stagione spegne solo quella e lascia il flag
-    della serie intatto. L'oggetto in ingresso non viene mutato.
+    ``season_number`` at ``None`` switches off the whole series: the series flag
+    plus every season. With a season number it switches off only that season and
+    leaves the series flag alone. The input object is never mutated.
     """
     out = dict(series)
     seasons: list[Any] = []
@@ -642,7 +642,7 @@ def series_unmonitored_payload(
 
 
 def episode_ids(payload: Any, season_number: int | None = None) -> list[int]:
-    """Id degli episodi, opzionalmente filtrati per stagione."""
+    """Episode ids, optionally filtered to one season."""
     ids: list[int] = []
     for ep in payload if isinstance(payload, list) else []:
         if not isinstance(ep, dict) or not isinstance(ep.get("id"), int):
@@ -654,11 +654,11 @@ def episode_ids(payload: Any, season_number: int | None = None) -> list[int]:
 
 
 def episodes_to_dicts(payload: Any) -> list[dict[str, Any]]:
-    """Forma compatta degli episodi per il frontend.
+    """Compact episode shape for the frontend.
 
-    ``path`` è il file su disco: è la chiave con cui il pannello dettaglio
-    associa la riga episodio della libreria all'episodio di Sonarr. Vuoto
-    quando Sonarr non ha un file per quell'episodio.
+    ``path`` is the file on disk: it is the key the detail panel uses to match a
+    library episode row to its Sonarr episode. Empty when Sonarr has no file for
+    that episode.
     """
     out: list[dict[str, Any]] = []
     for ep in payload if isinstance(payload, list) else []:
@@ -683,7 +683,7 @@ In fondo a `unit3dprep/web/arr.py`, dopo `test_connection`, aggiungi:
 
 ```python
 # ---------------------------------------------------------------------------
-# Mutazioni
+# Mutations
 # ---------------------------------------------------------------------------
 
 async def fetch_series(series_id: int) -> dict[str, Any]:
@@ -700,7 +700,7 @@ async def fetch_episodes(series_id: int) -> list[dict[str, Any]]:
 
 
 async def unmonitor_movies(ids: list[int]) -> int:
-    """Spegne uno o più film in una sola chiamata all'endpoint editor."""
+    """Switch off one or many movies in a single call to the editor endpoint."""
     if not ids:
         return 0
     await _put_json("radarr", "/api/v3/movie/editor", {"movieIds": ids, "monitored": False})
@@ -717,9 +717,9 @@ async def unmonitor_episode_ids(ids: list[int]) -> int:
 
 
 async def unmonitor_series(series_id: int, season_number: int | None = None) -> int:
-    """Spegne una serie intera o una singola stagione, a cascata sugli episodi.
+    """Switch off a whole series or a single season, cascading to its episodes.
 
-    Ritorna il numero di episodi spenti.
+    Returns how many episodes were switched off.
     """
     series = await fetch_series(series_id)
     await _put_json(
@@ -810,7 +810,7 @@ Expected: `ModuleNotFoundError: No module named 'unit3dprep.web.api.arr'`
 - [ ] **Step 3: Creare `unit3dprep/web/api/arr.py`**
 
 ```python
-"""Endpoint Radarr / Sonarr consumati dalla vista libreria."""
+"""Radarr / Sonarr endpoints consumed by the library view."""
 from __future__ import annotations
 
 from typing import Any
@@ -837,7 +837,7 @@ class BulkBody(BaseModel):
 
 @router.get("/arr/status")
 async def arr_status(force: int = 0):
-    """Indice path → monitored di entrambe le istanze, cache 60 s."""
+    """path → monitored index for both instances, cached 60 s."""
     return JSONResponse(await arr.build_index(force=bool(force)))
 
 
@@ -858,7 +858,7 @@ async def arr_series_episodes(series_id: int):
 
 
 async def _resolve_and_unmonitor(body: UnmonitorBody) -> int:
-    """Risolve l'id *arr dal path e spegne il monitoraggio. Ritorna il conteggio."""
+    """Resolve the *arr id from the path and switch monitoring off. Returns the count."""
     index = await arr.build_index()
     key = arr.norm_path(body.path)
 
@@ -901,10 +901,10 @@ async def arr_unmonitor(body: UnmonitorBody):
 
 @router.post("/arr/unmonitor/bulk")
 async def arr_unmonitor_bulk(body: BulkBody):
-    """Spegne il monitoraggio su più path.
+    """Switch monitoring off across many paths.
 
-    I film finiscono in una sola chiamata all'endpoint editor di Radarr; ogni
-    serie ha la propria cascata. Un fallimento non ferma gli altri: finisce in
+    Movies go out in a single call to Radarr's editor endpoint; each series gets
+    its own cascade. One failure does not stop the others — it lands in
     ``failed``.
     """
     index = await arr.build_index()
@@ -1018,7 +1018,7 @@ export interface ArrEntry {
   id: number;
   monitored: boolean;
   title: string;
-  /** Solo per le serie: numero di stagione (come stringa) → monitorata. */
+  /** Series only: season number (as a string) → monitored. */
   seasons?: Record<string, boolean>;
 }
 
@@ -1035,7 +1035,7 @@ export interface ArrEpisode {
   episode_number: number | null;
   title: string;
   monitored: boolean;
-  /** File su disco: chiave di associazione con la riga episodio della libreria. */
+  /** File on disk: the key matching this to a library episode row. */
   path: string;
 }
 ```
@@ -1172,7 +1172,7 @@ creare un ciclo di import).
 In fondo a `frontend/src/components/primitives.tsx` aggiungi:
 
 ```tsx
-// Pulsante quadrato a sola icona: toolbar header stagione e azioni compatte.
+// Compact square icon button: season header toolbar and other tight actions.
 export const ICON_BTN = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   width: 26, height: 22, borderRadius: 4, cursor: 'pointer',
@@ -1252,7 +1252,7 @@ import { Bookmark, BookmarkX } from 'lucide-react';
 import { api } from '../api';
 import { Badge, ICON_BTN } from './primitives';
 
-/** Bersaglio di una rimozione del monitoraggio. */
+/** What a monitoring removal acts on. */
 export type ArrTarget =
   | { kind: 'movie'; path: string }
   | { kind: 'series'; path: string }
@@ -1260,9 +1260,9 @@ export type ArrTarget =
   | { kind: 'episodes'; episodeIds: number[] };
 
 /**
- * Badge mostrato solo quando l'elemento è monitorato: chi non lo è, o non
- * risulta in Radarr/Sonarr, non mostra nulla — così nella griglia salta
- * all'occhio esattamente ciò che resta da fare.
+ * Shown only when the item is monitored: anything unmonitored, or absent from
+ * Radarr/Sonarr, renders nothing — so the grid highlights exactly what is left
+ * to do.
  */
 export function MonitorBadge({ monitored }: { monitored?: boolean }) {
   const { t } = useTranslation();
@@ -1306,7 +1306,7 @@ export function UnmonitorBtn({
       });
       setDone(true);
       onDone?.();
-    } catch { /* l'errore è già nei log lato server */ }
+    } catch { /* the failure is already in the server-side logs */ }
     setBusy(false);
   };
 
@@ -1578,8 +1578,8 @@ Nel corpo del componente `LibraryView`, subito dopo
 aggiungi:
 
 ```tsx
-  // Indice Radarr/Sonarr. Caricato dopo la griglia e mergiato per path: se le
-  // due istanze sono lente o spente la libreria non ne risente.
+  // Radarr/Sonarr index. Loaded after the grid and merged by path, so the
+  // library is unaffected when either instance is slow or down.
   const [arrIndex, setArrIndex] = useState<ArrIndex | null>(null);
   const loadArr = () => {
     api.get<ArrIndex>('/api/arr/status')
@@ -1749,8 +1749,8 @@ function DetailPanel({
 Nel corpo di `DetailPanel`, insieme agli altri `useState`, aggiungi:
 
 ```tsx
-  // Episodi Sonarr: una sola chiamata all'apertura di una serie presente
-  // nell'indice. Servono per associare la riga episodio al suo id.
+  // Sonarr episodes: a single call when opening a series that is in the index.
+  // Needed to map each episode row to its Sonarr id.
   const [arrEpisodes, setArrEpisodes] = useState<ArrEpisode[]>([]);
   useEffect(() => {
     setArrEpisodes([]);
