@@ -7,9 +7,13 @@ import {
   CheckSquare, Square, Flag, Upload, Check, Captions, Languages,
 } from 'lucide-react';
 import { api, openSSE } from '../api';
-import type { Category, LibraryItem, Season, SeasonStatus, SeriesStatus, WizardCtx } from '../types';
+import type {
+  ArrEntry, ArrEpisode, ArrIndex,
+  Category, LibraryItem, Season, SeasonStatus, SeriesStatus, WizardCtx,
+} from '../types';
 import { LangChip, SubChip, Badge, LoadMore, ICON_BTN } from '../components/primitives';
 import { useIncremental } from '../hooks/useIncremental';
+import { MonitorBadge, UnmonitorBtn } from '../components/ArrMonitor';
 
 type SortKey = 'name' | 'year' | 'size';
 type SortDir = 'asc' | 'desc';
@@ -87,6 +91,21 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const scanBtnRef = useRef<HTMLDivElement | null>(null);
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
+  // Radarr/Sonarr index. Loaded after the grid and merged by path, so the
+  // library is unaffected when either instance is slow or down.
+  const [arrIndex, setArrIndex] = useState<ArrIndex | null>(null);
+  const loadArr = () => {
+    api.get<ArrIndex>('/api/arr/status')
+      .then(setArrIndex)
+      .catch(() => setArrIndex(null));
+  };
+  useEffect(() => { loadArr(); }, []);
+
+  const arrEntryFor = (it: LibraryItem): ArrEntry | undefined =>
+    it.kind === 'movie' ? arrIndex?.movies[it.path] : arrIndex?.series[it.path];
+
+  const arrEnabled = !!(arrIndex?.configured.radarr || arrIndex?.configured.sonarr);
+  const arrError = arrIndex?.errors.radarr || arrIndex?.errors.sonarr || '';
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkToast, setBulkToast] = useState<string | null>(null);
   // Anchor item path for shift-click range selection (in displayed `visible` order).
@@ -820,6 +839,15 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           padding: isMobile ? '12px 14px' : '14px 18px',
           overflowY: 'auto', alignContent: 'start',
         }}>
+          {arrError && (
+            <div style={{
+              gridColumn: '1/-1',
+              fontSize: 11, fontFamily: 'var(--font-display)',
+              color: 'var(--yellow)', background: 'var(--yellow-dim)',
+              border: '1px solid var(--yellow)', borderRadius: 6,
+              padding: '6px 10px', marginBottom: 8,
+            }}>{t('arr.statusError', { msg: arrError })}</div>
+          )}
           {visible.map((item) => {
             const isSeries = !!item.seasons;
             const uploaded = isSeries
@@ -890,6 +918,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
                         {t('library.toCheckBadge')}
                       </Badge>
                     )}
+                    <MonitorBadge monitored={arrEntryFor(item)?.monitored} />
                   </div>
                   {!bulkMode && (
                     <div style={{ position: 'absolute', top: 6, right: 6 }}>
