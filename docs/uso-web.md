@@ -245,3 +245,32 @@ Breakpoint gestito da `isMobile` (App.tsx → Sidebar / TopBar / Library / Setti
 ## Bisogni accesso programmatico?
 
 Tutte le view della UI consumano l'API JSON sotto `{U3DP_ROOT_PATH}/api/*`. Puoi chiamarla direttamente con cookie di sessione valido. Vedi `unit3dprep/web/api/*.py` per la lista completa dei router (settings, version, webup, library, queue, uploaded, search, tmdb, fs).
+
+---
+
+## Radarr e Sonarr
+
+Configura URL e API key in **Impostazioni → Radarr / Sonarr** e usa **Test
+connessione** per verificarli. Il test interroga le credenziali **salvate**, quindi
+resta disabilitato finché ci sono modifiche non salvate. Radarr e Sonarr devono
+vedere lo stesso filesystem di unit3dprep: l'accoppiamento fra libreria e
+monitoraggio avviene per path.
+
+Quando l'integrazione è attiva la libreria mostra un badge **monitorato** su ciò che
+Radarr o Sonarr stanno ancora cercando. Il pulsante di rimozione compare solo lì:
+
+- **Film** — nel pannello dettaglio.
+- **Serie** — nel pannello dettaglio; spegne anche tutte le stagioni e tutti gli
+  episodi.
+- **Stagione** — icona nell'intestazione della stagione; spegne anche i suoi episodi.
+- **Episodio** — icona sulla riga dell'episodio.
+
+Il monitoraggio si può solo rimuovere, non riattivare.
+
+Per lavorare in blocco: filtra per **Lingua**, entra in selezione multipla, seleziona
+e usa **Rimuovi monitoraggio**. Gli elementi che Radarr e Sonarr non conoscono vengono
+esclusi automaticamente; i film vengono spenti in un colpo solo, le serie una per una
+a cascata, e alla fine un avviso riporta quanti sono riusciti e quanti no.
+
+Se Radarr o Sonarr non rispondono, la libreria funziona come sempre e in cima compare
+un avviso: badge e pulsanti restano nascosti finché il servizio non torna.

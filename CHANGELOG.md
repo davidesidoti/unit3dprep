@@ -11,6 +11,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
   nella categoria corrente — separate fra audio e sottotitoli, con il numero di elementi per
   ciascuna — e mostra solo i media che la contengono. Si azzera con la × sul pulsante e al
   cambio di categoria.
+- Integrazione Radarr e Sonarr: stato di monitoraggio visibile nella libreria e
+  rimozione con un click su film, serie, stagione ed episodio, anche sulla
+  selezione multipla. URL e API key si impostano in Impostazioni → Radarr / Sonarr.
 
 ### Removed
 - Tolta la spunta **"Solo con audio italiano"** dalla Libreria: il nuovo filtro lingua fa lo

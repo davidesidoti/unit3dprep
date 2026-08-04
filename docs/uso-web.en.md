@@ -245,3 +245,30 @@ Breakpoint handled by `isMobile` (App.tsx → Sidebar / TopBar / Library / Setti
 ## Programmatic access?
 
 Every UI view consumes the JSON API under `{U3DP_ROOT_PATH}/api/*`. You can call it directly with a valid session cookie. See `unit3dprep/web/api/*.py` for the full list of routers (settings, version, webup, library, queue, uploaded, search, tmdb, fs).
+
+---
+
+## Radarr and Sonarr
+
+Set the URL and API key under **Settings → Radarr / Sonarr** and use **Test
+connection** to check them. The test queries the **saved** credentials, so it stays
+disabled while there are unsaved changes. Radarr and Sonarr must see the same
+filesystem as unit3dprep: library items are matched to their records by path.
+
+With the integration on, the library shows a **monitored** badge on whatever Radarr or
+Sonarr is still searching for. The removal button appears only there:
+
+- **Movie** — in the detail panel.
+- **Series** — in the detail panel; also switches off every season and episode.
+- **Season** — icon in the season header; also switches off its episodes.
+- **Episode** — icon on the episode row.
+
+Monitoring can only be removed, never re-enabled.
+
+To work in bulk: filter by **Language**, enter multi-select, pick the items and hit
+**Stop monitoring**. Items Radarr and Sonarr don't know about are excluded
+automatically; movies go off in a single call, series one at a time with their
+cascade, and a toast reports how many succeeded and how many failed.
+
+If Radarr or Sonarr are unreachable the library keeps working as usual and a notice
+appears at the top: badges and buttons stay hidden until the service is back.

@@ -75,6 +75,10 @@ Control default state of upload wizard toggles. Stored in the shared `.env`, edi
 | `W_HARDLINK_ONLY` | `false` | End the wizard after the hardlink, without invoking the Unit3DWebUp upload. |
 | `W_CONFIRM_NAMES` | `true` | Require confirmation of the final name before hardlinking. |
 | `W_DUPLICATE_CHECK` | `true` | Before hardlinking, query the ITT API (`/api/torrents/filter?tmdbId=<id>`) and prompt for confirmation if a torrent with the exact same byte size already exists. See [Usage › Wizard › Duplicate check](uso-web.md#pre-upload-duplicate-check). |
+| `W_RADARR_URL` | *(empty)* | Radarr URL, e.g. `http://127.0.0.1:7878`. Empty disables the integration. |
+| `W_RADARR_APIKEY` | *(empty)* | Radarr API key (Settings → General → Security). |
+| `W_SONARR_URL` | *(empty)* | Sonarr URL, e.g. `http://127.0.0.1:8989`. Empty disables the integration. |
+| `W_SONARR_APIKEY` | *(empty)* | Sonarr API key (Settings → General → Security). |
 
 ---
 

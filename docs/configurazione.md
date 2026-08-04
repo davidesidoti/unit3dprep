@@ -75,6 +75,10 @@ Controllano i default degli switch del wizard di upload. Vivono nel `.env` condi
 | `W_HARDLINK_ONLY` | `false` | Termina il wizard dopo l'hardlink, senza lanciare l'upload Unit3DWebUp. |
 | `W_CONFIRM_NAMES` | `true` | Richiede conferma del nome finale prima dell'hardlink. |
 | `W_DUPLICATE_CHECK` | `true` | Prima dell'hardlink interroga l'API ITT (`/api/torrents/filter?tmdbId=<id>`) e blocca con conferma se trova un torrent con la stessa dimensione esatta in byte. Vedi [Uso › Wizard › Controllo duplicati](uso-web.md#controllo-duplicati-pre-upload). |
+| `W_RADARR_URL` | *(vuoto)* | URL di Radarr, es. `http://127.0.0.1:7878`. Vuoto = integrazione disattivata. |
+| `W_RADARR_APIKEY` | *(vuoto)* | API key di Radarr (Impostazioni → Generale → Sicurezza). |
+| `W_SONARR_URL` | *(vuoto)* | URL di Sonarr, es. `http://127.0.0.1:8989`. Vuoto = integrazione disattivata. |
+| `W_SONARR_APIKEY` | *(vuoto)* | API key di Sonarr (Impostazioni → Generale → Sicurezza). |
 
 ---
 
