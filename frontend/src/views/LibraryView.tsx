@@ -379,6 +379,28 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     await reloadKeepSelection(category);
   };
 
+  const runBulkUnmonitor = async () => {
+    if (bulkBusy || selectedCount === 0) return;
+    const targets = items.filter((it) => selectedPaths.has(it.path));
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    setBulkToast(null);
+    try {
+      const r = await api.post<{ done: number; failed: { path: string; error: string }[] }>(
+        '/api/arr/unmonitor/bulk',
+        { paths: targets.map((it) => it.path) },
+      );
+      setBulkToast(t('arr.bulkUnmonitorDone', { done: r.done, failed: r.failed.length }));
+    } catch {
+      setBulkToast(t('arr.bulkUnmonitorFail'));
+    }
+    setBulkBusy(false);
+    anchorRef.current = null;
+    setSelectedPaths(new Set());
+    setBulkMode(false);
+    loadArr();
+  };
+
   const runEnrich = () => {
     setEnriching(true);
     const close = openSSE(`/api/library/${category}/enrich`, {
@@ -1060,6 +1082,23 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
             <Music size={13} />
             {bulkBusy ? t('library.scanning') : t('library.bulkScanLangs')}
           </button>
+          {arrEnabled && (
+            <button
+              onClick={runBulkUnmonitor}
+              disabled={selectedCount === 0 || bulkBusy}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'transparent',
+                border: '1px solid var(--border)', borderRadius: 6,
+                padding: '7px 14px', fontSize: 12, fontWeight: 700,
+                color: selectedCount > 0 && !bulkBusy ? 'var(--fg-1)' : 'var(--fg-3)',
+                cursor: selectedCount > 0 && !bulkBusy ? 'pointer' : 'not-allowed',
+                fontFamily: 'var(--font-display)',
+              }}
+            >
+              {t('arr.bulkUnmonitor')}
+            </button>
+          )}
           <button
             onClick={runBulkMark}
             disabled={!canBulkMark || bulkBusy}

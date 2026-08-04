@@ -18,7 +18,7 @@ const kindPrefixes: Record<string, string> = {
   debug: '[dbg]',
 };
 
-type SourceKey = 'app' | 'http' | 'webup' | 'wizard' | 'client' | 'tracker' | 'system' | 'upload';
+type SourceKey = 'app' | 'http' | 'webup' | 'wizard' | 'client' | 'tracker' | 'system' | 'upload' | 'arr';
 const SOURCES: { key: SourceKey; label: string }[] = [
   { key: 'app', label: 'App' },
   { key: 'wizard', label: 'Wizard' },
@@ -26,6 +26,7 @@ const SOURCES: { key: SourceKey; label: string }[] = [
   { key: 'upload', label: 'Upload' },
   { key: 'client', label: 'Client' },
   { key: 'tracker', label: 'Tracker' },
+  { key: 'arr', label: 'Arr' },
   { key: 'http', label: 'HTTP' },
   { key: 'system', label: 'System' },
 ];
@@ -39,6 +40,9 @@ const sourceBadge: Record<string, string> = {
   wizard: 'var(--accent)',
   webup: 'var(--green, #34d399)',
   system: 'var(--fg-3)',
+  // The only warm hue left free in this palette: distinct at a glance from the
+  // other source chips, which are all blue/green/purple/teal.
+  arr: 'var(--yellow)',
 };
 
 const ALL_KINDS: LogKind[] = ['info', 'ok', 'warn', 'error', 'debug'];
