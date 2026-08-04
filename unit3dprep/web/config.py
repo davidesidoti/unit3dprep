@@ -267,7 +267,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "W_DUPLICATE_CHECK": True,
     "W_DUPLICATE_SIZE_TOLERANCE_PCT": 2.0,
 
-    # Radarr / Sonarr — rimozione del monitoraggio dalla libreria.
+    # Radarr / Sonarr — monitoring removal from the library view.
     "W_RADARR_URL": "",
     "W_RADARR_APIKEY": "",
     "W_SONARR_URL": "",
