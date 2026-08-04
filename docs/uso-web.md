@@ -34,7 +34,7 @@ Funzionalità:
 - **Ordinamento** — nome, anno, dimensione.
 - **Ricerca** — filtro live sul nome.
 - **Nascondi uploadati** — toggle controllato da `W_HIDE_UPLOADED`.
-- **Nascondi senza ITA** — toggle controllato da `W_HIDE_NO_ITALIAN`.
+- **Filtro lingua** — dropdown con le lingue trovate nella categoria corrente, separate fra audio e sottotitoli e con il numero di elementi per ciascuna; mostra solo i media che contengono la lingua scelta. Si azzera con la × e al cambio categoria.
 - **Solo da controllare** — toggle che mostra solo i media marcati "da controllare" (vedi sotto).
 - **Detail panel** — click su un item apre un panel laterale (mobile: overlay a tutto schermo) con file list, match TMDB, azioni.
 - **Rescan lingue audio** — bottone che stream-a via SSE la scansione `pymediainfo` aggiornando la cache.

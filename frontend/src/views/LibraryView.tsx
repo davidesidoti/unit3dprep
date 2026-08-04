@@ -76,7 +76,6 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<LibraryItem | null>(null);
   const [hideUploaded, setHideUploaded] = useState(true);
-  const [hideNoItalian, setHideNoItalian] = useState(false);
   const [onlyToCheck, setOnlyToCheck] = useState(false);
   // '' = no language filter; otherwise '<audio|subs>:<CODE>' (e.g. 'audio:ITA').
   const [langFilter, setLangFilter] = useState('');
@@ -122,8 +121,6 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       .then((s) => {
         const v = s.config?.W_HIDE_UPLOADED;
         if (typeof v === 'boolean') setHideUploaded(v);
-        const vi = s.config?.W_HIDE_NO_ITALIAN;
-        if (typeof vi === 'boolean') setHideNoItalian(vi);
       })
       .catch(() => { /* ignore */ });
   }, []);
@@ -235,7 +232,6 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     const base = items.filter((it) => {
       if (search && !it.title.toLowerCase().includes(search.toLowerCase())
           && !it.name.toLowerCase().includes(search.toLowerCase())) return false;
-      if (hideNoItalian && it.lang_scanned && !it.langs.includes('ITA')) return false;
       if (langCode) {
         const pool = langScope === 'subs' ? (it.subs ?? []) : (it.langs ?? []);
         if (!pool.includes(langCode)) return false;
@@ -255,11 +251,11 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       }
       return a.title.localeCompare(b.title) * dir;
     });
-  }, [items, search, hideUploaded, hideNoItalian, onlyToCheck, langFilter, sortBy, sortDir]);
+  }, [items, search, hideUploaded, onlyToCheck, langFilter, sortBy, sortDir]);
 
   const { visible, remaining, hasMore, loadMore } = useIncremental(
     filtered, 60,
-    [category, search, hideUploaded, hideNoItalian, onlyToCheck, langFilter, sortBy, sortDir],
+    [category, search, hideUploaded, onlyToCheck, langFilter, sortBy, sortDir],
   );
 
   const needTmdb = filtered.filter((i) => !i.tmdb_id).length;
@@ -649,24 +645,6 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           {t('library.hideUploaded')}
         </div>
         <div
-          title={t('library.onlyItalian')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
-            fontSize: 11, fontWeight: 600, color: 'var(--fg-2)',
-            fontFamily: 'var(--font-display)',
-          }}
-          onClick={() => setHideNoItalian(!hideNoItalian)}
-        >
-          <div style={{
-            width: 14, height: 14, borderRadius: 3,
-            border: `1px solid ${hideNoItalian ? 'var(--blue)' : 'var(--border)'}`,
-            background: hideNoItalian ? 'var(--blue)' : 'var(--bg-card)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 9, color: '#fff',
-          }}>{hideNoItalian && '✓'}</div>
-          {t('library.onlyItalian')}
-        </div>
-        <div
           title={t('library.onlyToCheck')}
           style={{
             display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer',
@@ -988,7 +966,6 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
               <div style={{ fontSize: 48, marginBottom: 10, opacity: 0.3 }}>∅</div>
               {t('library.nothingToShow')}{' '}
               {hideUploaded && t('library.tryUnhideUploaded')}
-              {hideNoItalian && ' ' + t('library.tryUnhideItalian')}
               {langFilter && ' ' + t('library.tryClearLangFilter')}
             </div>
           )}

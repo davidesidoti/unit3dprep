@@ -72,7 +72,6 @@ Controllano i default degli switch del wizard di upload. Vivono nel `.env` condi
 | `W_AUDIO_CHECK` | `true` | Abilita il check audio italiano nel wizard. |
 | `W_AUTO_TMDB` | `true` | Auto-fetch dei metadati TMDB se è già presente un ID. |
 | `W_HIDE_UPLOADED` | `true` | Nasconde dalla Library gli item già caricati. |
-| `W_HIDE_NO_ITALIAN` | `false` | Nasconde dalla Library gli item scansionati senza traccia ITA. |
 | `W_HARDLINK_ONLY` | `false` | Termina il wizard dopo l'hardlink, senza lanciare l'upload Unit3DWebUp. |
 | `W_CONFIRM_NAMES` | `true` | Richiede conferma del nome finale prima dell'hardlink. |
 | `W_DUPLICATE_CHECK` | `true` | Prima dell'hardlink interroga l'API ITT (`/api/torrents/filter?tmdbId=<id>`) e blocca con conferma se trova un torrent con la stessa dimensione esatta in byte. Vedi [Uso › Wizard › Controllo duplicati](uso-web.md#controllo-duplicati-pre-upload). |

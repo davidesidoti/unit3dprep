@@ -1252,9 +1252,6 @@ function SeedingSection({
       <ToggleRow cfg={cfg} set={set} k="W_HIDE_UPLOADED"
         label={t('settings.seedingWizardHideUploaded')}
         sub={t('settings.seedingWizardHideUploadedSub')} />
-      <ToggleRow cfg={cfg} set={set} k="W_HIDE_NO_ITALIAN"
-        label={t('settings.seedingWizardHideNoItalian')}
-        sub={t('settings.seedingWizardHideNoItalianSub')} />
       <ToggleRow cfg={cfg} set={set} k="W_HARDLINK_ONLY"
         label={t('settings.seedingWizardHardlinkOnly')}
         sub={t('settings.seedingWizardHardlinkOnlySub')} />

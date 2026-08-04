@@ -12,6 +12,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
   ciascuna — e mostra solo i media che la contengono. Si azzera con la × sul pulsante e al
   cambio di categoria.
 
+### Removed
+- Tolta la spunta **"Solo con audio italiano"** dalla Libreria: il nuovo filtro lingua fa lo
+  stesso lavoro (Audio › ITA) ed è più esplicito. Sparisce anche l'impostazione collegata
+  (`W_HIDE_NO_ITALIAN` in Impostazioni › Wizard defaults), che viene rimossa dal file di
+  configurazione al primo salvataggio.
+
 ## [1.2.1] - 2026-08-01
 
 ### Fixed

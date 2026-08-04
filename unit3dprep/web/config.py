@@ -89,12 +89,21 @@ _LEGACY_KEY_MAP = {
 }
 
 
+# Keys of removed features: dropped on load/save so an existing .env written by
+# an older version doesn't keep a dead entry forever.
+_REMOVED_KEYS = {
+    "W_HIDE_NO_ITALIAN",  # Library "only Italian audio" filter → replaced by the language filter
+}
+
+
 def _upgrade_legacy_keys(data: dict[str, Any]) -> dict[str, Any]:
     for old, new in _LEGACY_KEY_MAP.items():
         if old in data and new not in data:
             data[new] = data.pop(old)
         elif old in data:
             data.pop(old)
+    for dead in _REMOVED_KEYS:
+        data.pop(dead, None)
     return _ensure_season_in_serie(data)
 
 
@@ -253,7 +262,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "W_AUDIO_CHECK": True,
     "W_AUTO_TMDB": True,
     "W_HIDE_UPLOADED": True,
-    "W_HIDE_NO_ITALIAN": False,
     "W_HARDLINK_ONLY": False,
     "W_CONFIRM_NAMES": True,
     "W_DUPLICATE_CHECK": True,
@@ -555,7 +563,7 @@ _GROUPS: list[tuple[str, list[str]]] = [
     ]),
     ("Wizard defaults (unit3dprep)", [
         "W_AUDIO_CHECK", "W_AUTO_TMDB", "W_HIDE_UPLOADED",
-        "W_HIDE_NO_ITALIAN", "W_HARDLINK_ONLY", "W_CONFIRM_NAMES",
+        "W_HARDLINK_ONLY", "W_CONFIRM_NAMES",
         "W_DUPLICATE_CHECK", "W_DUPLICATE_SIZE_TOLERANCE_PCT",
     ]),
 ]

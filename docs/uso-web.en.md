@@ -34,7 +34,7 @@ Features:
 - **Sorting** — name, year, size.
 - **Search** — live filter on name.
 - **Hide uploaded** — toggle controlled by `W_HIDE_UPLOADED`.
-- **Hide non-Italian** — toggle controlled by `W_HIDE_NO_ITALIAN`.
+- **Language filter** — dropdown listing the languages found in the current category, split between audio and subtitles with a per-language item count; shows only media carrying the selected language. Cleared with the × or by switching category.
 - **Only to-check** — toggle that shows only media flagged "to-check" (see below).
 - **Detail panel** — clicking an item opens a side panel (mobile: full-screen overlay) with file list, TMDB match, actions.
 - **Rescan audio languages** — button that streams the `pymediainfo` scan via SSE, updating the cache.
