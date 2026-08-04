@@ -110,6 +110,7 @@ export const en = {
     arrTesting: 'Testing…',
     arrTestOk: 'OK — {{name}} v{{version}}',
     arrTestFail: 'Failed: {{msg}}',
+    arrTestDirty: 'Save before testing — the test uses the saved credentials.',
     navVersion: 'Version',
     // VersionSection
     versionAppGroup: 'App',

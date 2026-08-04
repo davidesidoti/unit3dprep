@@ -112,6 +112,7 @@ export const it: Catalog = {
     arrTesting: 'Verifica in corso…',
     arrTestOk: 'OK — {{name}} v{{version}}',
     arrTestFail: 'Errore: {{msg}}',
+    arrTestDirty: 'Salva prima di testare — il test usa le credenziali salvate.',
     navVersion: 'Versione',
     // VersionSection
     versionAppGroup: 'App',

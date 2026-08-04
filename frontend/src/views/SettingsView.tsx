@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Activity, HardDrive, Sliders, Image as ImageIcon, Folder as FolderIcon,
   GitBranch, Terminal, CheckCircle, Languages, Tag, Bookmark,
@@ -26,6 +26,11 @@ const SECTIONS: { id: Section; labelKey: string; icon: any }[] = [
   { id: 'console',  labelKey: 'settings.navConsole',  icon: Terminal },
 ];
 
+// Fields the "Test connessione" buttons in ArrSection care about: if any of
+// these differs from what the server last loaded/saved, the saved config the
+// test would hit is stale relative to the form.
+const ARR_DIRTY_KEYS = ['W_RADARR_URL', 'W_RADARR_APIKEY', 'W_SONARR_URL', 'W_SONARR_APIKEY'] as const;
+
 const IMAGE_HOSTS = [
   { key: 'PTSCREENS', label: 'PtScreens',  url: 'ptscreens.com' },
   { key: 'PASSIMA',   label: 'PassIMA',    url: 'passtheima.ge' },
@@ -48,9 +53,16 @@ export function SettingsView({ isMobile }: { isMobile?: boolean } = {}) {
   const [data, setData] = useState<SettingsResponse | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Config as last loaded/saved by the server — a snapshot to diff the live,
+  // still-editing `cfg` against (see arrDirty below). Not state: it must not
+  // itself trigger a re-render, only back one.
+  const pristine = useRef<Record<string, any> | null>(null);
 
   useEffect(() => {
-    api.get<SettingsResponse>('/api/settings').then(setData).catch(() => {});
+    api.get<SettingsResponse>('/api/settings').then((d) => {
+      pristine.current = d.config;
+      setData(d);
+    }).catch(() => {});
   }, []);
 
   if (!data) {
@@ -61,10 +73,18 @@ export function SettingsView({ isMobile }: { isMobile?: boolean } = {}) {
   const set = (key: string, value: any) =>
     setData((d) => d && ({ ...d, config: { ...d.config, [key]: value } }));
 
+  // True once any Radarr/Sonarr field diverges from the saved config — the
+  // "Test connessione" buttons hit the server, which only knows the saved
+  // values, so testing while dirty would silently check stale credentials.
+  const pristineCfg = pristine.current;
+  const arrDirty = pristineCfg != null
+    && ARR_DIRTY_KEYS.some((k) => cfg[k] !== pristineCfg[k]);
+
   const save = async () => {
     setSaving(true);
     try {
       const r = await api.put<{ config: Record<string, any> }>('/api/settings', cfg);
+      pristine.current = r.config;
       setData((d) => d && ({ ...d, config: r.config }));
       setSaved(true); setTimeout(() => setSaved(false), 2500);
     } finally { setSaving(false); }
@@ -128,7 +148,7 @@ export function SettingsView({ isMobile }: { isMobile?: boolean } = {}) {
           {section === 'imghost' && <ImageHostsSection cfg={cfg} set={set} />}
           {section === 'paths' && <PathsSection cfg={cfg} set={set} isMobile={isMobile} />}
           {section === 'seeding' && <SeedingSection cfg={cfg} set={set} env={data.env} isMobile={isMobile} />}
-          {section === 'arr' && <ArrSection cfg={cfg} set={set} isMobile={isMobile} />}
+          {section === 'arr' && <ArrSection cfg={cfg} set={set} isMobile={isMobile} dirty={arrDirty} />}
           {section === 'version' && <VersionSection />}
           {section === 'interface' && <InterfaceSection />}
           {section === 'console' && <ConsoleSection cfg={cfg} set={set} />}
@@ -1312,12 +1332,13 @@ const arrowBtn: React.CSSProperties = {
   cursor: 'pointer', color: 'var(--fg-3)', padding: 0, fontSize: 9,
 };
 
-function ArrTestBtn({ kind }: { kind: 'radarr' | 'sonarr' }) {
+function ArrTestBtn({ kind, dirty }: { kind: 'radarr' | 'sonarr'; dirty?: boolean }) {
   const { t } = useTranslation();
   const [state, setState] = useState<{ busy: boolean; msg: string; ok: boolean }>(
     { busy: false, msg: '', ok: false },
   );
   const run = async () => {
+    if (dirty) return;
     setState({ busy: true, msg: '', ok: false });
     try {
       const r = await api.get<{ ok: boolean; version?: string; instance_name?: string; error?: string }>(
@@ -1331,19 +1352,26 @@ function ArrTestBtn({ kind }: { kind: 'radarr' | 'sonarr' }) {
       setState({ busy: false, ok: false, msg: t('settings.arrTestFail', { msg: String(e) }) });
     }
   };
+  const dirtyHint = t('settings.arrTestDirty');
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
       <button
         onClick={run}
-        disabled={state.busy}
+        disabled={state.busy || dirty}
+        title={dirty ? dirtyHint : undefined}
         style={{
           background: 'transparent', border: '1px solid var(--border)',
           borderRadius: 6, padding: '6px 12px', fontSize: 11, fontWeight: 600,
-          color: 'var(--fg-2)', cursor: state.busy ? 'default' : 'pointer',
-          fontFamily: 'var(--font-display)',
+          color: 'var(--fg-2)', cursor: state.busy || dirty ? 'default' : 'pointer',
+          fontFamily: 'var(--font-display)', opacity: dirty ? 0.5 : 1,
         }}
       >{state.busy ? t('settings.arrTesting') : t('settings.arrTest')}</button>
-      {state.msg && (
+      {dirty && (
+        <span style={{
+          fontSize: 11, color: 'var(--fg-4)', fontFamily: 'var(--font-display)',
+        }}>{dirtyHint}</span>
+      )}
+      {!dirty && state.msg && (
         <span style={{
           fontSize: 11, fontFamily: 'var(--font-mono)',
           color: state.ok ? 'var(--green)' : 'var(--red)',
@@ -1353,7 +1381,7 @@ function ArrTestBtn({ kind }: { kind: 'radarr' | 'sonarr' }) {
   );
 }
 
-function ArrSection({ cfg, set, isMobile }: { cfg: Cfg; set: SetFn; isMobile?: boolean }) {
+function ArrSection({ cfg, set, isMobile, dirty }: { cfg: Cfg; set: SetFn; isMobile?: boolean; dirty?: boolean }) {
   const { t } = useTranslation();
   const grid2: React.CSSProperties = {
     display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 10,
@@ -1370,14 +1398,14 @@ function ArrSection({ cfg, set, isMobile }: { cfg: Cfg; set: SetFn; isMobile?: b
         <Field cfg={cfg} set={set} k="W_RADARR_URL" label="W_RADARR_URL" />
         <Field cfg={cfg} set={set} k="W_RADARR_APIKEY" label="W_RADARR_APIKEY" masked />
       </div>
-      <ArrTestBtn kind="radarr" />
+      <ArrTestBtn kind="radarr" dirty={dirty} />
 
       <div style={GROUP_LABEL}>Sonarr</div>
       <div style={grid2}>
         <Field cfg={cfg} set={set} k="W_SONARR_URL" label="W_SONARR_URL" />
         <Field cfg={cfg} set={set} k="W_SONARR_APIKEY" label="W_SONARR_APIKEY" masked />
       </div>
-      <ArrTestBtn kind="sonarr" />
+      <ArrTestBtn kind="sonarr" dirty={dirty} />
     </>
   );
 }
