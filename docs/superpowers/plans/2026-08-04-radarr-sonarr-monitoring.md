@@ -2197,19 +2197,30 @@ con:
             title={t('library.bulkOnlyMovies')}
 ```
 
-- [ ] **Step 3: Build**
+- [ ] **Step 3: Registrare `arr` fra le sorgenti dei log**
+
+`LogsView.tsx` ha una lista `SOURCES` hardcoded. Le righe con `source="arr"` che
+il backend già emette si vedono comunque (il filtro nasconde solo le sorgenti
+presenti in `hiddenSources`), ma restano senza chip di filtro e senza colore.
+
+In `frontend/src/components/../views/LogsView.tsx`, aggiungi una voce `arr` alla
+lista `SOURCES` seguendo esattamente la forma delle otto già presenti (stesso tipo
+di oggetto, stessa convenzione di etichetta e colore). Scegli un colore non ancora
+usato dalle altre sorgenti.
+
+- [ ] **Step 4: Build**
 
 Run: `cd frontend && npm run build`
 Expected: build completata, nessun errore
 
-- [ ] **Step 4: Tornare alla radice del repo**
+- [ ] **Step 5: Tornare alla radice del repo**
 
 Run: `cd C:/Users/sidot/Documents/Github/itatorrents-seeding`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add frontend/src/views/LibraryView.tsx unit3dprep/web/dist
+git add frontend/src/views/LibraryView.tsx frontend/src/views/LogsView.tsx unit3dprep/web/dist
 git commit -m "feat(library): rimozione monitoraggio sulla selezione multipla"
 ```
 
