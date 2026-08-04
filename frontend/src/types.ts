@@ -63,6 +63,31 @@ export interface LibraryItem {
   video_files?: VideoFile[];
 }
 
+export interface ArrEntry {
+  id: number;
+  monitored: boolean;
+  title: string;
+  /** Series only: season number (as a string) → monitored. */
+  seasons?: Record<string, boolean>;
+}
+
+export interface ArrIndex {
+  configured: { radarr: boolean; sonarr: boolean };
+  movies: Record<string, ArrEntry>;
+  series: Record<string, ArrEntry>;
+  errors: { radarr: string | null; sonarr: string | null };
+}
+
+export interface ArrEpisode {
+  id: number;
+  season_number: number | null;
+  episode_number: number | null;
+  title: string;
+  monitored: boolean;
+  /** File on disk: the key matching this to a library episode row. */
+  path: string;
+}
+
 export interface TrackerStatus { name: string; online: boolean; configured?: boolean; }
 
 export interface VersionTarget {
