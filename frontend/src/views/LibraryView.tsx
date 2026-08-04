@@ -1001,6 +1001,8 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
             onEditTmdb={() => setTmdbEditOpen(true)}
             onRescan={(langs) => setSelected((prev) => prev ? { ...prev, langs, lang_scanned: true } : prev)}
             onMarked={() => reloadKeepSelection(category)}
+            arrEntry={arrEntryFor(selected)}
+            onArrChanged={loadArr}
             isMobile={isMobile}
           />
         )}
@@ -1117,7 +1119,8 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
 }
 
 function DetailPanel({
-  item, category, onStart, onClose, onEditTmdb, onRescan, onMarked, isMobile,
+  item, category, onStart, onClose, onEditTmdb, onRescan, onMarked,
+  arrEntry, onArrChanged, isMobile,
 }: {
   item: LibraryItem;
   category: Category;
@@ -1126,6 +1129,8 @@ function DetailPanel({
   onEditTmdb: () => void;
   onRescan?: (langs: string[]) => void;
   onMarked?: () => void;
+  arrEntry?: ArrEntry;
+  onArrChanged?: () => void;
   isMobile?: boolean;
 }) {
   const { t } = useTranslation();
@@ -1144,6 +1149,18 @@ function DetailPanel({
     return () => { cancelled = true; };
   }, [item.path, item.tmdb_id]);
   const statusReady = !item.tmdb_id || seriesStatus !== null;
+  // Sonarr episodes: a single call when opening a series that is in the index.
+  // Needed to map each episode row to its Sonarr id.
+  const [arrEpisodes, setArrEpisodes] = useState<ArrEpisode[]>([]);
+  useEffect(() => {
+    setArrEpisodes([]);
+    if (item.kind !== 'series' || !arrEntry?.id) return;
+    let alive = true;
+    api.get<{ episodes: ArrEpisode[] }>(`/api/arr/series/${arrEntry.id}/episodes`)
+      .then((r) => { if (alive) setArrEpisodes(r.episodes); })
+      .catch(() => { if (alive) setArrEpisodes([]); });
+    return () => { alive = false; };
+  }, [item.kind, arrEntry?.id]);
   const mobileOverlayStyle = isMobile
     ? {
         position: 'fixed' as const, inset: 0, zIndex: 100,
@@ -1286,6 +1303,9 @@ function DetailPanel({
                   defaultOpen={idx === firstOpenIdx}
                   statusMeta={seriesStatus?.seasons?.[String(s.number)]}
                   statusReady={statusReady}
+                  arrMonitored={arrEntry?.seasons?.[String(s.number)]}
+                  arrEpisodes={arrEpisodes.filter((e) => e.season_number === s.number)}
+                  onArrChanged={onArrChanged}
                 />
               ));
             })()}
@@ -1304,6 +1324,12 @@ function DetailPanel({
               onToggled={onMarked}
               label={t('library.markSeriesToCheck')}
             />
+            {arrEntry?.monitored && (
+              <UnmonitorBtn
+                target={{ kind: 'series', path: item.path }}
+                onDone={onArrChanged}
+              />
+            )}
             <RescanLangsBtn category={category} name={item.name} onRescan={onRescan} />
           </>
         ) : (
@@ -1336,6 +1362,12 @@ function DetailPanel({
               flagged={!!item.to_check}
               onToggled={onMarked}
             />
+            {arrEntry?.monitored && (
+              <UnmonitorBtn
+                target={{ kind: 'movie', path: item.path }}
+                onDone={onArrChanged}
+              />
+            )}
             <RescanLangsBtn category={category} name={item.name} onRescan={onRescan} />
           </>
         )}
@@ -1363,6 +1395,7 @@ function parseEpisode(filename: string, seriesName: string): { num: string; titl
 
 function SeasonRow({
   season, item, category, onStart, onMarked, defaultOpen, statusMeta, statusReady,
+  arrMonitored, arrEpisodes = [], onArrChanged,
 }: {
   season: Season;
   item: LibraryItem;
@@ -1372,6 +1405,9 @@ function SeasonRow({
   defaultOpen?: boolean;
   statusMeta?: SeasonStatus;
   statusReady?: boolean;
+  arrMonitored?: boolean;
+  arrEpisodes?: ArrEpisode[];
+  onArrChanged?: () => void;
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(defaultOpen ?? false);
@@ -1430,8 +1466,18 @@ function SeasonRow({
               </Badge>
             </span>
           )}
+          {arrMonitored && (
+            <span style={{ marginLeft: 6 }}><MonitorBadge monitored /></span>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 4 }} onClick={(e) => e.stopPropagation()}>
+          {arrMonitored && (
+            <UnmonitorBtn
+              target={{ kind: 'season', path: item.path, seasonNumber: season.number }}
+              variant="icon"
+              onDone={onArrChanged}
+            />
+          )}
           {!season.already_uploaded && (
             <>
               <button
@@ -1549,25 +1595,38 @@ function SeasonRow({
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}
                 >{num ? ' - ' : ''}{display}</span>
-                {!vf.uploaded && (
-                  <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: 'flex', gap: 3 }}>
-                    <ToCheckBtn
-                      category={category}
-                      name={item.name}
-                      episodePath={vf.path}
-                      flagged={!!vf.to_check}
-                      variant="chip"
-                      onToggled={onMarked}
-                    />
-                    <MarkUploadedBtn
-                      category={category}
-                      name={item.name}
-                      episodePath={vf.path}
-                      variant="chip"
-                      onMarked={onMarked}
-                    />
-                  </span>
-                )}
+                <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: 'flex', gap: 3 }}>
+                  {!vf.uploaded && (
+                    <>
+                      <ToCheckBtn
+                        category={category}
+                        name={item.name}
+                        episodePath={vf.path}
+                        flagged={!!vf.to_check}
+                        variant="chip"
+                        onToggled={onMarked}
+                      />
+                      <MarkUploadedBtn
+                        category={category}
+                        name={item.name}
+                        episodePath={vf.path}
+                        variant="chip"
+                        onMarked={onMarked}
+                      />
+                    </>
+                  )}
+                  {(() => {
+                    const ep = arrEpisodes.find((e) => e.path === vf.path);
+                    if (!ep?.monitored) return null;
+                    return (
+                      <UnmonitorBtn
+                        target={{ kind: 'episodes', episodeIds: [ep.id] }}
+                        variant="chip"
+                        onDone={onArrChanged}
+                      />
+                    );
+                  })()}
+                </span>
               </div>
             );
           })}
