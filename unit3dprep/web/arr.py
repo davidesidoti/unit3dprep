@@ -118,6 +118,67 @@ def series_index(payload: Any) -> dict[str, dict[str, Any]]:
     return out
 
 
+def series_unmonitored_payload(
+    series: dict[str, Any], season_number: int | None = None,
+) -> dict[str, Any]:
+    """Copy of a Sonarr series object with monitoring switched off.
+
+    ``season_number`` at ``None`` switches off the whole series: the series flag
+    plus every season. With a season number it switches off only that season and
+    leaves the series flag alone. The input object is never mutated.
+    """
+    out = dict(series)
+    seasons: list[Any] = []
+    for season in series.get("seasons") or []:
+        if isinstance(season, dict):
+            s = dict(season)
+            if season_number is None or s.get("seasonNumber") == season_number:
+                s["monitored"] = False
+            seasons.append(s)
+        else:
+            seasons.append(season)
+    out["seasons"] = seasons
+    if season_number is None:
+        out["monitored"] = False
+    return out
+
+
+def episode_ids(payload: Any, season_number: int | None = None) -> list[int]:
+    """Episode ids, optionally filtered to one season."""
+    ids: list[int] = []
+    for ep in payload if isinstance(payload, list) else []:
+        if not isinstance(ep, dict) or not isinstance(ep.get("id"), int):
+            continue
+        if season_number is not None and ep.get("seasonNumber") != season_number:
+            continue
+        ids.append(ep["id"])
+    return ids
+
+
+def episodes_to_dicts(payload: Any) -> list[dict[str, Any]]:
+    """Compact episode shape for the frontend.
+
+    ``path`` is the file on disk: it is the key the detail panel uses to match a
+    library episode row to its Sonarr episode. Empty when Sonarr has no file for
+    that episode.
+    """
+    out: list[dict[str, Any]] = []
+    for ep in payload if isinstance(payload, list) else []:
+        if not isinstance(ep, dict) or not isinstance(ep.get("id"), int):
+            continue
+        f = ep.get("episodeFile")
+        raw_path = f.get("path") if isinstance(f, dict) else ""
+        out.append({
+            "id": ep["id"],
+            "season_number": ep.get("seasonNumber"),
+            "episode_number": ep.get("episodeNumber"),
+            "title": str(ep.get("title") or ""),
+            "monitored": bool(ep.get("monitored")),
+            "path": norm_path(raw_path or ""),
+        })
+    return out
+
+
 def _exc_detail(e: Exception) -> str:
     """``str(e)``, falling back to the exception's class name when that's empty.
 
@@ -299,3 +360,57 @@ async def test_connection(kind: str) -> dict[str, Any]:
         "version": str(data.get("version") or ""),
         "instance_name": str(data.get("instanceName") or ""),
     }
+
+
+# ---------------------------------------------------------------------------
+# Mutations
+# ---------------------------------------------------------------------------
+
+async def fetch_series(series_id: int) -> dict[str, Any]:
+    data = await _get_json("sonarr", f"/api/v3/series/{series_id}")
+    return data if isinstance(data, dict) else {}
+
+
+async def fetch_episodes(series_id: int) -> list[dict[str, Any]]:
+    data = await _get_json(
+        "sonarr", "/api/v3/episode",
+        {"seriesId": series_id, "includeEpisodeFile": "true"},
+    )
+    return data if isinstance(data, list) else []
+
+
+async def unmonitor_movies(ids: list[int]) -> int:
+    """Switch off one or many movies in a single call to the editor endpoint."""
+    if not ids:
+        return 0
+    await _put_json("radarr", "/api/v3/movie/editor", {"movieIds": ids, "monitored": False})
+    invalidate_cache()
+    return len(ids)
+
+
+async def unmonitor_episode_ids(ids: list[int]) -> int:
+    if not ids:
+        return 0
+    await _put_json("sonarr", "/api/v3/episode/monitor", {"episodeIds": ids, "monitored": False})
+    invalidate_cache()
+    return len(ids)
+
+
+async def unmonitor_series(series_id: int, season_number: int | None = None) -> int:
+    """Switch off a whole series or a single season, cascading to its episodes.
+
+    Returns how many episodes were switched off.
+    """
+    series = await fetch_series(series_id)
+    await _put_json(
+        "sonarr", f"/api/v3/series/{series_id}",
+        series_unmonitored_payload(series, season_number),
+    )
+    ids = episode_ids(await fetch_episodes(series_id), season_number)
+    if ids:
+        await _put_json(
+            "sonarr", "/api/v3/episode/monitor",
+            {"episodeIds": ids, "monitored": False},
+        )
+    invalidate_cache()
+    return len(ids)
