@@ -65,6 +65,7 @@ Nel resto del piano viene indicata come `$SCRATCH`. Gli script impostano
 |---|---|
 | `unit3dprep/web/config.py` | 4 chiavi in `DEFAULT_CONFIG`, 2 in `MASKED_KEYS`, gruppo `.env`. |
 | `unit3dprep/web/app.py` | Import e registrazione del router. |
+| `unit3dprep/web/api/settings.py` | Il PUT invalida la cache `arr` quando cambiano le credenziali. |
 | `frontend/src/types.ts` | `ArrEntry`, `ArrIndex`, `ArrEpisode`. |
 | `frontend/src/components/primitives.tsx` | `ICON_BTN` spostato qui da LibraryView e condiviso. |
 | `frontend/src/i18n/locales/{en,it}.ts` | Namespace `arr.*` + chiavi `settings.arr*`. |
@@ -773,6 +774,7 @@ git commit -m "feat(arr): rimozione del monitoraggio con cascata su stagioni ed 
 **Files:**
 - Create: `unit3dprep/web/api/arr.py`
 - Modify: `unit3dprep/web/app.py`
+- Modify: `unit3dprep/web/api/settings.py`
 
 - [ ] **Step 1: Scrivere lo script di verifica**
 
@@ -992,20 +994,70 @@ Sostituiscila con:
     search_api.router,
 ```
 
-- [ ] **Step 6: Rilanciare lo script e verificare che passi**
+- [ ] **Step 6: Invalidare la cache quando cambiano le impostazioni**
+
+`configured()` viene valutato solo su cache miss e il risultato finisce dentro il
+payload in cache. Senza questo, dopo che l'utente ha compilato URL e API key il
+"Test connessione" riesce ma la libreria continua a riportare `configured: false`
+per un minuto.
+
+In `unit3dprep/web/api/settings.py`, sostituisci:
+
+```python
+from .. import config
+from ...media import media_root, seedings_root
+```
+
+con:
+
+```python
+from .. import arr, config
+from ...media import media_root, seedings_root
+```
+
+Poi sostituisci:
+
+```python
+@router.put("/settings")
+async def put_settings(incoming: dict):
+    existing = config.load()
+    merged = {**existing, **config.merge_secrets(existing, incoming)}
+    config.save(merged)
+    return JSONResponse({"ok": True, "config": config.mask_secrets(merged)})
+```
+
+con:
+
+```python
+_ARR_KEYS = ("W_RADARR_URL", "W_RADARR_APIKEY", "W_SONARR_URL", "W_SONARR_APIKEY")
+
+
+@router.put("/settings")
+async def put_settings(incoming: dict):
+    existing = config.load()
+    merged = {**existing, **config.merge_secrets(existing, incoming)}
+    config.save(merged)
+    # The *arr index caches `configured` alongside the data, so new credentials
+    # would stay invisible to the library for a full TTL without this.
+    if any(existing.get(k) != merged.get(k) for k in _ARR_KEYS):
+        arr.invalidate_cache()
+    return JSONResponse({"ok": True, "config": config.mask_secrets(merged)})
+```
+
+- [ ] **Step 7: Rilanciare lo script e verificare che passi**
 
 Run: `python "$SCRATCH/verify_arr_router.py"`
 Expected: `OK`
 
-- [ ] **Step 7: Syntax check**
+- [ ] **Step 8: Syntax check**
 
-Run: `python -m py_compile unit3dprep/web/api/arr.py unit3dprep/web/app.py`
+Run: `python -m py_compile unit3dprep/web/api/arr.py unit3dprep/web/app.py unit3dprep/web/api/settings.py`
 Expected: nessun output, exit 0
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add unit3dprep/web/api/arr.py unit3dprep/web/app.py
+git add unit3dprep/web/api/arr.py unit3dprep/web/app.py unit3dprep/web/api/settings.py
 git commit -m "feat(api): endpoint di stato e rimozione del monitoraggio *arr"
 ```
 
