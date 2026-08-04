@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bookmark, BookmarkX } from 'lucide-react';
 import { api, ApiError } from '../api';
@@ -63,17 +63,22 @@ export function UnmonitorBtn({
 
   // The grid re-renders this component at the same JSX position for whatever
   // item is selected now, not necessarily the one `run()` was called for —
-  // e.g. the user picks a different card while the POST is in flight. Without
-  // this, the new item's button would inherit the previous item's `done`
-  // (permanently disabled) or `err` (stale failure message).
+  // e.g. the user picks a different card while the POST is in flight (Radarr/
+  // Sonarr can take up to the 15s connect timeout to fail). Without this, the
+  // new item's button would inherit the previous item's `done` (permanently
+  // disabled) or `err` (stale failure message).
   const key = targetKey(target);
+  const keyRef = useRef(key);
   useEffect(() => {
+    keyRef.current = key;
     setDone(false);
     setErr(null);
+    setBusy(false);
   }, [key]);
 
   const run = async () => {
     if (done || busy) return;
+    const startedFor = key;
     setBusy(true);
     setErr(null);
     try {
@@ -83,10 +88,17 @@ export function UnmonitorBtn({
         season_number: target.kind === 'season' ? target.seasonNumber : null,
         episode_ids: target.kind === 'episodes' ? target.episodeIds : [],
       });
-      setDone(true);
-      onDone?.();
+      // The target may have changed while the request was in flight — the
+      // reset effect above already moved this instance on to a different
+      // item, so this stale result must not stamp done/err onto it.
+      if (keyRef.current === startedFor) {
+        setDone(true);
+        onDone?.();
+      }
     } catch (e) {
-      setErr(e instanceof ApiError ? e.message : t('arr.unmonitorFailed'));
+      if (keyRef.current === startedFor) {
+        setErr(e instanceof ApiError ? e.message : t('arr.unmonitorFailed'));
+      }
     }
     setBusy(false);
   };
