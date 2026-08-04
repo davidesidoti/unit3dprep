@@ -30,6 +30,10 @@ _cache: dict[str, Any] = {"data": None, "at": 0.0, "gen": 0}
 _cache_lock = asyncio.Lock()
 
 
+class ArrDataError(Exception):
+    """Radarr/Sonarr answered, but the payload isn't what we asked for."""
+
+
 # ---------------------------------------------------------------------------
 # Credentials
 # ---------------------------------------------------------------------------
@@ -205,6 +209,8 @@ def error_msg(e: Exception) -> str:
         return "Timeout nella richiesta."
     if isinstance(e, httpx.ConnectError):
         return "Connessione rifiutata — servizio spento o URL errato."
+    if isinstance(e, ArrDataError):
+        return str(e)
     if isinstance(e, ValueError):
         # r.json() on a non-JSON 200 raises json.JSONDecodeError (a
         # ValueError, not an httpx exception) — realistic with
@@ -402,15 +408,18 @@ async def unmonitor_series(series_id: int, season_number: int | None = None) -> 
     Returns how many episodes were switched off.
     """
     series = await fetch_series(series_id)
+    if not series.get("id"):
+        raise ArrDataError(f"Sonarr non ha restituito la serie {series_id}.")
     await _put_json(
         "sonarr", f"/api/v3/series/{series_id}",
         series_unmonitored_payload(series, season_number),
     )
+    invalidate_cache()  # remote state already changed — don't let a later failure hide it
     ids = episode_ids(await fetch_episodes(series_id), season_number)
     if ids:
         await _put_json(
             "sonarr", "/api/v3/episode/monitor",
             {"episodeIds": ids, "monitored": False},
         )
-    invalidate_cache()
+        invalidate_cache()
     return len(ids)
