@@ -13,6 +13,7 @@ import asyncio
 import logging
 import posixpath
 import time
+from collections.abc import Callable
 from typing import Any
 
 import httpx
@@ -200,6 +201,26 @@ def invalidate_cache() -> None:
     _cache["gen"] += 1
 
 
+def _parse_index(
+    kind: str,
+    parse: Callable[[Any], dict[str, dict[str, Any]]],
+    raw: Any,
+    errors: dict[str, str | None],
+) -> dict[str, dict[str, Any]]:
+    """Run an index parser, recording a failure instead of propagating it.
+
+    The parsers are total against hostile input today, so this never fires —
+    it keeps ``build_index``'s "must never raise" contract structural rather
+    than dependent on that staying true through future edits.
+    """
+    try:
+        return parse(raw)
+    except Exception as e:  # noqa: BLE001 — never let this break the library
+        errors[kind] = error_msg(e)
+        log.warning("%s: index not parsed — %s", kind.capitalize(), _exc_detail(e))
+        return {}
+
+
 async def build_index(*, force: bool = False) -> dict[str, Any]:
     """Full Radarr + Sonarr index, fetched concurrently, one request per instance.
 
@@ -233,19 +254,23 @@ async def build_index(*, force: bool = False) -> dict[str, Any]:
             return_exceptions=True,
         )
 
+        # `gather(return_exceptions=True)` hands back a child's BaseException
+        # (e.g. CancelledError) instead of raising it, and those are not
+        # `Exception` — testing the narrower type would let one fall through to
+        # the parse branch and publish an empty index as authoritative.
         movies: dict[str, dict[str, Any]] = {}
-        if isinstance(raw_radarr, Exception):
+        if isinstance(raw_radarr, BaseException):
             errors["radarr"] = error_msg(raw_radarr)
             log.warning("Radarr: index not built — %s", _exc_detail(raw_radarr))
         elif has_radarr:
-            movies = movie_index(raw_radarr)
+            movies = _parse_index("radarr", movie_index, raw_radarr, errors)
 
         series: dict[str, dict[str, Any]] = {}
-        if isinstance(raw_sonarr, Exception):
+        if isinstance(raw_sonarr, BaseException):
             errors["sonarr"] = error_msg(raw_sonarr)
             log.warning("Sonarr: index not built — %s", _exc_detail(raw_sonarr))
         elif has_sonarr:
-            series = series_index(raw_sonarr)
+            series = _parse_index("sonarr", series_index, raw_sonarr, errors)
 
         data = {
             "configured": {"radarr": has_radarr, "sonarr": has_sonarr},
