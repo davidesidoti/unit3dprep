@@ -22,10 +22,10 @@ from . import config
 log = logging.getLogger("unit3dprep.arr")
 
 KINDS = ("radarr", "sonarr")
-_TIMEOUT = httpx.Timeout(15.0)
+_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
 _CACHE_TTL = 60.0
 
-_cache: dict[str, Any] = {"data": None, "at": 0.0}
+_cache: dict[str, Any] = {"data": None, "at": 0.0, "gen": 0}
 _cache_lock = asyncio.Lock()
 
 
@@ -117,6 +117,18 @@ def series_index(payload: Any) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _exc_detail(e: Exception) -> str:
+    """``str(e)``, falling back to the exception's class name when that's empty.
+
+    httpx.ReadError/WriteError/ProxyError/UnsupportedProtocol stringify to
+    ``""`` when raised without a message — the same trap already hit and
+    fixed in ``webup_client.py``'s ``_post``/``_get`` (see the comment
+    there). Without this, both the user-facing fallback message and the log
+    lines in ``build_index`` would render with nothing after the colon.
+    """
+    return str(e) or e.__class__.__name__
+
+
 def error_msg(e: Exception) -> str:
     """User-facing message for a Radarr/Sonarr failure (Italian, like the ITT one)."""
     resp = getattr(e, "response", None)
@@ -131,7 +143,13 @@ def error_msg(e: Exception) -> str:
         return "Timeout nella richiesta."
     if isinstance(e, httpx.ConnectError):
         return "Connessione rifiutata — servizio spento o URL errato."
-    return f"Richiesta fallita: {e}"
+    if isinstance(e, ValueError):
+        # r.json() on a non-JSON 200 raises json.JSONDecodeError (a
+        # ValueError, not an httpx exception) — realistic with
+        # follow_redirects=True, e.g. an auth proxy silently redirecting to
+        # an HTML login page instead of answering the API call.
+        return "Risposta non valida — l'URL non punta a Radarr/Sonarr."
+    return f"Richiesta fallita: {_exc_detail(e)}"
 
 
 # ---------------------------------------------------------------------------
@@ -162,55 +180,83 @@ async def _put_json(kind: str, path: str, body: Any) -> None:
         r.raise_for_status()
 
 
+async def _skip() -> None:
+    """Placeholder awaitable for the ``asyncio.gather`` slot of an unconfigured instance."""
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Cached index
 # ---------------------------------------------------------------------------
 
 def invalidate_cache() -> None:
+    """Drop the cached index and bump the generation counter.
+
+    The counter — not just clearing ``data`` — is what keeps this safe
+    against a build already in flight; see ``build_index``.
+    """
     _cache["data"] = None
     _cache["at"] = 0.0
+    _cache["gen"] += 1
 
 
 async def build_index(*, force: bool = False) -> dict[str, Any]:
-    """Full Radarr + Sonarr index, one request per instance.
+    """Full Radarr + Sonarr index, fetched concurrently, one request per instance.
 
-    A failure on one instance does not stop the other from populating: it lands
-    in ``errors`` and the frontend surfaces it without losing the rest.
+    The lock is held across the fetch, not just the cache read/write, so
+    concurrent callers single-flight onto one fetch instead of each firing
+    its own request to Radarr/Sonarr on every TTL expiry: a waiter re-checks
+    the TTL as soon as it acquires the lock and gets the fresh value for
+    free, and the httpx timeout bounds how long the critical section can
+    run. The generation counter guards the other direction — ``invalidate_cache()``
+    deliberately does not take the lock, so it can land while a fetch started
+    before it is still in flight; without the check, that fetch would finish
+    afterwards and silently resurrect the pre-invalidation state under a
+    fresh timestamp, undoing the invalidation for a full TTL.
+
+    A failure on one instance does not stop the other from populating: it
+    lands in ``errors`` and the frontend surfaces it without losing the rest.
     """
     async with _cache_lock:
         cached = _cache["data"]
         if cached is not None and not force and (time.monotonic() - _cache["at"]) < _CACHE_TTL:
-            return cached
+            return cached  # shared by every caller until the next fetch — read-only
+        gen = _cache["gen"]
 
-    movies: dict[str, dict[str, Any]] = {}
-    series: dict[str, dict[str, Any]] = {}
-    errors: dict[str, str | None] = {"radarr": None, "sonarr": None}
-    has_radarr = configured("radarr")
-    has_sonarr = configured("sonarr")
+        errors: dict[str, str | None] = {"radarr": None, "sonarr": None}
+        has_radarr = configured("radarr")
+        has_sonarr = configured("sonarr")
 
-    if has_radarr:
-        try:
-            movies = movie_index(await _get_json("radarr", "/api/v3/movie"))
-        except Exception as e:  # noqa: BLE001 — never let this break the library
-            errors["radarr"] = error_msg(e)
-            log.warning("Radarr: index not built — %s", e)
-    if has_sonarr:
-        try:
-            series = series_index(await _get_json("sonarr", "/api/v3/series"))
-        except Exception as e:  # noqa: BLE001
-            errors["sonarr"] = error_msg(e)
-            log.warning("Sonarr: index not built — %s", e)
+        raw_radarr, raw_sonarr = await asyncio.gather(
+            _get_json("radarr", "/api/v3/movie") if has_radarr else _skip(),
+            _get_json("sonarr", "/api/v3/series") if has_sonarr else _skip(),
+            return_exceptions=True,
+        )
 
-    data = {
-        "configured": {"radarr": has_radarr, "sonarr": has_sonarr},
-        "movies": movies,
-        "series": series,
-        "errors": errors,
-    }
-    async with _cache_lock:
-        _cache["data"] = data
-        _cache["at"] = time.monotonic()
-    return data
+        movies: dict[str, dict[str, Any]] = {}
+        if isinstance(raw_radarr, Exception):
+            errors["radarr"] = error_msg(raw_radarr)
+            log.warning("Radarr: index not built — %s", _exc_detail(raw_radarr))
+        elif has_radarr:
+            movies = movie_index(raw_radarr)
+
+        series: dict[str, dict[str, Any]] = {}
+        if isinstance(raw_sonarr, Exception):
+            errors["sonarr"] = error_msg(raw_sonarr)
+            log.warning("Sonarr: index not built — %s", _exc_detail(raw_sonarr))
+        elif has_sonarr:
+            series = series_index(raw_sonarr)
+
+        data = {
+            "configured": {"radarr": has_radarr, "sonarr": has_sonarr},
+            "movies": movies,
+            "series": series,
+            "errors": errors,
+        }
+        if _cache["gen"] == gen:  # no invalidate_cache() landed mid-fetch — safe to store
+            _cache["data"] = data
+            _cache["at"] = time.monotonic()
+        return data  # same caveat as the cached branch above — read-only
 
 
 async def test_connection(kind: str) -> dict[str, Any]:
