@@ -161,6 +161,7 @@ Sections:
 - **Image hosts** — preference order + API keys for PTSCREENS, PASSIMA, IMGBB, IMGFI, etc. The list order is projected to `PREFS__<HOST>_PRIORITY` (1, 2, …, 99 for hosts not in the list).
 - **Upload options** — `ANON`, `PERSONAL_RELEASE`, `NUMBER_OF_SCREENSHOTS`, `COMPRESS_SCSHOT`, `TAG_ORDER_*`, etc.
 - **Seeding Flow** — `U3DP_*` with effective values (env vs file) via `env_runtime()`. `UNIT3DUP_CONFIG` is read-only.
+- **Radarr / Sonarr** — URL and API key for both instances, with a connection test. See the [dedicated section](#radarr-and-sonarr).
 - **Version** — see [dedicated section](#version-and-auto-update).
 - **App Auto-Update** — `U3DP_SYSTEMD_UNIT`, systemd user unit name used by the "Update app" button for the post-update restart. Default `unit3dprep-web.service`; override only if your unit has a different name.
 - **Wizard Defaults** — all `W_*`.
