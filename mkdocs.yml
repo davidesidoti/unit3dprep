@@ -8,6 +8,10 @@ edit_uri: edit/main/docs/
 docs_dir: docs
 site_dir: site
 
+# Design spec interni: restano nel repo, fuori dal sito pubblico.
+exclude_docs: |
+  superpowers/
+
 theme:
   name: material
   language: it
