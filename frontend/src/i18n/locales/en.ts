@@ -416,6 +416,7 @@ export const en = {
     bulkUnmonitor: 'Stop monitoring',
     bulkUnmonitorDone: 'Monitoring removed: {{done}} done, {{failed}} failed',
     bulkUnmonitorFail: 'Could not reach Radarr/Sonarr',
+    bulkUnmonitorNone: 'Nothing in the selection is monitored by Radarr/Sonarr',
     statusError: 'Radarr/Sonarr unreachable: {{msg}}',
   },
   queue: {

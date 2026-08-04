@@ -418,6 +418,7 @@ export const it: Catalog = {
     bulkUnmonitor: 'Rimuovi monitoraggio',
     bulkUnmonitorDone: 'Monitoraggio rimosso: {{done}} ok, {{failed}} falliti',
     bulkUnmonitorFail: 'Radarr/Sonarr non raggiungibili',
+    bulkUnmonitorNone: 'Niente nella selezione è monitorato da Radarr/Sonarr',
     statusError: 'Radarr/Sonarr non raggiungibili: {{msg}}',
   },
   queue: {

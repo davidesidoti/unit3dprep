@@ -94,9 +94,14 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   // Radarr/Sonarr index. Loaded after the grid and merged by path, so the
   // library is unaffected when either instance is slow or down.
   const [arrIndex, setArrIndex] = useState<ArrIndex | null>(null);
+  // Bumped on every successful reload. The index alone can't signal a change the
+  // detail panel must react to: a season-level unmonitor leaves both the series
+  // id and its `monitored` flag untouched, so only an explicit tick makes the
+  // open panel refetch its episodes.
+  const [arrTick, setArrTick] = useState(0);
   const loadArr = () => {
     api.get<ArrIndex>('/api/arr/status')
-      .then(setArrIndex)
+      .then((r) => { setArrIndex(r); setArrTick((n) => n + 1); })
       .catch(() => setArrIndex(null));
   };
   useEffect(() => { loadArr(); }, []);
@@ -381,8 +386,10 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
 
   const runBulkUnmonitor = async () => {
     if (bulkBusy || selectedCount === 0) return;
-    const targets = items.filter((it) => selectedPaths.has(it.path));
-    if (targets.length === 0) return;
+    // Only items the index actually knows: sending the rest would come back as
+    // "not found" failures for things that simply have nothing to unmonitor.
+    const targets = items.filter((it) => selectedPaths.has(it.path) && !!arrEntryFor(it));
+    if (targets.length === 0) { setBulkToast(t('arr.bulkUnmonitorNone')); return; }
     setBulkBusy(true);
     setBulkToast(null);
     try {
@@ -1024,6 +1031,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
             onRescan={(langs) => setSelected((prev) => prev ? { ...prev, langs, lang_scanned: true } : prev)}
             onMarked={() => reloadKeepSelection(category)}
             arrEntry={arrEntryFor(selected)}
+            arrTick={arrTick}
             onArrChanged={loadArr}
             isMobile={isMobile}
           />
@@ -1159,7 +1167,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
 
 function DetailPanel({
   item, category, onStart, onClose, onEditTmdb, onRescan, onMarked,
-  arrEntry, onArrChanged, isMobile,
+  arrEntry, arrTick, onArrChanged, isMobile,
 }: {
   item: LibraryItem;
   category: Category;
@@ -1169,6 +1177,7 @@ function DetailPanel({
   onRescan?: (langs: string[]) => void;
   onMarked?: () => void;
   arrEntry?: ArrEntry;
+  arrTick?: number;
   onArrChanged?: () => void;
   isMobile?: boolean;
 }) {
@@ -1189,7 +1198,9 @@ function DetailPanel({
   }, [item.path, item.tmdb_id]);
   const statusReady = !item.tmdb_id || seriesStatus !== null;
   // Sonarr episodes: a single call when opening a series that is in the index.
-  // Needed to map each episode row to its Sonarr id.
+  // Needed to map each episode row to its Sonarr id. `arrTick` re-runs this
+  // after any unmonitor, so the per-episode chips reflect a series- or
+  // season-level removal that Sonarr cascaded down to them.
   const [arrEpisodes, setArrEpisodes] = useState<ArrEpisode[]>([]);
   useEffect(() => {
     setArrEpisodes([]);
@@ -1199,7 +1210,7 @@ function DetailPanel({
       .then((r) => { if (alive) setArrEpisodes(r.episodes); })
       .catch(() => { if (alive) setArrEpisodes([]); });
     return () => { alive = false; };
-  }, [item.kind, arrEntry?.id]);
+  }, [item.kind, arrEntry?.id, arrTick]);
   const mobileOverlayStyle = isMobile
     ? {
         position: 'fixed' as const, inset: 0, zIndex: 100,
