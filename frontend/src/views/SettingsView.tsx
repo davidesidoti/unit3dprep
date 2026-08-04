@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Activity, HardDrive, Sliders, Image as ImageIcon, Folder as FolderIcon,
-  GitBranch, Terminal, CheckCircle, Languages, Tag,
+  GitBranch, Terminal, CheckCircle, Languages, Tag, Bookmark,
   RefreshCw, ChevronDown, ExternalLink, Box, Package,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,7 @@ import { Toggle, GROUP_LABEL, LABEL_CSS } from '../components/primitives';
 import { UpdateProgressModal } from '../modals/UpdateProgressModal';
 import type { VersionInfo } from '../types';
 
-type Section = 'tracker' | 'client' | 'prefs' | 'imghost' | 'paths' | 'seeding' | 'version' | 'console' | 'interface';
+type Section = 'tracker' | 'client' | 'prefs' | 'imghost' | 'paths' | 'seeding' | 'arr' | 'version' | 'console' | 'interface';
 
 const SECTIONS: { id: Section; labelKey: string; icon: any }[] = [
   { id: 'tracker',  labelKey: 'settings.navTracker',  icon: Activity },
@@ -20,6 +20,7 @@ const SECTIONS: { id: Section; labelKey: string; icon: any }[] = [
   { id: 'imghost',  labelKey: 'settings.navImghost',  icon: ImageIcon },
   { id: 'paths',    labelKey: 'settings.navPaths',    icon: FolderIcon },
   { id: 'seeding',  labelKey: 'settings.navSeeding',  icon: GitBranch },
+  { id: 'arr',      labelKey: 'settings.navArr',      icon: Bookmark },
   { id: 'version',  labelKey: 'settings.navVersion',  icon: Tag },
   { id: 'interface',labelKey: 'settings.navInterface',icon: Languages },
   { id: 'console',  labelKey: 'settings.navConsole',  icon: Terminal },
@@ -127,6 +128,7 @@ export function SettingsView({ isMobile }: { isMobile?: boolean } = {}) {
           {section === 'imghost' && <ImageHostsSection cfg={cfg} set={set} />}
           {section === 'paths' && <PathsSection cfg={cfg} set={set} isMobile={isMobile} />}
           {section === 'seeding' && <SeedingSection cfg={cfg} set={set} env={data.env} isMobile={isMobile} />}
+          {section === 'arr' && <ArrSection cfg={cfg} set={set} isMobile={isMobile} />}
           {section === 'version' && <VersionSection />}
           {section === 'interface' && <InterfaceSection />}
           {section === 'console' && <ConsoleSection cfg={cfg} set={set} />}
@@ -1309,3 +1311,73 @@ const arrowBtn: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer', color: 'var(--fg-3)', padding: 0, fontSize: 9,
 };
+
+function ArrTestBtn({ kind }: { kind: 'radarr' | 'sonarr' }) {
+  const { t } = useTranslation();
+  const [state, setState] = useState<{ busy: boolean; msg: string; ok: boolean }>(
+    { busy: false, msg: '', ok: false },
+  );
+  const run = async () => {
+    setState({ busy: true, msg: '', ok: false });
+    try {
+      const r = await api.get<{ ok: boolean; version?: string; instance_name?: string; error?: string }>(
+        `/api/arr/test?kind=${kind}`,
+      );
+      setState(r.ok
+        ? { busy: false, ok: true,
+            msg: t('settings.arrTestOk', { name: r.instance_name || kind, version: r.version || '?' }) }
+        : { busy: false, ok: false, msg: t('settings.arrTestFail', { msg: r.error || '' }) });
+    } catch (e) {
+      setState({ busy: false, ok: false, msg: t('settings.arrTestFail', { msg: String(e) }) });
+    }
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+      <button
+        onClick={run}
+        disabled={state.busy}
+        style={{
+          background: 'transparent', border: '1px solid var(--border)',
+          borderRadius: 6, padding: '6px 12px', fontSize: 11, fontWeight: 600,
+          color: 'var(--fg-2)', cursor: state.busy ? 'default' : 'pointer',
+          fontFamily: 'var(--font-display)',
+        }}
+      >{state.busy ? t('settings.arrTesting') : t('settings.arrTest')}</button>
+      {state.msg && (
+        <span style={{
+          fontSize: 11, fontFamily: 'var(--font-mono)',
+          color: state.ok ? 'var(--green)' : 'var(--red)',
+        }}>{state.msg}</span>
+      )}
+    </div>
+  );
+}
+
+function ArrSection({ cfg, set, isMobile }: { cfg: Cfg; set: SetFn; isMobile?: boolean }) {
+  const { t } = useTranslation();
+  const grid2: React.CSSProperties = {
+    display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 10,
+  };
+  return (
+    <>
+      <div style={{
+        fontSize: 11, color: 'var(--fg-4)', fontFamily: 'var(--font-display)',
+        marginBottom: 12,
+      }}>{t('settings.arrIntro')}</div>
+
+      <div style={{ ...GROUP_LABEL, marginTop: 0 }}>Radarr</div>
+      <div style={grid2}>
+        <Field cfg={cfg} set={set} k="W_RADARR_URL" label="W_RADARR_URL" />
+        <Field cfg={cfg} set={set} k="W_RADARR_APIKEY" label="W_RADARR_APIKEY" masked />
+      </div>
+      <ArrTestBtn kind="radarr" />
+
+      <div style={GROUP_LABEL}>Sonarr</div>
+      <div style={grid2}>
+        <Field cfg={cfg} set={set} k="W_SONARR_URL" label="W_SONARR_URL" />
+        <Field cfg={cfg} set={set} k="W_SONARR_APIKEY" label="W_SONARR_APIKEY" masked />
+      </div>
+      <ArrTestBtn kind="sonarr" />
+    </>
+  );
+}
