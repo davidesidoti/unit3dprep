@@ -420,6 +420,7 @@ export const it: Catalog = {
     bulkUnmonitorFail: 'Radarr/Sonarr non raggiungibili',
     bulkUnmonitorNone: 'Niente nella selezione è monitorato da Radarr/Sonarr',
     statusError: 'Radarr/Sonarr non raggiungibili: {{msg}}',
+    unmonitorFailed: 'Richiesta non riuscita',
   },
   queue: {
     total: 'Totale',

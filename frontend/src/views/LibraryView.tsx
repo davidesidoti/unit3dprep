@@ -109,10 +109,29 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const arrEntryFor = (it: LibraryItem): ArrEntry | undefined =>
     it.kind === 'movie' ? arrIndex?.movies[it.path] : arrIndex?.series[it.path];
 
+  // Genuinely monitored, not merely "known to the index" — a series Sonarr
+  // still lists but with every season already switched off must not count,
+  // or bulk re-sends it and counts it in `done` for nothing. A series worked
+  // season-by-season keeps `monitored: true` at the series level in Sonarr
+  // (see docs/uso-web.md), so any season flag counts too.
+  const arrMonitoredFor = (it: LibraryItem): boolean => {
+    const entry = arrEntryFor(it);
+    if (!entry) return false;
+    if (entry.monitored) return true;
+    return Object.values(entry.seasons ?? {}).some(Boolean);
+  };
+
   const arrEnabled = !!(arrIndex?.configured.radarr || arrIndex?.configured.sonarr);
   const arrError = arrIndex?.errors.radarr || arrIndex?.errors.sonarr || '';
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkToast, setBulkToast] = useState<string | null>(null);
+  // Which color the toast renders in — see its render site below. Bulk mark
+  // and bulk scan-langs stay green always; unmonitor is the first bulk action
+  // with a real failure/no-op state worth calling out.
+  const [bulkToastKind, setBulkToastKind] = useState<'ok' | 'warn' | 'error'>('ok');
+  const bulkToastColor = bulkToastKind === 'error'
+    ? 'var(--red)'
+    : bulkToastKind === 'warn' ? 'var(--yellow)' : 'var(--green)';
   // Anchor item path for shift-click range selection (in displayed `visible` order).
   const anchorRef = useRef<string | null>(null);
 
@@ -354,6 +373,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       ),
     );
     const ok = results.filter((r) => r.status === 'fulfilled').length;
+    setBulkToastKind('ok');
     setBulkToast(t('library.bulkDone', { ok, total: targets.length }));
     setBulkBusy(false);
     anchorRef.current = null;
@@ -368,6 +388,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     if (targets.length === 0) return;
     setBulkBusy(true);
     setBulkToast(null);
+    setBulkToastKind('ok');
     let ok = 0;
     for (let i = 0; i < targets.length; i++) {
       setBulkToast(t('library.bulkScanLangsProgress', { done: i, total: targets.length }));
@@ -386,10 +407,15 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
 
   const runBulkUnmonitor = async () => {
     if (bulkBusy || selectedCount === 0) return;
-    // Only items the index actually knows: sending the rest would come back as
-    // "not found" failures for things that simply have nothing to unmonitor.
-    const targets = items.filter((it) => selectedPaths.has(it.path) && !!arrEntryFor(it));
-    if (targets.length === 0) { setBulkToast(t('arr.bulkUnmonitorNone')); return; }
+    // Only genuinely-monitored items: an item merely present in the index but
+    // already unmonitored would come back as a silent no-op counted in
+    // `done`, which is not what "nothing in the selection is monitored" means.
+    const targets = items.filter((it) => selectedPaths.has(it.path) && arrMonitoredFor(it));
+    if (targets.length === 0) {
+      setBulkToastKind('warn');
+      setBulkToast(t('arr.bulkUnmonitorNone'));
+      return;
+    }
     setBulkBusy(true);
     setBulkToast(null);
     try {
@@ -397,8 +423,10 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
         '/api/arr/unmonitor/bulk',
         { paths: targets.map((it) => it.path) },
       );
+      setBulkToastKind('ok');
       setBulkToast(t('arr.bulkUnmonitorDone', { done: r.done, failed: r.failed.length }));
     } catch {
+      setBulkToastKind('error');
       setBulkToast(t('arr.bulkUnmonitorFail'));
     }
     setBulkBusy(false);
@@ -1129,8 +1157,8 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           position: 'fixed', bottom: 20, left: '50%',
           translate: '-50% 0',
           background: 'var(--bg-card)',
-          border: '1px solid var(--green)',
-          color: 'var(--green)',
+          border: `1px solid ${bulkToastColor}`,
+          color: bulkToastColor,
           borderRadius: 6, padding: '8px 14px',
           fontSize: 12, fontWeight: 600,
           fontFamily: 'var(--font-display)',
@@ -1666,11 +1694,16 @@ function SeasonRow({
                     </>
                   )}
                   {(() => {
-                    const ep = arrEpisodes.find((e) => e.path === vf.path);
-                    if (!ep?.monitored) return null;
+                    // A combined-episode file (e.g. S01E02E03.mkv) shares one
+                    // `episodeFile.path` across multiple Sonarr episode
+                    // records — collect all of them, not just the first, or
+                    // unmonitoring via this chip strands the others monitored
+                    // with no affordance left to clear them.
+                    const eps = arrEpisodes.filter((e) => e.path === vf.path);
+                    if (!eps.some((e) => e.monitored)) return null;
                     return (
                       <UnmonitorBtn
-                        target={{ kind: 'episodes', episodeIds: [ep.id] }}
+                        target={{ kind: 'episodes', episodeIds: eps.map((e) => e.id) }}
                         variant="chip"
                         onDone={onArrChanged}
                       />
