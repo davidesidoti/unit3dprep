@@ -210,9 +210,10 @@ Nell'ordine:
 Poi test funzionale su dati reali: push su `main`, reinstall
 `git+https://github.com/davidesidoti/unit3dprep.git@main` e restart sul VPS.
 
-**Punto aperto**: il VPS Ultra.cc deve poter raggiungere Radarr e Sonarr via rete. Se
-girano solo in LAN, il test funzionale va fatto sull'istanza di sviluppo WSL invece
-che in produzione.
+Radarr e Sonarr girano sullo stesso VPS Ultra.cc di unit3dprep, quindi gli URL
+saranno su loopback (`http://127.0.0.1:<porta>`) e il test funzionale si fa
+direttamente in produzione. Questo conferma anche la premessa del match per path:
+stesso filesystem, stessi root, nessuna traduzione necessaria.
 
 ## Fuori ambito
 
