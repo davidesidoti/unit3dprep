@@ -220,6 +220,18 @@ git commit -m "feat(config): chiavi URL e API key per Radarr e Sonarr"
 **Files:**
 - Create: `unit3dprep/web/arr.py`
 
+> **Il codice qui sotto è la versione iniziale.** La review di qualità ha poi
+> irrobustito la cache e il codice committato differisce: il lock è tenuto per
+> tutta la fetch (single-flight invece che stampede), `invalidate_cache()` bumpa
+> un contatore di generazione che `build_index` ricontrolla prima di scrivere
+> (altrimenti una fetch già in volo resuscita lo stato pre-mutazione per un TTL
+> intero), Radarr e Sonarr si interrogano in parallelo con
+> `asyncio.gather(..., return_exceptions=True)`, il timeout ha `connect=5.0`, e
+> `_exc_detail()` evita i messaggi troncati a `"Richiesta fallita: "` per le
+> eccezioni httpx che si stringificano a vuoto. La verità è il file committato;
+> gli anchor usati dal Task 3 (`series_index`, `error_msg`, `test_connection`)
+> restano validi.
+
 - [ ] **Step 1: Scrivere lo script di verifica**
 
 Crea `$SCRATCH/verify_arr_index.py`:
