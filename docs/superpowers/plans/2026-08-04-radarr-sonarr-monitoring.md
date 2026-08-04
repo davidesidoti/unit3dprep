@@ -305,7 +305,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
+import posixpath
 import time
 from typing import Any
 
@@ -347,10 +347,18 @@ def configured(kind: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def norm_path(p: str) -> str:
-    """Canonical form of a path, used as the index key."""
+    """Canonical form of a path, used as the index key.
+
+    Radarr/Sonarr and unit3dprep always share a Linux filesystem in every
+    supported deployment, so normalization is anchored to ``posixpath``
+    rather than the host OS's path module — ``os.path.normpath`` would
+    rewrite ``/`` to ``\\`` when this module is imported under a native
+    Windows interpreter (e.g. for local testing), which is never what the
+    actual Radarr/Sonarr paths look like.
+    """
     if not p:
         return ""
-    n = os.path.normpath(str(p))
+    n = posixpath.normpath(str(p))
     return n.rstrip("/\\") or n
 
 
