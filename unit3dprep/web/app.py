@@ -122,13 +122,13 @@ async def _shutdown():
 # Mount all JSON routers under ROOT_PATH (routers themselves already declare
 # /api/... so the final path is /{ROOT_PATH}/api/...).
 for r in (
+    arr_api.router,
     auth_api.router,
     fs_api.router,
     library_api.router,
     logs_api.router,
     queue_api.router,
     quickupload_api.router,
-    arr_api.router,
     reseed_api.router,
     search_api.router,
     settings_api.router,
