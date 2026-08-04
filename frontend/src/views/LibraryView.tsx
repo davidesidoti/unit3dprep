@@ -4,7 +4,7 @@ import {
   Film, Tv, Sparkles, RefreshCw, Database, Headphones,
   Pencil, X, Search as SearchIcon, Star,
   ChevronDown, Folder, BookOpen, Music, Library as LibraryIcon,
-  CheckSquare, Square, Flag, Upload, Check, Captions,
+  CheckSquare, Square, Flag, Upload, Check, Captions, Languages,
 } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { Category, LibraryItem, Season, SeasonStatus, SeriesStatus, WizardCtx } from '../types';
@@ -78,6 +78,10 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
   const [hideUploaded, setHideUploaded] = useState(true);
   const [hideNoItalian, setHideNoItalian] = useState(false);
   const [onlyToCheck, setOnlyToCheck] = useState(false);
+  // '' = no language filter; otherwise '<audio|subs>:<CODE>' (e.g. 'audio:ITA').
+  const [langFilter, setLangFilter] = useState('');
+  const [langPickerOpen, setLangPickerOpen] = useState(false);
+  const langBtnRef = useRef<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
   const [enriching, setEnriching] = useState(false);
   const [scanning, setScanning] = useState(false);
@@ -146,6 +150,17 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     return () => window.removeEventListener('mousedown', close);
   }, [scanMenuOpen]);
 
+  useEffect(() => {
+    if (!langPickerOpen) return;
+    const close = (e: MouseEvent) => {
+      if (langBtnRef.current && !langBtnRef.current.contains(e.target as Node)) {
+        setLangPickerOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', close);
+    return () => window.removeEventListener('mousedown', close);
+  }, [langPickerOpen]);
+
   const load = async (cat: Category) => {
     if (!cat) return;
     setLoading(true); setSelected(null);
@@ -179,6 +194,9 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     setBulkMode(false);
     setSelectedPaths(new Set());
     setBulkToast(null);
+    // A language present in one category may not exist in the next → clear, or the
+    // grid would come up empty with no obvious cause.
+    setLangFilter('');
   }, [category]);
 
   const currentCat = categories.find((c) => c.id === category);
@@ -191,11 +209,37 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
     return sizeToBytes(it.size);
   };
 
+  // Language codes present in the current category, with how many items carry each one.
+  // Built from the whole item list (not `filtered`) so the menu doesn't shrink as you pick.
+  const langOptions = useMemo(() => {
+    const tally = (pick: (it: LibraryItem) => string[] | undefined) => {
+      const counts = new Map<string, number>();
+      for (const it of items) {
+        for (const code of new Set(pick(it) ?? [])) {
+          counts.set(code, (counts.get(code) ?? 0) + 1);
+        }
+      }
+      // ITA first, then alphabetical.
+      return [...counts.entries()].sort((a, b) => {
+        if (a[0] === b[0]) return 0;
+        if (a[0] === 'ITA') return -1;
+        if (b[0] === 'ITA') return 1;
+        return a[0].localeCompare(b[0]);
+      });
+    };
+    return { audio: tally((it) => it.langs), subs: tally((it) => it.subs) };
+  }, [items]);
+
   const filtered = useMemo(() => {
+    const [langScope, langCode] = langFilter ? langFilter.split(':') : ['', ''];
     const base = items.filter((it) => {
       if (search && !it.title.toLowerCase().includes(search.toLowerCase())
           && !it.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (hideNoItalian && it.lang_scanned && !it.langs.includes('ITA')) return false;
+      if (langCode) {
+        const pool = langScope === 'subs' ? (it.subs ?? []) : (it.langs ?? []);
+        if (!pool.includes(langCode)) return false;
+      }
       if (onlyToCheck && !(it.any_to_check || it.to_check)) return false;
       if (!hideUploaded) return true;
       if (it.seasons) return !(it.all_seasons_uploaded);
@@ -211,10 +255,11 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
       }
       return a.title.localeCompare(b.title) * dir;
     });
-  }, [items, search, hideUploaded, hideNoItalian, onlyToCheck, sortBy, sortDir]);
+  }, [items, search, hideUploaded, hideNoItalian, onlyToCheck, langFilter, sortBy, sortDir]);
 
   const { visible, remaining, hasMore, loadMore } = useIncremental(
-    filtered, 60, [category, search, hideUploaded, hideNoItalian, onlyToCheck, sortBy, sortDir],
+    filtered, 60,
+    [category, search, hideUploaded, hideNoItalian, onlyToCheck, langFilter, sortBy, sortDir],
   );
 
   const needTmdb = filtered.filter((i) => !i.tmdb_id).length;
@@ -641,6 +686,109 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
           <Flag size={11} fill={onlyToCheck ? 'var(--yellow)' : 'none'} />
           {t('library.onlyToCheck')}
         </div>
+        <div ref={langBtnRef} style={{ position: 'relative' }}>
+          <button
+            onClick={() => setLangPickerOpen((v) => !v)}
+            title={t('library.langFilter')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              background: langFilter ? 'var(--blue-dim, rgba(59,130,246,0.12))' : 'var(--bg-card)',
+              border: `1px solid ${langFilter ? 'var(--blue)' : 'var(--border)'}`,
+              borderRadius: 6, padding: '3px 8px', cursor: 'pointer',
+              fontSize: 11, fontWeight: 600,
+              color: langFilter ? 'var(--blue-bright)' : 'var(--fg-2)',
+              fontFamily: 'var(--font-display)',
+            }}
+          >
+            {langFilter.startsWith('subs:') ? <Captions size={11} /> : <Languages size={11} />}
+            {langFilter
+              ? `${t(langFilter.startsWith('subs:') ? 'library.langFilterSubs' : 'library.langFilterAudio')} · ${langFilter.split(':')[1]}`
+              : t('library.langFilter')}
+            {langFilter
+              ? (
+                <X
+                  size={11}
+                  onClick={(e) => { e.stopPropagation(); setLangFilter(''); setLangPickerOpen(false); }}
+                />
+              )
+              : (
+                <ChevronDown
+                  size={11}
+                  style={{
+                    transition: 'transform 150ms',
+                    transform: langPickerOpen ? 'rotate(180deg)' : 'none',
+                  }}
+                />
+              )}
+          </button>
+          {langPickerOpen && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+              minWidth: 210, maxHeight: 340, overflowY: 'auto',
+              background: '#0a0c12', border: '1px solid var(--border)',
+              borderRadius: 8, boxShadow: '0 12px 40px rgba(0,0,0,0.55)',
+              zIndex: 50, paddingBottom: 4,
+            }}>
+              <button
+                onClick={() => { setLangFilter(''); setLangPickerOpen(false); }}
+                style={{
+                  ...langMenuItem, padding: '9px 12px', fontWeight: 600,
+                  borderBottom: '1px solid var(--border-subtle)',
+                  color: langFilter ? 'var(--fg-2)' : 'var(--blue-bright)',
+                }}
+              >
+                <Languages size={13} />
+                {t('library.langFilterAll')}
+              </button>
+              {langOptions.audio.length === 0 && langOptions.subs.length === 0 && (
+                <div style={{
+                  padding: '12px', fontSize: 11, color: 'var(--fg-4)',
+                  fontFamily: 'var(--font-display)',
+                }}>{t('library.langFilterNone')}</div>
+              )}
+              {langOptions.audio.length > 0 && (
+                <div style={langMenuHeader}>{t('library.langFilterAudio')}</div>
+              )}
+              {langOptions.audio.map(([code, n]) => {
+                const active = langFilter === `audio:${code}`;
+                return (
+                  <button
+                    key={`audio:${code}`}
+                    onClick={() => { setLangFilter(active ? '' : `audio:${code}`); setLangPickerOpen(false); }}
+                    style={{ ...langMenuItem, background: active ? 'var(--bg-card)' : 'transparent' }}
+                  >
+                    <LangChip lang={code} />
+                    <span style={{ flex: 1 }} />
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)',
+                    }}>{n}</span>
+                    {active && <Check size={12} color="var(--blue-bright)" />}
+                  </button>
+                );
+              })}
+              {langOptions.subs.length > 0 && (
+                <div style={langMenuHeader}>{t('library.langFilterSubs')}</div>
+              )}
+              {langOptions.subs.map(([code, n]) => {
+                const active = langFilter === `subs:${code}`;
+                return (
+                  <button
+                    key={`subs:${code}`}
+                    onClick={() => { setLangFilter(active ? '' : `subs:${code}`); setLangPickerOpen(false); }}
+                    style={{ ...langMenuItem, background: active ? 'var(--bg-card)' : 'transparent' }}
+                  >
+                    <SubChip lang={code} />
+                    <span style={{ flex: 1 }} />
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-4)',
+                    }}>{n}</span>
+                    {active && <Check size={12} color="var(--blue-bright)" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
         {needTmdb > 0 && (
           <span style={warnChip}>⚠ {t('library.withoutTmdb', { n: needTmdb })}</span>
         )}
@@ -841,6 +989,7 @@ export function LibraryView({ onStartWizard, isMobile, refreshSignal }: { onStar
               {t('library.nothingToShow')}{' '}
               {hideUploaded && t('library.tryUnhideUploaded')}
               {hideNoItalian && ' ' + t('library.tryUnhideItalian')}
+              {langFilter && ' ' + t('library.tryClearLangFilter')}
             </div>
           )}
         </div>
@@ -1737,6 +1886,19 @@ const scanMenuItem: React.CSSProperties = {
   padding: '9px 12px', background: 'transparent', border: 'none',
   color: 'var(--fg-1)', fontSize: 12, cursor: 'pointer',
   fontFamily: 'var(--font-display)', textAlign: 'left',
+};
+
+const langMenuItem: React.CSSProperties = {
+  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+  padding: '6px 12px', background: 'transparent', border: 'none',
+  color: 'var(--fg-1)', fontSize: 12, cursor: 'pointer',
+  fontFamily: 'var(--font-display)', textAlign: 'left',
+};
+
+const langMenuHeader: React.CSSProperties = {
+  padding: '8px 12px 4px', fontSize: 9, fontWeight: 700,
+  letterSpacing: 'var(--tracking-wider)', textTransform: 'uppercase',
+  color: 'var(--fg-4)', fontFamily: 'var(--font-display)',
 };
 
 function TmdbEditModal({

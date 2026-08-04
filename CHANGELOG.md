@@ -6,6 +6,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Nuovo filtro **Lingua** nella Libreria: un menù a tendina elenca tutte le lingue trovate
+  nella categoria corrente — separate fra audio e sottotitoli, con il numero di elementi per
+  ciascuna — e mostra solo i media che la contengono. Si azzera con la × sul pulsante e al
+  cambio di categoria.
+
 ## [1.2.1] - 2026-08-01
 
 ### Fixed
