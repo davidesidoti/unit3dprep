@@ -112,6 +112,26 @@ CATALOG: dict[str, dict[str, str]] = {
         "it": "Release non trovata: {error}",
         "en": "Release not found: {error}",
     },
+    "err.arr_sonarr_not_configured": {
+        "it": "Sonarr non configurato",
+        "en": "Sonarr is not configured",
+    },
+    "err.arr_movie_not_found": {
+        "it": "Film non trovato in Radarr",
+        "en": "Movie not found in Radarr",
+    },
+    "err.arr_series_not_found": {
+        "it": "Serie non trovata in Sonarr",
+        "en": "Series not found in Sonarr",
+    },
+    "err.arr_missing_field": {
+        "it": "Campo mancante: {field}",
+        "en": "Missing field: {field}",
+    },
+    "err.arr_season_not_found": {
+        "it": "Stagione non trovata in Sonarr",
+        "en": "Season not found in Sonarr",
+    },
 }
 
 
