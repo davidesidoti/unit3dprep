@@ -157,3 +157,11 @@ export const GROUP_LABEL: CSSProperties = {
   paddingBottom: 6, borderBottom: '1px solid var(--border-subtle)',
   marginTop: 16,
 };
+
+// Compact square icon button: season header toolbar and other tight actions.
+export const ICON_BTN = {
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  width: 26, height: 22, borderRadius: 4, cursor: 'pointer',
+  border: '1px solid var(--border)', background: 'transparent',
+  padding: 0, flexShrink: 0,
+} as const;

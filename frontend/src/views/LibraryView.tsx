@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { api, openSSE } from '../api';
 import type { Category, LibraryItem, Season, SeasonStatus, SeriesStatus, WizardCtx } from '../types';
-import { LangChip, SubChip, Badge, LoadMore } from '../components/primitives';
+import { LangChip, SubChip, Badge, LoadMore, ICON_BTN } from '../components/primitives';
 import { useIncremental } from '../hooks/useIncremental';
 
 type SortKey = 'name' | 'year' | 'size';
@@ -23,14 +23,6 @@ const sizeToBytes = (s: string): number => {
   const mult: Record<string, number> = { TB: 1e12, GB: 1e9, MB: 1e6, KB: 1e3, B: 1 };
   return n * (mult[u] || 1);
 };
-
-// Compact square icon button used in the season header action toolbar.
-const seasonIconBtn = {
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  width: 26, height: 22, borderRadius: 4, cursor: 'pointer',
-  border: '1px solid var(--border)', background: 'transparent',
-  padding: 0, flexShrink: 0,
-} as const;
 
 interface TmdbSearchResult {
   id: number | string;
@@ -1417,7 +1409,7 @@ function SeasonRow({
                 onClick={() => onStart('series', season.path, season)}
                 title={t('library.bulkUploadSeason')}
                 aria-label={t('library.bulkUploadSeason')}
-                style={{ ...seasonIconBtn, background: 'var(--blue)', border: 'none', color: '#fff' }}
+                style={{ ...ICON_BTN, background: 'var(--blue)', border: 'none', color: '#fff' }}
               ><Upload size={12} /></button>
               <MarkUploadedBtn
                 category={category}
@@ -1595,7 +1587,7 @@ function MarkUploadedBtn({
         title={t('library.markUploaded')}
         aria-label={t('library.markUploaded')}
         style={{
-          ...seasonIconBtn,
+          ...ICON_BTN,
           borderColor: done ? 'var(--green)' : 'var(--border)',
           color: done ? 'var(--green)' : 'var(--fg-3)',
         }}
@@ -1703,7 +1695,7 @@ function ToCheckBtn({
         title={title}
         aria-label={title}
         style={{
-          ...seasonIconBtn,
+          ...ICON_BTN,
           background: on ? 'var(--yellow-dim)' : 'transparent',
           borderColor: on ? 'var(--yellow)' : 'var(--border)',
           color: accent,
