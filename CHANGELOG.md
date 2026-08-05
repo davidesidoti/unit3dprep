@@ -6,6 +6,8 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-08-05
+
 ### Added
 - Nuovo filtro **Lingua** nella Libreria: un menù a tendina elenca tutte le lingue trovate
   nella categoria corrente — separate fra audio e sottotitoli, con il numero di elementi per
