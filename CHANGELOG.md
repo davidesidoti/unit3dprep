@@ -6,6 +6,19 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-08-23
+
+### Changed
+- Quando Unit3DWebUp scarta il file durante lo scan, il messaggio d'errore del wizard
+  ("no Media for … (got 0 items)") elenca ora anche la causa più insidiosa: ffmpeg
+  installato e perfettamente funzionante da riga di comando, ma incapace di produrre
+  fotogrammi perché il servizio di Unit3DWebUp ha un limite di thread troppo basso.
+  Prima l'unico suggerimento era "ffmpeg mancante", che mandava fuori strada.
+
+### Added
+- Troubleshooting: nuova sezione con diagnosi e soluzione per quel caso, riconoscibile
+  dal messaggio `cannot reshape array of size 0` nei log di Unit3DWebUp.
+
 ## [1.3.0] - 2026-08-05
 
 ### Added
