@@ -606,7 +606,10 @@ async def stream_webup(
             if n_items == 0:
                 hint = (
                     " — webup's /scan dropped it. Common causes: "
-                    "ffmpeg missing (screenshots fail), TMDB/TVDB API key invalid, "
+                    "ffmpeg ran but produced no frames (webup logs "
+                    "\"cannot reshape array of size 0\"; usually a TasksMax/thread "
+                    "cap on webup's systemd unit, not a broken ffmpeg), "
+                    "ffmpeg missing, TMDB/TVDB API key invalid, "
                     "or image host upload failed. Check webup logs."
                 )
             yield {

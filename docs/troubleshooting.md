@@ -67,11 +67,41 @@ $WEBUP_VENV_BIN/pip install Unit3DwebUp
 
 ### `/scan` ritorna `0 items`
 
-Tre cause:
+Quattro cause:
 
 1. **ffmpeg mancante** — webup genera screenshot via ffmpeg, fallisce silenziosamente. Verifica `which ffmpeg`.
 2. **TMDB/TVDB API key invalide** — webup logga ma `/scan` ritorna comunque `[]`. Controlla `TRACKER__TMDB_APIKEY` / `TRACKER__TVDB_APIKEY` nel `.env`.
 3. **Image host non configurato** — webup tenta di uploadare gli screenshot prima di rispondere. Se nessun host ha chiave valida, la pipeline fallisce. Configura almeno un host in **Settings → Image host**.
+4. **ffmpeg c'è ma non produce frame** — se webup logga `cannot reshape array of size 0`, vedi [ffmpeg non produce frame](#ffmpeg-non-produce-frame-limite-tasksmax-del-cgroup).
+
+### ffmpeg non produce frame (limite TasksMax del cgroup)
+
+Sintomo insidioso: `ffmpeg` è installato e **funziona lanciato a mano**, ma ogni upload muore subito dopo `/scan`. Nei log di webup:
+
+```
+[ERROR] ScanMediaUseCase: 20 /path/al/file.mkv cannot reshape array of size 0 into shape (800,1920,3)
+```
+
+Webup estrae gli screenshot con `ffmpeg … -f rawvideo -pix_fmt rgb24 -` e passa lo stdout a `numpy.frombuffer(...).reshape(...)`, scartando `stderr`. Se ffmpeg non riesce ad avviare i suoi thread esce con `EAGAIN` scrivendo **0 byte**, e l'unico sintomo visibile è l'errore di reshape.
+
+La causa tipica è un `TasksMax` troppo basso nella unit systemd di webup: ffmpeg dimensiona i thread di filtro e decode su `nproc`, quindi su una macchina con molti core ne apre oltre un centinaio per singola invocazione. Webup inoltre processa in parallelo i media dello `SCAN_PATH`, moltiplicando i task.
+
+Verifica — riproduce il fallimento in isolamento:
+
+```bash
+systemd-run --user --scope -p TasksMax=100 ffmpeg -ss 300 -i /path/al/file.mkv -vframes 1 -f rawvideo -pix_fmt rgb24 - | wc -c
+```
+
+`0` conferma la diagnosi; senza il limite escono `larghezza × altezza × 3` byte.
+
+Fix — alza il limite nel drop-in della unit webup con `systemctl --user edit unit3dwebup.service`:
+
+```ini
+[Service]
+TasksMax=1024
+```
+
+Poi `systemctl --user daemon-reload && systemctl --user restart unit3dwebup.service`. 1024 lascia margine a più ffmpeg concorrenti e resta abbastanza basso da intercettare un leak di processi.
 
 ### `MULTI_TRACKER` o `TAG_POSITION_*` rifiutati da `/setenv`
 
@@ -242,6 +272,7 @@ Il bridge crea per ogni upload una sandbox dedicata `<seedings>/.unit3dprep/<job
 Se vedi comunque l'errore:
 
 - **ffmpeg mancante** → webup `/scan` fallisce silenziosamente sui screenshot. `which ffmpeg`.
+- **ffmpeg presente ma senza frame** → webup logga `cannot reshape array of size 0`. Vedi [ffmpeg non produce frame](#ffmpeg-non-produce-frame-limite-tasksmax-del-cgroup).
 - **TMDB/TVDB API key invalide o vuote** → webup logga `[ERROR] AsyncHttpClient: ... value should be str, int or float, got None`. Settala in **Settings → Metadata** (sia `TMDB_APIKEY` per webup, sia `TMDB_API_KEY` env per unit3dprep — stesso valore).
 - **Image host non configurato** → webup tenta upload screenshot prima di rispondere. Configura almeno una chiave in **Settings → Image host**.
 - **Layout legacy in `~/seedings/<file>.mkv` (flat, no sandbox)** → installazione pre-sandbox layout. Re-uploada da UI per generare la sandbox, oppure sposta a mano in `<seedings>/.unit3dprep/<random>/<file>.mkv`.
