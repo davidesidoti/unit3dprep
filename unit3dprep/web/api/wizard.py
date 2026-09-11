@@ -18,7 +18,7 @@ from ...core import (
     extract_specs,
     audio_and_subtitle_languages,
     iter_video_files,
-    map_source,
+    resolve_release,
     tmdb_fetch_bilingual,
     tmdb_poster_url,
     tmdb_year,
@@ -330,8 +330,7 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
         first = files[0]
         g = dict(_guessit(first.name))
         specs = extract_specs(first)
-        source, src_type = map_source(g)
-        tag = g.get("release_group", "") or folder_guess.get("release_group", "") or ""
+        source, src_type, tag = resolve_release(first, specs, folder_guess)
         # Season-pack folder name: include "S<NN>" right after the title.
         # Prefer the season inferred from the first episode's filename;
         # fall back to the folder's own guessit (`Season 1`, `S01`, etc.).

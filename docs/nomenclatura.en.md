@@ -7,6 +7,26 @@ Official ItaTorrents naming conventions. `unit3dprep` builds filenames according
 
 ---
 
+## Recovering original tags
+
+When the embedded MediaInfo title contains a release name matching the filename's
+title and season/episode, it is used to recover the source and release group.
+Plain titles without resolution or codec, and titles from other movies or episodes,
+are ignored. The wizard and CLI flag conflicting tags that were replaced: review
+the proposed name before confirming. An embedded title is provenance evidence,
+not proof of the source.
+
+`NFRip` is normalized to `NF WEBRip`. WEBRip remains distinct from WEB-DL; an
+HEVC WEBRip uses `x265` in the name. The group in the embedded title is preserved
+even if missing from the filename. Without a usable embedded title, filename tags
+are retained (with a folder release-group fallback for series).
+
+The audio codec comes from the default track, or the first track when none is
+marked default. The channel count is the maximum across all audio tracks:
+ITA stereo plus ENG 5.1 produces `ITA ENG AAC 5.1` when the default codec is AAC.
+
+---
+
 ## Introduction
 
 For efficient search and site consistency, ItaTorrents enforces strict naming conventions. Please name torrents at the source using the following standard.

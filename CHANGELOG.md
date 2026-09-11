@@ -6,6 +6,15 @@ Versioning: [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- Rinomina: recupera sorgente e releaser dal titolo interno MediaInfo quando il
+  filename ha perso i tag originali. I conflitti vengono segnalati nel wizard e
+  nella CLI; titoli interni di altri film o episodi non vengono usati.
+- Riconoscimento di NFRip come NF WEBRip e distinzione corretta tra WEBRip e WEB-DL,
+  anche nei nomi delle cartelle stagione.
+- Nomi release: codec audio dalla traccia predefinita e canali dalla traccia con
+  più canali, come previsto dalla nomenclatura ItaTorrents.
+
 ## [1.3.1] - 2026-08-23
 
 ### Changed

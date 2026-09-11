@@ -28,7 +28,7 @@ from .core import (
     hardlink_file,
     hardlink_tree,
     has_italian_audio,
-    map_source,
+    resolve_release,
     media_profile,
 )
 
@@ -92,8 +92,7 @@ def build_episode_names_detailed(
         if not se:
             continue
         specs = extract_specs(f)
-        source, src_type = map_source(g)
-        tag = g.get("release_group", "") or folder_guess.get("release_group", "") or ""
+        source, src_type, tag = resolve_release(f, specs, folder_guess)
         new_name = build_name(
             title=series_title, year="", se=se,
             specs=specs, source=source, src_type=src_type, tag=tag,
@@ -124,8 +123,7 @@ def build_movie_name_from_file_detailed(
     """Returns `(new_base_name, media_profile)` for a single video file."""
     g = dict(guessit(video_file.name))
     specs = extract_specs(video_file)
-    source, src_type = map_source(g)
-    tag = g.get("release_group", "") or ""
+    source, src_type, tag = resolve_release(video_file, specs)
     repack = "REPACK" if g.get("proper_count") else ""
     name = build_name(
         title=movie_title, year=year, se="",

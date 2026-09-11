@@ -16,6 +16,12 @@ SUPPORTED = ("it", "en")
 DEFAULT = "it"
 
 CATALOG: dict[str, dict[str, str]] = {
+    "naming.source": {"it": "sorgente", "en": "source"},
+    "naming.group": {"it": "releaser", "en": "release group"},
+    "naming.conflict": {
+        "it": "Conflitto {field}: il filename indica {original}. Il nome proposto usa il titolo interno MediaInfo: verifica prima di confermare.",
+        "en": "Conflicting {field}: the filename indicates {original}. The proposed name uses the embedded MediaInfo title: review before confirming.",
+    },
     "err.path_not_found": {
         "it": "Percorso non trovato",
         "en": "Path not found",

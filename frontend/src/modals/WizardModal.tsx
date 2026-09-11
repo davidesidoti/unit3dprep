@@ -464,7 +464,7 @@ function TmdbStep({ token, ctx, onNext }: {
 }
 
 /** Technical make-up of one file, as returned by the backend `file_specs`. */
-type FileProfile = Record<ProfileKey, string>;
+type FileProfile = Record<ProfileKey, string> & { source_original?: string; group_original?: string };
 
 const PROFILE_KEYS = ['resolution', 'codec', 'source', 'hdr', 'audio', 'dub', 'group'] as const;
 type ProfileKey = typeof PROFILE_KEYS[number];
@@ -610,6 +610,17 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
                   fontFamily: 'var(--font-mono)', outline: 'none',
                 }}
               />
+              {(['source', 'group'] as const).map((field) => {
+                const original = specs[file]?.[`${field}_original`];
+                return original ? (
+                  <div key={field} style={{ color: 'var(--yellow)', fontSize: 11, marginTop: 5 }}>
+                    {t('wizard.namingConflict', {
+                      field: t(`wizard.oddAttr.${field}`),
+                      original, embedded: specs[file][field],
+                    })}
+                  </div>
+                ) : null;
+              })}
               {odd && (
                 <div style={{
                   display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 5,

@@ -233,6 +233,7 @@ def extract_specs(path: Path) -> dict:
     if MediaInfo is None:
         raise RuntimeError("pymediainfo not installed")
     info = MediaInfo.parse(str(path))
+    general = next((t for t in info.tracks if t.track_type == "General"), None)
     video_track = next((t for t in info.tracks if t.track_type == "Video"), None)
     audio_tracks = [t for t in info.tracks if t.track_type == "Audio"]
 
@@ -241,6 +242,8 @@ def extract_specs(path: Path) -> dict:
         "bit_depth": None, "scan_type": "", "writing_library": "",
         "acodec": "", "channels": "", "object": "",
         "dub": [],
+        "release_title": (getattr(general, "movie_name", None)
+                          or getattr(general, "title", None) or ""),
     }
 
     if video_track:
@@ -290,7 +293,9 @@ def extract_specs(path: Path) -> dict:
             specs["hdr"] = "HLG"
 
     if audio_tracks:
-        main = audio_tracks[0]
+        main = next((t for t in audio_tracks
+                     if str(getattr(t, "default", "")).lower() in {"yes", "true", "1"}),
+                    audio_tracks[0])
         fmt = (getattr(main, "format", "") or "").lower()
         comm = (getattr(main, "format_commercial_if_any", "")
                 or getattr(main, "commercial_name", "") or "").lower()
@@ -326,11 +331,14 @@ def extract_specs(path: Path) -> dict:
         else:
             specs["acodec"] = (getattr(main, "format", "") or "").upper()
 
-        try:
-            ch = int(getattr(main, "channel_s", 0) or 0)
-            specs["channels"] = CHANNELS_MAP.get(ch, f"{ch}.0")
-        except (ValueError, TypeError):
-            specs["channels"] = ""
+        channels = []
+        for track in audio_tracks:
+            try:
+                channels.append(int(getattr(track, "channel_s", 0) or 0))
+            except (ValueError, TypeError):
+                continue
+        ch = max(channels, default=0)
+        specs["channels"] = CHANNELS_MAP.get(ch, f"{ch}.0") if ch > 0 else ""
 
         if "atmos" in comm or "atmos" in fmt:
             specs["object"] = "Atmos"
@@ -409,6 +417,7 @@ def media_profile(specs: dict, source: str, src_type: str, tag: str = "") -> dic
         ),
         "dub": " ".join(specs.get("dub") or []),
         "group": tag or "",
+        **specs.get("naming_conflicts", {}),
     }
 
 
@@ -425,8 +434,10 @@ def map_source(guess: dict) -> tuple[str, str]:
     stream = (guess.get("streaming_service") or "").lower()
 
     is_remux = "remux" in other_l
-    is_webdl = "web-dl" in other_l or src == "web"
-    is_webrip = "webrip" in other_l or "web-rip" in other_l
+    is_webrip = (src in {"webrip", "web-rip"}
+                 or "webrip" in other_l or "web-rip" in other_l
+                 or (src == "web" and "rip" in other_l))
+    is_webdl = not is_webrip and ("web-dl" in other_l or src in {"web", "web-dl"})
     is_hdtv = src == "hdtv"
     is_uhd = "ultra hd blu-ray" in src or "uhd" in other_l
 
@@ -446,6 +457,65 @@ def map_source(guess: dict) -> tuple[str, str]:
     if "dvd" in src:
         return "DVD", ""
     return (src.upper() if src else ""), ""
+
+
+def guess_release(name: str) -> dict:
+    """Parse release names, including the Italian Netflix-rip alias."""
+    normalized = re.sub(r"(?i)(?<![a-z0-9])NF[ ._-]?Rip(?![a-z0-9])", "NF WEBRip", name)
+    return dict(guessit(normalized))
+
+
+def resolve_release(path: Path, specs: dict, folder_guess: dict | None = None) -> tuple[str, str, str]:
+    """Reconcile filename tags with a structured, matching container title.
+
+    A release-like embedded title preserves provenance lost by library renaming.
+    Never borrow metadata from a different episode/movie or a plain movie title.
+    Identity (title, year, S/E) for the final name still comes from the caller.
+    Conflicts are exposed in the profile for review before creating hardlinks.
+    """
+    file_guess = guess_release(path.name)
+    source, src_type = map_source(file_guess)
+    tag = file_guess.get("release_group") or (folder_guess or {}).get("release_group") or ""
+    specs["naming_conflicts"] = {}
+    embedded_title = specs.get("release_title") or ""
+    if not embedded_title:
+        return source, src_type, tag
+    embedded = guess_release(embedded_title)
+
+    # Require technical release markers; ordinary titles can resemble source tags.
+    if not (embedded.get("screen_size") or embedded.get("video_codec")):
+        return source, src_type, tag
+    def identity(value):
+        return set(value if isinstance(value, list) else [value]) if value is not None else set()
+    for key in ("season", "episode"):
+        if identity(file_guess.get(key)) != identity(embedded.get(key)):
+            return source, src_type, tag
+    if (file_guess.get("year") and embedded.get("year")
+            and file_guess["year"] != embedded["year"]):
+        return source, src_type, tag
+    def title_key(value):
+        return re.sub(r"[\W_]+", "", str(value or "").casefold())
+    file_title = title_key(file_guess.get("title"))
+    if not file_title or file_title != title_key(embedded.get("title")):
+        return source, src_type, tag
+
+    embedded_source, embedded_type = map_source(embedded)
+    if (embedded.get("source") == "Web" and not embedded.get("streaming_service")
+            and file_guess.get("source") == "Web" and file_guess.get("streaming_service")):
+        # A generic embedded WEB tag does not contradict a known provider.
+        embedded_source = source
+    if embedded_source or embedded_type:
+        old_source = " ".join(p for p in (source, src_type) if p)
+        new_source = " ".join(p for p in (embedded_source, embedded_type) if p)
+        if old_source and old_source != new_source:
+            specs["naming_conflicts"]["source_original"] = old_source
+        source, src_type = embedded_source, embedded_type
+    embedded_tag = embedded.get("release_group") or ""
+    if embedded_tag:
+        if tag and tag != embedded_tag:
+            specs["naming_conflicts"]["group_original"] = tag
+        tag = embedded_tag
+    return source, src_type, tag
 
 
 # ---------------------------------------------------------------------------

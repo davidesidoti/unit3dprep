@@ -469,6 +469,7 @@ export const en = {
     tmdbNext: 'Next: Rename →',
     namesDesc: 'Proposed names follow ItaTorrents nomenclature.',
     namesWarning: ' Edit anything that looks wrong before creating hardlinks.',
+    namingConflict: '{{field}} conflict: filename = {{original}}, embedded title = {{embedded}}. The proposal uses the embedded title; verify before continuing.',
     namesLoading: 'loading proposed names…',
     namesFolderLabel: 'Folder name (seedings/…)',
     namesNext: 'Next: Hardlink →',

@@ -471,6 +471,7 @@ export const it: Catalog = {
     tmdbNext: 'Avanti: Rinomina →',
     namesDesc: 'I nomi proposti seguono la nomenclatura ItaTorrents.',
     namesWarning: ' Modifica tutto ciò che sembra errato prima di creare gli hardlink.',
+    namingConflict: 'Conflitto {{field}}: filename = {{original}}, titolo interno = {{embedded}}. La proposta usa il titolo interno; verifica prima di continuare.',
     namesLoading: 'caricamento nomi proposti…',
     namesFolderLabel: 'Nome cartella (seedings/…)',
     namesNext: 'Avanti: Hardlink →',

@@ -15,13 +15,19 @@ from .core import (
     format_se,
     has_italian_audio,
     iter_video_files,
-    map_source,
+    resolve_release,
     tmdb_fetch,
     tmdb_year,
 )
 from .upload import do_hardlink_movie, do_hardlink_series
+from .i18n import t
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
+
+
+def _print_naming_conflicts(specs: dict) -> None:
+    for field, original in specs.get("naming_conflicts", {}).items():
+        print(t("naming.conflict", field=t(f"naming.{field.removesuffix('_original')}"), original=original))
 
 
 def prompt_confirm(msg: str) -> bool:
@@ -131,8 +137,8 @@ def handle_file(path: Path):
     year = tmdb_year(tmdb_data, kind)
 
     specs = extract_specs(path)
-    source, src_type = map_source(guess)
-    tag = guess.get("release_group", "") or ""
+    source, src_type, tag = resolve_release(path, specs)
+    _print_naming_conflicts(specs)
 
     proposed = build_name(
         title=title, year=year, se="",
@@ -201,8 +207,8 @@ def handle_folder(folder: Path):
             print(f"Avviso: impossibile ricavare S##E## da '{f.name}'. Lo salto.")
             continue
         specs = extract_specs(f)
-        source, src_type = map_source(g)
-        tag = g.get("release_group", "") or folder_guess.get("release_group", "") or ""
+        source, src_type, tag = resolve_release(f, specs, folder_guess)
+        _print_naming_conflicts(specs)
         if sample_specs is None:
             sample_specs, sample_source, sample_type, sample_tag = specs, source, src_type, tag
         new_name = build_name(
