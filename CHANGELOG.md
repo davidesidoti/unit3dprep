@@ -7,6 +7,9 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- Encode BluRay: il nome e il profilo tecnico usano x264/x265, con il codec
+  dopo l'audio. Le release esplicitamente indicate come remux mantengono AVC/HEVC
+  e l'ordine dei campi previsto per i remux.
 - Rinomina: recupera sorgente e releaser dal titolo interno MediaInfo quando il
   filename ha perso i tag originali. I conflitti vengono segnalati nel wizard e
   nella CLI; titoli interni di altri film o episodi non vengono usati.

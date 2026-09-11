@@ -367,7 +367,9 @@ def vcodec_for_type(specs: dict, src_type: str) -> str:
     is_mpeg2 = "MPEG" in fmt and "2" in fmt
     is_vc1 = "VC-1" in fmt
 
-    if t in {"remux", "disc", "bluray", "uhd bluray", "3d bluray", "hddvd"}:
+    # A BluRay source also describes encodes; only an explicit disc/remux type
+    # uses native codec labels, even when the bitstream was authored with x264.
+    if t in {"remux", "disc"}:
         if is_hevc: return "HEVC"
         if is_avc: return "AVC"
         if is_mpeg2: return "MPEG-2"
@@ -683,9 +685,8 @@ def build_name(
     if src_type:
         parts.append(src_type)
 
-    is_disc_or_remux = src_type.upper() in {"REMUX", ""} and source in {
-        "BluRay", "UHD BluRay", "3D BluRay", "HDDVD"
-    }
+    # Empty type is the encode convention, not evidence of an untouched disc.
+    is_disc_or_remux = src_type.upper() in {"REMUX", "DISC"}
     dubs = dub_override if dub_override is not None else specs.get("dub", [])
     dub_str = " ".join(dubs) if dubs else ""
 
