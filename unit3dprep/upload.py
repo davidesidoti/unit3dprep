@@ -74,6 +74,7 @@ def build_episode_names_detailed(
     series_title: str,
     year: str,
     folder_guess: dict,
+    release_names: dict[str, str] | None = None,
 ) -> dict[Path, tuple[str, dict[str, str]]]:
     """Like `build_episode_names`, but also returns each file's media profile.
 
@@ -92,7 +93,7 @@ def build_episode_names_detailed(
         if not se:
             continue
         specs = extract_specs(f)
-        source, src_type, tag = resolve_release(f, specs, folder_guess)
+        source, src_type, tag = resolve_release(f, specs, folder_guess, (release_names or {}).get(str(f), ""))
         new_name = build_name(
             title=series_title, year="", se=se,
             specs=specs, source=source, src_type=src_type, tag=tag,

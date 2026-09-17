@@ -19,6 +19,7 @@ from ...core import (
     audio_and_subtitle_languages,
     iter_video_files,
     resolve_release,
+    PROFILE_KEYS,
     tmdb_fetch_bilingual,
     tmdb_poster_url,
     tmdb_year,
@@ -36,6 +37,7 @@ from ..db import record_upload, update_exit_code
 from ..tocheck import add_flag
 from ..duplicate_check import find_duplicate
 from ..logbuf import emit as log_emit
+from ..release_provenance import fetch_release_names
 from ..webup_orchestrator import stream_webup
 
 TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "")
@@ -283,6 +285,8 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
     year = state["tmdb_year"]
     specs_map: dict[str, dict[str, str]] = {}
     state["file_specs"] = specs_map
+    state["folder_mixed"] = False
+    state["naming_notice"] = ""
     if kind == "movie":
         files = [path] if path.is_file() else list(iter_video_files(path))
         proposed: dict[str, str] = {}
@@ -293,8 +297,9 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
             proposed[str(vf)] = name
             specs_map[str(vf)] = profile
         return proposed
+    files = [path] if path.is_file() else list(iter_video_files(path))
+    release_names, state["naming_notice"] = await fetch_release_names(files)
     if kind == "episode":
-        files = [path] if path.is_file() else list(iter_video_files(path))
         if not files:
             raise HTTPException(400, _i18n_t("err.no_video_episode"))
         episode_file = files[0]
@@ -303,7 +308,7 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
         detailed = await loop.run_in_executor(
             None,
             lambda: {str(k): v for k, v in build_episode_names_detailed(
-                season_folder, [episode_file], title, year, folder_guess
+                season_folder, [episode_file], title, year, folder_guess, release_names
             ).items()},
         )
         result = {k: name for k, (name, _) in detailed.items()}
@@ -317,11 +322,10 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
         return result
     # series
     folder_guess = dict(_guessit(path.name))
-    files = list(iter_video_files(path))
     detailed = await loop.run_in_executor(
         None,
         lambda: {str(k): v for k, v in build_episode_names_detailed(
-            path, files, title, year, folder_guess
+            path, files, title, year, folder_guess, release_names
         ).items()},
     )
     result = {k: name for k, (name, _) in detailed.items()}
@@ -330,7 +334,7 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
         first = files[0]
         g = dict(_guessit(first.name))
         specs = extract_specs(first)
-        source, src_type, tag = resolve_release(first, specs, folder_guess)
+        source, src_type, tag = resolve_release(first, specs, folder_guess, release_names.get(str(first), ""))
         # Season-pack folder name: include "S<NN>" right after the title.
         # Prefer the season inferred from the first episode's filename;
         # fall back to the folder's own guessit (`Season 1`, `S01`, etc.).
@@ -338,9 +342,18 @@ async def _build_proposed_names(state: dict[str, Any]) -> dict[str, str]:
         if isinstance(season, list):
             season = season[0] if season else None
         season_label = f"S{int(season):02d}" if season is not None else ""
+        multiple_seasons = len({str(_guessit(f.name).get("season")) for f in files}) > 1
+        if multiple_seasons:
+            season_label = ""
+        profiles = list(specs_map.values())
+        mixed = (multiple_seasons or len(profiles) != len(files)
+                 or any(len({p.get(key, "") for p in profiles}) > 1 for key in PROFILE_KEYS)
+                 or any(p.get("metadata_rejected") and not p.get("release_evidence") for p in profiles))
+        state["folder_mixed"] = mixed
         folder_nm = build_name(
             title=title, year="", se=season_label,
-            specs=specs, source=source, src_type=src_type, tag=tag,
+            specs={} if mixed else specs, source="" if mixed else source,
+            src_type="" if mixed else src_type, tag="" if mixed else tag,
         )
         state["folder_name"] = folder_nm
     return result

@@ -9,7 +9,24 @@ Convenzioni di denominazione ufficiali ItaTorrents. `unit3dprep` costruisce i no
 
 ## Recupero dei tag originali
 
-Se il titolo interno MediaInfo contiene un nome release con titolo e stagione/episodio
+Per serie ed episodi, se Sonarr è configurato, il wizard cerca il rilascio scaricato
+nella cronologia. Lo usa solo quando il file attuale corrisponde per percorso e
+dimensione, l'importazione coincide con la data registrata e gli eventi di download
+e importazione condividono episodio e ID download. Questo evita di riusare la
+provenienza di una versione precedente dello stesso episodio. Il nome del rilascio
+deve inoltre concordare con titolo, stagione e codec video. Il wizard mostra la
+provenienza utilizzata; se Sonarr non risponde, continua con un avviso.
+
+Un titolo interno che indica un codec incompatibile con il video reale (per esempio
+`XviD` su un file HEVC) viene ignorato e segnalato. Senza una provenienza verificabile,
+controlla manualmente la sorgente proposta: il filename può essere già errato.
+
+Il nome della cartella stagione include i tag tecnici solo se tutti gli episodi
+hanno profili concordanti e nessuna incoerenza irrisolta. Altrimenti viene proposto
+solo titolo e stagione, con un avviso. Una selezione che comprende più stagioni
+non riceve il numero della prima stagione.
+
+In assenza di una provenienza Sonarr utilizzabile, se il titolo interno MediaInfo contiene un nome release con titolo e stagione/episodio
 coerenti con il filename, viene usato per recuperare sorgente e releaser. I titoli
 semplici, senza risoluzione o codec, e quelli di altri film o episodi vengono ignorati.
 In caso di conflitto, il wizard e la CLI segnalano i tag sostituiti: controlla il nome

@@ -27,6 +27,11 @@ TMDB_API_KEY = os.environ.get("TMDB_API_KEY")
 
 def _print_naming_conflicts(specs: dict) -> None:
     for field, original in specs.get("naming_conflicts", {}).items():
+        if field == "metadata_rejected":
+            print(t("naming.metadata_rejected", codec=original))
+            continue
+        if not field.endswith("_original"):
+            continue
         print(t("naming.conflict", field=t(f"naming.{field.removesuffix('_original')}"), original=original))
 
 

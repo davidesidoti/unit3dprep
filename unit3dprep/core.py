@@ -467,7 +467,14 @@ def guess_release(name: str) -> dict:
     return dict(guessit(normalized))
 
 
-def resolve_release(path: Path, specs: dict, folder_guess: dict | None = None) -> tuple[str, str, str]:
+def _codec_family(value: str) -> str:
+    value = re.sub(r"[^a-z0-9]", "", value.lower())
+    return {"avc": "h264", "x264": "h264", "hevc": "h265", "x265": "h265",
+            "xvid": "mpeg4visual", "divx": "mpeg4visual"}.get(value, value)
+
+
+def resolve_release(path: Path, specs: dict, folder_guess: dict | None = None,
+                    release_name: str = "") -> tuple[str, str, str]:
     """Reconcile filename tags with a structured, matching container title.
 
     A release-like embedded title preserves provenance lost by library renaming.
@@ -480,9 +487,20 @@ def resolve_release(path: Path, specs: dict, folder_guess: dict | None = None) -
     tag = file_guess.get("release_group") or (folder_guess or {}).get("release_group") or ""
     specs["naming_conflicts"] = {}
     embedded_title = specs.get("release_title") or ""
+    actual_codec = _codec_family(specs.get("vcodec_format") or "")
+    old_codec = guess_release(embedded_title).get("video_codec") if embedded_title else ""
+    if old_codec and actual_codec and _codec_family(old_codec) != actual_codec:
+        specs["naming_conflicts"]["metadata_rejected"] = str(old_codec)
+        if not release_name:
+            return source, src_type, tag
+    embedded_title = release_name or embedded_title
     if not embedded_title:
         return source, src_type, tag
     embedded = guess_release(embedded_title)
+    claimed_codec = embedded.get("video_codec")
+    if claimed_codec and actual_codec and _codec_family(claimed_codec) != actual_codec:
+        specs["naming_conflicts"]["metadata_rejected"] = str(claimed_codec)
+        return source, src_type, tag
 
     # Require technical release markers; ordinary titles can resemble source tags.
     if not (embedded.get("screen_size") or embedded.get("video_codec")):
@@ -490,6 +508,9 @@ def resolve_release(path: Path, specs: dict, folder_guess: dict | None = None) -
     def identity(value):
         return set(value if isinstance(value, list) else [value]) if value is not None else set()
     for key in ("season", "episode"):
+        if key == "episode" and release_name and embedded.get(key) is None:
+            # Sonarr already linked this file to the grabbed season pack.
+            continue
         if identity(file_guess.get(key)) != identity(embedded.get(key)):
             return source, src_type, tag
     if (file_guess.get("year") and embedded.get("year")
@@ -500,6 +521,9 @@ def resolve_release(path: Path, specs: dict, folder_guess: dict | None = None) -
     file_title = title_key(file_guess.get("title"))
     if not file_title or file_title != title_key(embedded.get("title")):
         return source, src_type, tag
+
+    if release_name:
+        specs["naming_conflicts"]["release_evidence"] = release_name
 
     embedded_source, embedded_type = map_source(embedded)
     if (embedded.get("source") == "Web" and not embedded.get("streaming_service")

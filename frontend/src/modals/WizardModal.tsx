@@ -464,7 +464,10 @@ function TmdbStep({ token, ctx, onNext }: {
 }
 
 /** Technical make-up of one file, as returned by the backend `file_specs`. */
-type FileProfile = Record<ProfileKey, string> & { source_original?: string; group_original?: string };
+type FileProfile = Record<ProfileKey, string> & {
+  source_original?: string; group_original?: string;
+  metadata_rejected?: string; release_evidence?: string;
+};
 
 const PROFILE_KEYS = ['resolution', 'codec', 'source', 'hdr', 'audio', 'dub', 'group'] as const;
 type ProfileKey = typeof PROFILE_KEYS[number];
@@ -505,6 +508,8 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
   const [names, setNames] = useState<Record<string, string>>({});
   const [specs, setSpecs] = useState<Record<string, FileProfile>>({});
   const [folder, setFolder] = useState('');
+  const [folderMixed, setFolderMixed] = useState(false);
+  const [namingNotice, setNamingNotice] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -512,6 +517,8 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
       setNames(s.final_names || {});
       setSpecs(s.file_specs || {});
       setFolder(s.folder_name || '');
+      setFolderMixed(!!s.folder_mixed);
+      setNamingNotice(s.naming_notice || '');
       setLoading(false);
     });
   }, [token]);
@@ -555,6 +562,7 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
       )}
       {folder && (
         <div style={{ marginBottom: 12 }}>
+          {folderMixed && <div style={{ color: 'var(--yellow)', fontSize: 12, marginBottom: 8 }}>{t('wizard.folderMixed')}</div>}
           <label style={{
             fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
             letterSpacing: 'var(--tracking-wider)', color: 'var(--fg-4)',
@@ -576,6 +584,7 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
         background: 'var(--bg-base)', border: '1px solid var(--border-subtle)',
         borderRadius: 6, maxHeight: 300, overflowY: 'auto',
       }}>
+        {namingNotice === 'sonarr_unavailable' && <div style={{ color: 'var(--yellow)', fontSize: 12, padding: 12 }}>{t('wizard.sonarrUnavailable')}</div>}
         {entries.map(([file, name], i) => {
           const odd = oddFiles[file];
           return (
@@ -610,6 +619,16 @@ function NamesStep({ token, onNext }: { token: string; onNext: () => void; }) {
                   fontFamily: 'var(--font-mono)', outline: 'none',
                 }}
               />
+              {specs[file]?.metadata_rejected && (
+                <div style={{ color: 'var(--yellow)', fontSize: 11, marginTop: 5 }}>
+                  {t('wizard.metadataRejected', { codec: specs[file].metadata_rejected })}
+                </div>
+              )}
+              {specs[file]?.release_evidence && (
+                <div style={{ color: 'var(--fg-3)', fontSize: 11, marginTop: 5, overflowWrap: 'anywhere' }}>
+                  {t('wizard.releaseEvidence', { title: specs[file].release_evidence })}
+                </div>
+              )}
               {(['source', 'group'] as const).map((field) => {
                 const original = specs[file]?.[`${field}_original`];
                 return original ? (

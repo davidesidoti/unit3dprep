@@ -7,6 +7,12 @@ Versioning: [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Fixed
+- Wizard serie: recupera il rilascio d'origine dalla cronologia Sonarr collegata
+  al file importato, anche quando filename e titoli interni conservano tag errati.
+- Titoli interni con codec incompatibile con il video vengono ignorati e segnalati;
+  il wizard mostra il rilascio Sonarr usato e avvisa se la cronologia non è disponibile.
+- Le cartelle stagione non ereditano più i tag del primo episodio quando i profili
+  differiscono o restano metadati incoerenti: viene proposto un nome senza tag tecnici.
 - Encode BluRay: il nome e il profilo tecnico usano x264/x265, con il codec
   dopo l'audio. Le release esplicitamente indicate come remux mantengono AVC/HEVC
   e l'ordine dei campi previsto per i remux.

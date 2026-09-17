@@ -9,7 +9,23 @@ Official ItaTorrents naming conventions. `unit3dprep` builds filenames according
 
 ## Recovering original tags
 
-When the embedded MediaInfo title contains a release name matching the filename's
+For series and episodes, when Sonarr is configured, the wizard looks up the grabbed
+release in its history. It requires the current file's path and size to match, an
+import matching the recorded addition time, and grab/import events sharing the
+episode and download ID. This avoids reusing provenance from an older version of
+the episode. The release must also match the title, season and video codec. The
+wizard shows the release used; if Sonarr is unavailable, it continues with a warning.
+
+An embedded title claiming a codec incompatible with the actual video (such as
+`XviD` for HEVC) is ignored and flagged. Without verifiable provenance, review the
+proposed source manually: the filename may already be wrong.
+
+Season folder names include technical tags only when all episode profiles agree
+and no metadata conflict remains unresolved. Otherwise only title and season are
+proposed, with a warning. Selections spanning multiple seasons do not inherit the
+first season's number.
+
+Without usable Sonarr provenance, when the embedded MediaInfo title contains a release name matching the filename's
 title and season/episode, it is used to recover the source and release group.
 Plain titles without resolution or codec, and titles from other movies or episodes,
 are ignored. The wizard and CLI flag conflicting tags that were replaced: review

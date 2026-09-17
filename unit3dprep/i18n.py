@@ -16,6 +16,10 @@ SUPPORTED = ("it", "en")
 DEFAULT = "it"
 
 CATALOG: dict[str, dict[str, str]] = {
+    "naming.metadata_rejected": {
+        "it": "Titolo interno ignorato: indica {codec}, incompatibile con il video. Verifica la sorgente proposta.",
+        "en": "Embedded title ignored: it indicates {codec}, incompatible with the video. Verify the proposed source.",
+    },
     "naming.source": {"it": "sorgente", "en": "source"},
     "naming.group": {"it": "releaser", "en": "release group"},
     "naming.conflict": {
